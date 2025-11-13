@@ -1,0 +1,10 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2fd",
+  "name": "IIIF Annotations (No-DB)",
+  "icon": "fa fa-pencil-square-o",
+  "component": "views/components/plugins/iiif-annotation-workflow",
+  "componentname": "iiif-annotation-workflow",
+  "config": { "show": true },
+  "slug": "iiif-annotation-workflow",
+  "sortorder": 0
+}

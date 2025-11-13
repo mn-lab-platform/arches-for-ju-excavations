@@ -1,0 +1,30 @@
+<div class="workflow-step-container">
+  <h4>Create Annotations</h4>
+
+  <div data-bind="visible: !ko.unwrap(imageServiceUrl)" class="alert alert-warning">
+    <p>No image selected. Please go back and select an image first.</p>
+  </div>
+
+  <div data-bind="visible: ko.unwrap(imageServiceUrl)">
+    <p>Image Service URL: <code data-bind="text: ko.unwrap(imageServiceUrl)"></code></p>
+
+    <!-- afterRender receives an ARRAY of nodes -->
+    <div data-bind="template: { afterRender: afterMapRender }">
+      <div id="annotation-map" style="height:600px;width:100%;background:#f0f0f0;border:1px solid #ddd;">
+        <div style="padding:20px;text-align:center;">
+          <p>Map viewer will be displayed here</p>
+          <p><small>Leaflet.IIIF plugin must be loaded</small></p>
+        </div>
+      </div>
+    </div>
+
+    <div data-bind="visible: annotations().length > 0" style="margin-top:20px;">
+      <h5>Annotations (<span data-bind="text: annotations().length"></span>)</h5>
+      <ul data-bind="foreach: annotations">
+        <li><span data-bind="text: type"></span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>.workflow-step-container{padding:20px}</style>
