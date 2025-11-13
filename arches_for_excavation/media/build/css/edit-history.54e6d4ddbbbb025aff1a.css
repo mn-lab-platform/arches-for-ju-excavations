@@ -1,0 +1,53 @@
+/*!*********************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js!./node_modules/postcss-loader/dist/cjs.js!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-5.use[3]!../../opt/venv/lib/python3.13/site-packages/arches/app/media/css/edit-history.scss ***!
+  \*********************************************************************************************************************************************************************************************************************************************/
+.edit-history {
+    display: flex;
+    flex-direction: column;
+    padding: 0 30px;
+}
+.edit-history .resource-grid-title {
+    padding: 0;
+}
+.edit-history .recent-additions-container {
+    padding: 0;
+}
+.edit-history .dataTables_wrapper .row:first-child {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    margin: 0;
+}
+.edit-history .dataTables_wrapper .row:first-child div {
+    width: auto;
+}
+.edit-history .dataTables_wrapper .row:first-child input.form-control.input-sm {
+    margin-left: 0;
+}
+.edit-history .dataTables_wrapper .row:first-child div:first-child {
+    display: flex;
+    flex: 1;
+}
+.edit-history .dataTables_wrapper .row:last-child {
+    margin: 10px 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.edit-history .dataTables_wrapper .row:last-child div {
+    width: auto;
+}
+.edit-history .dataTables_wrapper .row:last-child div:first-child {
+    display: flex;
+    flex: 1;
+}
+.edit-history .dataTables_wrapper .row:last-child .dataTables_info {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY3NzL2VkaXQtaGlzdG9yeS41NGU2ZDRkZGJiYmIwMjVhZmYxYS5jc3MiLCJtYXBwaW5ncyI6Ijs7O0FBQUE7SUFDSTtJQUNBO0lBQ0E7QUFDSjtBQUNJO0lBQ0k7QUFDUjtBQUVJO0lBQ0k7QUFBUjtBQUtRO0lBQ0k7SUFDQTtJQUNBO0lBQ0E7SUFDQTtJQUNBO0FBSFo7QUFLWTtJQUNJO0FBSGhCO0FBTVk7SUFDSTtBQUpoQjtBQU9ZO0lBQ0k7SUFDQTtBQUxoQjtBQVNRO0lBQ0k7SUFDQTtJQUNBO0lBQ0E7SUFDQTtJQUNBO0FBUFo7QUFTWTtJQUNJO0FBUGhCO0FBVVk7SUFDSTtJQUNBO0FBUmhCO0FBVVk7SUFDSTtJQUNBO0FBUmhCLEMiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly9hcmNoZXNfc2xvY2FsLy4uLy4uL29wdC92ZW52L2xpYi9weXRob24zLjEzL3NpdGUtcGFja2FnZXMvYXJjaGVzL2FwcC9tZWRpYS9jc3MvZWRpdC1oaXN0b3J5LnNjc3MiXSwic291cmNlc0NvbnRlbnQiOlsiLmVkaXQtaGlzdG9yeSB7XG4gICAgZGlzcGxheTogZmxleDsgXG4gICAgZmxleC1kaXJlY3Rpb246IGNvbHVtbjtcbiAgICBwYWRkaW5nOiAwIDMwcHg7XG5cbiAgICAucmVzb3VyY2UtZ3JpZC10aXRsZSB7XG4gICAgICAgIHBhZGRpbmc6IDA7XG4gICAgfVxuXG4gICAgLnJlY2VudC1hZGRpdGlvbnMtY29udGFpbmVyIHtcbiAgICAgICAgcGFkZGluZzogMDtcbiAgICB9XG5cbiAgICAuZGF0YVRhYmxlc193cmFwcGVyIHtcblxuICAgICAgICAucm93OmZpcnN0LWNoaWxkIHtcbiAgICAgICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgICAgICBmbGV4LWRpcmVjdGlvbjogcm93O1xuICAgICAgICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7XG4gICAgICAgICAgICBhbGlnbi1pdGVtczogZmxleC1zdGFydDtcbiAgICAgICAgICAgIHdpZHRoOiAxMDAlO1xuICAgICAgICAgICAgbWFyZ2luOiAwO1xuXG4gICAgICAgICAgICBkaXYge1xuICAgICAgICAgICAgICAgIHdpZHRoOiBhdXRvO1xuICAgICAgICAgICAgfVxuXG4gICAgICAgICAgICBpbnB1dC5mb3JtLWNvbnRyb2wuaW5wdXQtc20ge1xuICAgICAgICAgICAgICAgIG1hcmdpbi1sZWZ0OiAwO1xuICAgICAgICAgICAgfVxuXG4gICAgICAgICAgICBkaXY6Zmlyc3QtY2hpbGQge1xuICAgICAgICAgICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgICAgICAgICAgZmxleDogMVxuICAgICAgICAgICAgfVxuICAgICAgICB9XG5cbiAgICAgICAgLnJvdzpsYXN0LWNoaWxke1xuICAgICAgICAgICAgbWFyZ2luOiAxMHB4IDA7XG4gICAgICAgICAgICBkaXNwbGF5OiBmbGV4O1xuICAgICAgICAgICAgZmxleC1kaXJlY3Rpb246IHJvdztcbiAgICAgICAgICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xuICAgICAgICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjtcbiAgICAgICAgICAgIHdpZHRoOiAxMDAlO1xuXG4gICAgICAgICAgICBkaXYge1xuICAgICAgICAgICAgICAgIHdpZHRoOiBhdXRvO1xuICAgICAgICAgICAgfVxuXG4gICAgICAgICAgICBkaXY6Zmlyc3QtY2hpbGQge1xuICAgICAgICAgICAgICAgIGRpc3BsYXk6IGZsZXg7XG4gICAgICAgICAgICAgICAgZmxleDogMVxuICAgICAgICAgICAgfVxuICAgICAgICAgICAgLmRhdGFUYWJsZXNfaW5mbyB7XG4gICAgICAgICAgICAgICAgcGFkZGluZy10b3A6IDA7XG4gICAgICAgICAgICAgICAgbWFyZ2luLXRvcDogMDtcbiAgICAgICAgICAgIH1cbiAgICAgICAgfVxuICAgIH0gXG59Il0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9*/

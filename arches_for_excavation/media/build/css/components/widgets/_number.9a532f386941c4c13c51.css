@@ -1,0 +1,18 @@
+/*!***********************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js!./node_modules/postcss-loader/dist/cjs.js!./node_modules/sass-loader/dist/cjs.js??clonedRuleSet-5.use[3]!../../opt/venv/lib/python3.13/site-packages/arches/app/media/css/components/widgets/_number.scss ***!
+  \***********************************************************************************************************************************************************************************************************************************************************/
+.number-widget-report {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 5px;
+}
+
+.number-prefix {
+    padding-right: 1px;
+}
+
+.number-suffix {
+    padding-left: 1px;
+}
+
+/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY3NzL2NvbXBvbmVudHMvd2lkZ2V0cy9fbnVtYmVyLjlhNTMyZjM4Njk0MWM0YzEzYzUxLmNzcyIsIm1hcHBpbmdzIjoiOzs7QUFBQTtJQUNJO0lBQ0E7SUFDQTtBQUNKOztBQUVBO0lBQ0k7QUFDSjs7QUFFQTtJQUNJO0FBQ0osQyIsInNvdXJjZXMiOlsid2VicGFjazovL2FyY2hlc19zbG9jYWwvLi4vLi4vb3B0L3ZlbnYvbGliL3B5dGhvbjMuMTMvc2l0ZS1wYWNrYWdlcy9hcmNoZXMvYXBwL21lZGlhL2Nzcy9jb21wb25lbnRzL3dpZGdldHMvX251bWJlci5zY3NzIl0sInNvdXJjZXNDb250ZW50IjpbIi5udW1iZXItd2lkZ2V0LXJlcG9ydCB7XG4gICAgZGlzcGxheTogZmxleDtcbiAgICBmbGV4LWRpcmVjdGlvbjogcm93O1xuICAgIG1hcmdpbi1ib3R0b206IDVweDtcbn1cblxuLm51bWJlci1wcmVmaXgge1xuICAgIHBhZGRpbmctcmlnaHQ6IDFweDtcbn1cblxuLm51bWJlci1zdWZmaXgge1xuICAgIHBhZGRpbmctbGVmdDogMXB4O1xufVxuIl0sIm5hbWVzIjpbXSwic291cmNlUm9vdCI6IiJ9*/
