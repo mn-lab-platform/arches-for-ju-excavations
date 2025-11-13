@@ -2,31 +2,52 @@ define([
   'knockout',
   'arches',
   'templates/views/components/workflows/iiif/iiif-image-selection-step.htm',
-  // side-effect deps: register component + dropzone binding
-  'views/components/plugins/manifest-manager',
-  'bindings/dropzone',
+  'bindings/dropzone'
 ], function(ko, arches, template) {
+
+  console.log('[WF LOG][image-select] Module loaded');
 
   function viewModel(params) {
     var self = this;
 
-    // state
-    self.manifestUrl = ko.observable('');
-    self.imageServiceUrl = ko.observable('');
+    console.log('[WF LOG][image-select] viewModel initializing');
+
+    // ---- STATE ----
+    self.manifestUrl        = ko.observable('');
+    self.imageServiceUrl    = ko.observable('');
     self.selectedImageIndex = ko.observable(null);
-    self.loading = ko.observable(false);
-    self.errorMessage = ko.observable('');
-    self.availableImages = ko.observableArray([]);
+    self.loading            = ko.observable(false);
+    self.errorMessage       = ko.observable('');
+    self.availableImages    = ko.observableArray([]);
 
-    // data coming FROM manifest-manager component
-    self.manifestManagerData = ko.observable(null);
-
-    // Arches saves params.value() for this component as ['...']['value'].
+    // Arches will persist params.value() as ['image-selection']['image-selection-instance']['value']
     if (typeof params.value !== 'function') {
-      params.value = ko.observable(); // ensure it exists
+      params.value = ko.observable();
     }
 
-    // helpers
+    // For uploads -> POST /manifest_manager
+    self.formData = new window.FormData();
+    self.dropzone = null;
+
+    // ---- HELPERS ----
+    // --- CSRF helper (standard Django pattern) ---
+    function getCookie(name) {
+      var cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+
     function normalizeHost(url) {
       if (!url) return url;
       return url
@@ -55,7 +76,7 @@ define([
             });
           }
         } catch (e) {
-          console.log('[WF LOG] imagesFromCanvases: error parsing canvas', e, canvas);
+          console.log('[WF LOG][image-select] imagesFromCanvases error:', e, canvas);
         }
       });
       return images;
@@ -70,7 +91,7 @@ define([
     });
 
     self.loadManifest = function(url) {
-      console.log('[WF LOG] loadManifest:', url);
+      console.log('[WF LOG][image-select] loadManifest:', url);
       self.loading(true);
       self.availableImages.removeAll();
       self.imageServiceUrl('');
@@ -83,12 +104,12 @@ define([
 
       fetch(url, { credentials: 'include' })
         .then(function(resp) {
-          console.log('[WF LOG] manifest response status:', resp.status);
+          console.log('[WF LOG][image-select] manifest response status:', resp.status);
           if (!resp.ok) throw new Error('HTTP ' + resp.status);
           return resp.json();
         })
         .then(function(data) {
-          console.log('[WF LOG] manifest payload:', data);
+          console.log('[WF LOG][image-select] manifest payload:', data);
 
           // IIIF Presentation v2 Manifest
           if (data['@type'] === 'sc:Manifest' && Array.isArray(data.sequences)) {
@@ -96,7 +117,7 @@ define([
             (data.sequences || []).forEach(function(seq) {
               images = images.concat(imagesFromCanvases(seq.canvases || []));
             });
-            if (images.length === 0) throw new Error('No canvases with IIIF Image services found.');
+            if (!images.length) throw new Error('No canvases with IIIF Image services found.');
             self.availableImages(images);
             self.loading(false);
             return;
@@ -121,80 +142,116 @@ define([
           throw new Error('Unsupported IIIF payload (not Manifest or Image API info.json).');
         })
         .catch(function(err) {
-          console.log('[WF LOG] Failed to load IIIF resource:', err);
+          console.log('[WF LOG][image-select] Failed to load IIIF resource:', err);
           self.errorMessage('Failed to load IIIF resource: ' + err.message);
           self.loading(false);
         });
     };
 
-    // ========= SOURCE B: manifest-manager (upload / create / select) =========
+    // ========= SOURCE B: upload photos -> create manifest -> loadManifest =========
+    var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+    var manifestManagerUrl = (arches && arches.urls && arches.urls.manifest_manager) 
+      ? arches.urls.manifest_manager 
+      : baseUrl + 'image-service-manager';
 
-    self.manifestManagerData.subscribe(function(md) {
-      console.log('[WF LOG] manifestManagerData updated:', md);
+    console.log('[WF LOG][image-select] Using baseUrl:', baseUrl, 'manifestManagerUrl:', manifestManagerUrl);
+
+    self.dropzoneOptionsCreate = {
+      url: baseUrl,  // CHANGED: use the safe baseUrl
+      dictDefaultMessage: '',
+      autoProcessQueue: false,
+      uploadMultiple: true,
+      autoQueue: false,
+      clickable: '.fileinput-create-button',
+      previewsContainer: '#hidden-dz-create-previews',
+      init: function() {
+        var dz = this;
+        self.dropzone = dz;
+        dz.on('addedfiles', function(files) {
+          console.log('[WF LOG][image-select] dropzone addedfiles:', files.length);
+          self.createManifestFromFiles(files);
+        });
+        dz.on('error', function(file, error) {
+          console.log('[WF LOG][image-select] dropzone error:', error);
+          file.error = error;
+        });
+      }
+    };
+
+    self.createManifestFromFiles = function(fileList) {
+      if (!fileList || !fileList.length) return;
+
+      self.errorMessage('');
+      self.loading(true);
       self.availableImages.removeAll();
       self.imageServiceUrl('');
-      self.selectedImageIndex(null);
+      params.value(undefined);
 
-      if (!md) return;
+      // reset formData
+      self.formData = new window.FormData();
 
-      try {
-        // v2 style: sequences[0].canvases
-        var seqs = md.sequences || [];
-        if (seqs.length && Array.isArray(seqs[0].canvases)) {
-          var images = [];
-          (seqs || []).forEach(function(seq) {
-            images = images.concat(imagesFromCanvases(seq.canvases || []));
-          });
-          if (images.length) {
-            console.log('[WF LOG] manifestManagerData: got', images.length, 'images from v2 manifest');
-            self.availableImages(images);
-            return;
-          }
+      Array.from(fileList).forEach(function(file) {
+        self.formData.append('files', file, file.name);
+      });
+
+      var title = 'Workflow upload ' + new Date().toISOString();
+
+      self.formData.append('manifest_title', title);
+      self.formData.append('manifest_description', 'Uploaded via IIIF annotation workflow');
+      self.formData.append('operation', 'create');
+      self.formData.append('transaction_id', params.form && params.form.workflowId || 'iiif-workflow');
+
+      console.log('[WF LOG][image-select] POSTing to manifest_manager', manifestManagerUrl);
+
+      fetch(manifestManagerUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Accept': 'application/json'
+        },
+        body: self.formData
+      })
+      .then(function(resp) {
+        console.log('[WF LOG][image-select] manifest_manager status:', resp.status);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .then(function(response) {
+        console.log('[WF LOG][image-select] manifest_manager response:', response);
+        if (response && response.url) {
+          self.loadManifest(response.url);
+        } else {
+          throw new Error('Server did not return manifest URL');
         }
-
-        // v3-style manifests (items[] of canvases)
-        var items = md.items;
-        if (Array.isArray(items) && items.length) {
-          var canvases = items.map(function(c) {
-            var anno = c.items && c.items[0] && c.items[0].items && c.items[0].items[0];
-            var body = anno && anno.body;
-            var service = body && (body.service || (Array.isArray(body.service) && body.service[0]));
-            var svcId = service && (service['@id'] || service.id);
-            return {
-              label: c.label || 'Untitled',
-              images: [{
-                resource: {
-                  service: svcId ? { '@id': svcId } : {}
-                }
-              }]
-            };
-          });
-          var imagesV3 = imagesFromCanvases(canvases);
-          if (imagesV3.length) {
-            console.log('[WF LOG] manifestManagerData: got', imagesV3.length, 'images from v3 manifest');
-            self.availableImages(imagesV3);
-          }
+      })
+      .catch(function(err) {
+        console.log('[WF LOG][image-select] createManifestFromFiles error:', err);
+        self.errorMessage('Failed to create manifest: ' + err.message);
+        self.loading(false);
+      })
+      .finally(function() {
+        if (self.dropzone) {
+          self.dropzone.removeAllFiles(true);
         }
-      } catch (e) {
-        console.log('[WF LOG] manifestManagerData: error parsing manifest', e);
-      }
-    });
+      });
+    };
 
     // ========= SELECTION =========
 
-    self.imageServiceUrl.subscribe(function(newVal) {
-      console.log('[WF LOG] imageServiceUrl ->', newVal);
+    self.imageServiceUrl.subscribe(function(val) {
+      console.log('[WF LOG][image-select] imageServiceUrl ->', val);
     });
 
     self.selectImage = function(image, index) {
-      console.log('[WF LOG] selectImage ->', image, index);
+      console.log('[WF LOG][image-select] selectImage ->', image, index);
       self.selectedImageIndex(index);
       self.imageServiceUrl(image.serviceUrl);
 
-      // CRITICAL: this is what Arches persists as ['image-selection']['image-selection-instance']['value']
+      // what the workflow actually persists
       params.value(image.serviceUrl);
 
-      console.log('[WF LOG] now imageServiceUrl =', self.imageServiceUrl(), 'value =', params.value());
+      console.log('[WF LOG][image-select] now imageServiceUrl =', self.imageServiceUrl(), 'value =', params.value());
     };
 
     // ========= WORKFLOW GATING =========
@@ -203,10 +260,9 @@ define([
       return !!self.imageServiceUrl();
     }));
 
-    // Let Arches do the normal save (it will persist params.value()).
     var _origSave = params.form.save;
     params.form.save = function() {
-      console.log('[WF LOG] save() about to run; value =', params.value(), 'imageServiceUrl =', self.imageServiceUrl());
+      console.log('[WF LOG][image-select] save() value =', params.value(), 'imageServiceUrl =', self.imageServiceUrl());
       if (!self.imageServiceUrl()) {
         self.errorMessage('Please select an image before proceeding.');
         return Promise.resolve(false);
@@ -214,24 +270,6 @@ define([
       if (_origSave) return _origSave.apply(params.form, arguments);
       return Promise.resolve(true);
     };
-
-    // Add the manifest manager URL
-    self.manifestManagerUrl = ko.pureComputed(function() {
-      // Construct the URL directly instead of using arches.urls.plugin
-      var baseUrl = arches.urls && arches.urls.root ? arches.urls.root : '/';
-      return baseUrl + 'plugins/manifest-manager';
-    });
-
-    // Listen for messages from the manifest manager iframe
-    window.addEventListener('message', function(event) {
-      // Verify the origin for security
-      if (event.origin !== window.location.origin) return;
-      
-      if (event.data && event.data.type === 'iiif-service-selected') {
-        console.log('[WF LOG] Received service from manifest manager:', event.data.serviceUrl);
-        self.manifestUrl(event.data.serviceUrl);
-      }
-    });
 
     return self;
   }
