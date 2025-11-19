@@ -1,11 +1,11 @@
 import { Tool } from './Tool';
 import { PointPrimitiveCollection, PolylineCollection, ScreenSpaceEventHandler, ScreenSpaceEventType, Cartesian3, Color, Material, ClassificationType } from 'cesium';
-import { TOOL_CALLBACKS } from '../../const/constTools';
+import { TOOL_CALLBACKS, SCALE_FACTORS } from '../../const/const.js';
 import utils from '../../utils/utils.js';
 
 export class AnnotationsTool extends Tool {
-    constructor(widget, name, callbacks) {
-        super(widget, name, callbacks);
+    constructor(scene, name, callbacks) {
+        super(scene, name, callbacks);
         this.pointCollection = this.widget.scene.primitives.add(new PointPrimitiveCollection());
         this.polylineCollection = this.widget.scene.primitives.add(new PolylineCollection());
         this.handler = null;
@@ -28,13 +28,13 @@ export class AnnotationsTool extends Tool {
                 if (cartesian) {
                     if (this.points.length >= 1) {
                         const distance = Cartesian3.distance(cartesian, this.points[0]);
-                        if (this.points.length >= 3 && distance < 0.1) { 
+                        // if scene.scale is in meters use buffer of 0.5 meter to close polygon, if in centimeters use 1 milimeter (with smaller objects we want greater precision)
+                        if (this.points.length >= 3 && distance < (this.scale === SCALE_FACTORS.METERS ? 0.5 : 0.1)) { 
                             this.pendingAnnotation = {
                                 points: this.points.slice(),
                                 color: this.postPolygonCloseColor
                             }; 
                             this._triggerCallback(TOOL_CALLBACKS.ON_POLYGON_COMPLETE);
-                            // DON'T clear points here - keep them for potential continuation
                             return;
                         }
                     }

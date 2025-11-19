@@ -1,11 +1,11 @@
 import { ScreenSpaceEventType, ScreenSpaceEventHandler, Entity, Color } from 'cesium';
 import { Tool } from './Tool.js';
-import { TOOL_CALLBACKS } from '../../const/constTools.js';
+import { TOOL_CALLBACKS } from '../../const/const.js';
 import utils from '../../utils/utils.js';
 
 export class PickerTool extends Tool {
-    constructor(widget, name, callbacks) {
-        super(widget, name, callbacks);
+    constructor(scene, name, callbacks) {
+        super(scene, name, callbacks);
         this.handler = null;
         this.pickedAnnotation = null;
     }

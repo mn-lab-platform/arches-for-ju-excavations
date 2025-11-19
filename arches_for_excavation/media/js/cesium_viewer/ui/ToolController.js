@@ -1,21 +1,21 @@
 import { DistanceTool } from '../cesium/tools/DistanceTool.js';
 import { AnnotationsTool } from '../cesium/tools/AnnotationsTool.js';
 import { PickerTool } from '../cesium/tools/PickerTool.js';
-import { TOOL_CALLBACKS, TOOL_NAMES } from '../const/constTools.js';
+import { TOOL_CALLBACKS, TOOL_NAMES } from '../const/const.js';
 import { createAnnotationModal } from './templates/AnnotationModal.js';
 
 export class ToolController {
-    constructor(widget) {
+    constructor(scene) {
         this.toolDisplays = new Map();
         this.tools = [
-            new DistanceTool(widget, TOOL_NAMES.DISTANCE, {
+            new DistanceTool(scene, TOOL_NAMES.DISTANCE, {
                 [TOOL_CALLBACKS.ON_DISTANCE_UPDATE]: (distance) => this._updateDistanceDisplay(distance)
             }),
-            new AnnotationsTool(widget, TOOL_NAMES.ANNOTATIONS, {
+            new AnnotationsTool(scene, TOOL_NAMES.ANNOTATIONS, {
                 [TOOL_CALLBACKS.ON_POLYGON_COMPLETE]: () => this._showAnnotationToolModal(),
                 [TOOL_CALLBACKS.ON_ANNOTATION_SAVED]: (annotationData) => this._onAnnotationSaved(annotationData)
             }),
-            new PickerTool(widget, TOOL_NAMES.PICKER, {
+            new PickerTool(scene, TOOL_NAMES.PICKER, {
                 [TOOL_CALLBACKS.ON_ANNOTATION_PICKED]: (annotationData) => this._showPickerToolModal(annotationData),
                 [TOOL_CALLBACKS.ON_ANNOTATION_SAVED]: (annotationData) => this._onAnnotationSaved(annotationData),
                 [TOOL_CALLBACKS.ON_ANNOTATION_DELETED]: (annotationId) => this._onAnnotationDeleted(annotationId)
@@ -76,14 +76,14 @@ export class ToolController {
         });
     }
 
-    _updateDistanceDisplay(distance) {
+    _updateDistanceDisplay(distanceString) {
         const display = this.toolDisplays.get(TOOL_NAMES.DISTANCE);
         if (!display) return;
 
-        if (distance == null) {
+        if (distanceString == null) {
             display.textContent = '';
         } else {
-            display.textContent = `${distance.toFixed(3)} cm`;
+            display.textContent = distanceString;
         }
     }
 

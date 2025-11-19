@@ -32,12 +32,11 @@ export default ko.components.register('cesium_report', {
 
         self.initializeViewer = async () => {
             try {
-                self.scene = new Scene('cesiumViewer');
+                const GEOREFERENCED = true;
+                self.scene = new Scene('cesiumViewer', GEOREFERENCED);
+                await self.scene.loadTileset(GEOREFERENCED ? '/files/uploadedfiles/georeferenced/tileset.json' : '/files/uploadedfiles/lamp/tileset.json');
 
-                const tilesetUrl = '/files/uploadedfiles/lamp/tileset.json';
-                await self.scene.loadTileset(tilesetUrl);
-
-                self.toolController = new ToolController(self.scene.widget);
+                self.toolController = new ToolController(self.scene);
             } catch (error) {
                 console.error('Failed to initialize Cesium:', error);
             }
