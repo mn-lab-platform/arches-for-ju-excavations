@@ -25,9 +25,9 @@ export class ToolController {
     }
 
     _setupTools() {
-        this._initializeToolUi(this.tools[0], 'icons/distance_icon.svg');
-        this._initializeToolUi(this.tools[1], 'icons/annotations_icon.svg');
-        this._initializeToolUi(this.tools[2], 'icons/picker_icon.svg');
+        this._initializeToolUi(this.tools[0], '/static/img/cesium_viewer/distance_icon.svg');
+        this._initializeToolUi(this.tools[1], '/static/img/cesium_viewer/annotations_icon.svg');
+        this._initializeToolUi(this.tools[2], '/static/img/cesium_viewer/picker_icon.svg');
     }
 
     _initializeToolUi(tool, iconPath) {

@@ -32,9 +32,6 @@ export default ko.components.register('cesium_report', {
 
         self.initializeViewer = async () => {
             try {
-                if (!window.CESIUM_BASE_URL) {
-                    window.CESIUM_BASE_URL = '/static/cesium';
-                }
                 self.scene = new Scene('cesiumViewer');
 
                 const tilesetUrl = '/files/uploadedfiles/lamp/tileset.json';
