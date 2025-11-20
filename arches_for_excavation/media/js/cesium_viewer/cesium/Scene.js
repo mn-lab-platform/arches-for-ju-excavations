@@ -4,14 +4,16 @@ import { SCALE_FACTORS } from '../const/const';
 Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiY2IzZGU5Yy02MzRkLTRmYjUtYTVlZS04MThmZTQwZTRlMGEiLCJpZCI6MjIwMzM3LCJpYXQiOjE3NjMwMjY2ODh9.X0j4gnk-2MMBEiu11B9S-sjWv6XMDYD5y12hlpGjib4';
 
 export class Scene {
-    constructor(containerId, georeferenced=true) {
+    constructor(containerId, {georeferenced=false, readOnly=false} = {}) {
         this.georeferenced = georeferenced;
+        this.readOnly = readOnly;
+        this.scale = SCALE_FACTORS.METERS;
+        
         this.widget = new CesiumWidget(containerId, {
             globe: georeferenced ? undefined : false,
             terrain: georeferenced ? Terrain.fromWorldTerrain() : undefined
         });
         this._configureScene();
-        this.scale = SCALE_FACTORS.METERS;
     }
 
     _configureScene() {

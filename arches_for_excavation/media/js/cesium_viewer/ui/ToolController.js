@@ -6,6 +6,7 @@ import { createAnnotationModal } from './templates/AnnotationModal.js';
 
 export class ToolController {
     constructor(scene) {
+        this.readOnly = scene.readOnly;
         this.toolDisplays = new Map();
         this.tools = [
             new DistanceTool(scene, TOOL_NAMES.DISTANCE, {
@@ -25,9 +26,11 @@ export class ToolController {
     }
 
     _setupTools() {
-        this._initializeToolUi(this.tools[0], '/static/img/cesium_viewer/distance_icon.svg');
-        this._initializeToolUi(this.tools[1], '/static/img/cesium_viewer/annotations_icon.svg');
-        this._initializeToolUi(this.tools[2], '/static/img/cesium_viewer/picker_icon.svg');
+        this._initializeToolUi(this.tools[0], '/static/img/cesium_viewer/distance_icon.svg'); 
+        if (!this.readOnly) {
+            this._initializeToolUi(this.tools[1], '/static/img/cesium_viewer/annotations_icon.svg'); 
+        }
+        this._initializeToolUi(this.tools[2], '/static/img/cesium_viewer/picker_icon.svg'); 
     }
 
     _initializeToolUi(tool, iconPath) {
@@ -94,7 +97,7 @@ export class ToolController {
 
     _showPickerToolModal(annotationData) {
         const display = this.toolDisplays.get(TOOL_NAMES.PICKER);
-        createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === TOOL_NAMES.PICKER), true);
+        createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === TOOL_NAMES.PICKER), true, this.readOnly);
     }
 
     _onAnnotationSaved(annotationData) {
