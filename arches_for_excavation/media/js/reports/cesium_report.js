@@ -3,7 +3,9 @@ import ReportViewModel from 'viewmodels/report';
 import cesiumReportTemplate from 'templates/views/report-templates/cesium_report.htm';
 import { Scene } from 'cesium_viewer/cesium/Scene';
 import { ToolController } from 'cesium_viewer/ui/ToolController';
+import { getCesiumToken } from '../config/config';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
+import '../../css/cesium_viewer/index.css';
 
 export default ko.components.register('cesium_report', {
     viewModel: function(params) {
@@ -32,7 +34,8 @@ export default ko.components.register('cesium_report', {
 
         self.initializeViewer = async () => {
             try {
-                const sceneOptions = { georeferenced: true, readOnly: false };
+                const token = getCesiumToken();
+                const sceneOptions = { token: token, georeferenced: true, readOnly: false };
                 self.scene = new Scene('cesiumViewer', sceneOptions);
                 await self.scene.loadTileset(sceneOptions.georeferenced ? '/files/uploadedfiles/georeferenced/tileset.json' : '/files/uploadedfiles/lamp/tileset.json');
 
