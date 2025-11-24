@@ -1,0 +1,8 @@
+{
+    "name": "iiif-report",
+    "componentid": "21312",
+    "component": "reports/iiif-report",
+    "componentname": "iiif-report",
+    "description": "A iiif-report.",
+    "defaultconfig": {}
+}

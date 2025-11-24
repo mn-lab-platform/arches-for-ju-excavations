@@ -5,10 +5,11 @@ define([
   'viewmodels/workflow',
   'templates/views/components/plugins/iiif-annotation-workflow.htm',
   'views/components/workflows/iiif/iiif-image-selection-step',
-  'views/components/workflows/iiif/iiif-simple-annotator-step',
+  'views/components/workflows/iiif/resource-selection-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('iiif-annotation-workflow', {
     viewModel: function(params) {
+      //var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
 
       this.componentName = 'iiif-annotation-workflow';
       this.quitUrl = (arches && arches.urls && arches.urls.plugin)
@@ -17,32 +18,37 @@ define([
 
       this.stepConfig = [
         {
-          title: 'Select IIIF Image',
-          name: 'image-selection',
+          title: 'Select Resource',
+          name: 'resource-selection',
           required: true,
-          informationboxdata: { heading: 'Select Image', text: 'Choose a IIIF image to annotate' },
+          informationboxdata: {
+            heading: 'Select Resource',
+            text: 'Choose an existing resource to attach a IIIF image to.'
+          },
           layoutSections: [{
             componentConfigs: [{
-              componentName: 'iiif-image-selection-step',
-              uniqueInstanceName: 'image-selection-instance',
+              componentName: 'resource-selection-step',
+              uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {}
             }]
           }]
         },
         {
-          title: 'Create Annotations',
-          name: 'annotate',
-          required: false,
-          informationboxdata: { heading: 'Annotate Image', text: 'Draw annotations on the selected image' },
+          title: 'Add IIIF Image',
+          name: 'iiif-image-selection',
+          required: true,
+          informationboxdata: {
+            heading: 'Select or upload IIIF image',
+            text: 'Upload/select an image and create a “digital resource: iiif” linked to the resource from step 1.'
+          },
           layoutSections: [{
             componentConfigs: [{
-              componentName: 'iiif-simple-annotator-step',
-              uniqueInstanceName: 'annotator-instance',
+              componentName: 'iiif-image-selection-step',
+              uniqueInstanceName: 'iiif-image-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                // <- THIS is the working pattern in Arches:
-                imageServiceUrl: "['image-selection']['image-selection-instance']['value']"
+                hostResourceId: "['resource-selection']['resource-selection-instance']['value']"
               }
             }]
           }]
