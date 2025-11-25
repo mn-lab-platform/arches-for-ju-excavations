@@ -1,0 +1,8 @@
+{
+    "name": "3d",
+    "componentid": "aee56c3a-44cf-4ab2-a5fb-6c51cda7b769",
+    "component": "reports/resource-3d-report",
+    "componentname": "resource-3d-report",
+    "description": "Resource 3d test.",
+    "defaultconfig": {}
+}

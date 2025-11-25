@@ -1,8 +1,9 @@
 import ko from 'knockout';
 import viewerTemplate from 'templates/views/components/custom/cesium_viewer.htm';
 import { initializeCesiumViewer } from '../../../cesium_viewer';
+import { getCesiumToken } from '../../../config/config';
 
-export default ko.components.register('cesium_viewer', {
+export default ko.components.register('cesium-viewer', {
     viewModel: function(params) {
         const self = this;
         params.configKeys = [];

@@ -1,8 +1,0 @@
-{
-    "name": "Custom report for resources with 3D models",
-    "componentid": "aee56c3a-44cf-4ab2-a5fb-6c51cda7b767",
-    "component": "reports/resource_report",
-    "componentname": "resource_report",
-    "description": "Custom digital resource report.",
-    "defaultconfig": {}
-}
