@@ -1,6 +1,6 @@
 import { Scene } from './cesium/Scene.js';
 import { ToolController } from './ui/ToolController.js';
-import '../../css/cesium_viewer/index.css';
+import '../../css/components/cesium_viewer/index.css';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 export async function initializeCesiumViewer(cesiumToken, cesiumContainerId, viewerOptions = {}) {
