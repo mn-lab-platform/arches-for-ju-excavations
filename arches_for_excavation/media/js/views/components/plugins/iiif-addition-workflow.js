@@ -3,15 +3,15 @@ define([
   'jquery',
   'arches',
   'viewmodels/workflow',
-  'templates/views/components/plugins/iiif-annotation-workflow.htm',
-  'views/components/workflows/iiif-annotation/iiif-annotator-step',
+  'templates/views/components/plugins/iiif-addition-workflow.htm',
+  'views/components/workflows/iiif-addition/iiif-image-addition-step',
   'views/components/workflows/universal/resource-selection-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
-  return ko.components.register('iiif-annotation-workflow', {
+  return ko.components.register('iiif-addition-workflow', {
     viewModel: function(params) {
       //var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
 
-      this.componentName = 'iiif-annotation-workflow';
+      this.componentName = 'iiif-addition-workflow';
       this.quitUrl = (arches && arches.urls && arches.urls.plugin)
         ? arches.urls.plugin('init-workflow')
         : '/';
@@ -31,8 +31,7 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphid: '401b3051-d1c4-465c-8dd0-1d5784adee98', // photo graph ID                
-                placeholderText: '— Select which ortomap to annotate —',
+                placeholderText: '— Select which resource —',
                 searchPlaceholder: 'Search resources...',
                 enableSearch: true,
                 resultLimit: 50
@@ -50,8 +49,8 @@ define([
           },
           layoutSections: [{
             componentConfigs: [{
-              componentName: 'iiif-annotator-step',
-              uniqueInstanceName: 'iiif-annotator-instance',
+              componentName: 'iiif-image-addition-step',
+              uniqueInstanceName: 'iiif-image-addition-instance',
               tilesManaged: 'none',
               parameters: {
                 hostResourceId: "['resource-selection']['resource-selection-instance']['value']"

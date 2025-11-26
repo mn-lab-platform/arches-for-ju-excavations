@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 }
 
 // NODE_ID pola z URL-em IIIF
-const DIGITAL_RES_URL_NODE_ID = 'aa8a8e71-4a98-4071-89c3-12fbe5ca9337';
+const DIGITAL_RES_URL_NODE_ID = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
 
 export default ko.components.register('iiif-report', {
     viewModel: function (params) {

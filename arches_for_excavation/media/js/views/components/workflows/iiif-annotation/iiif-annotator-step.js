@@ -2,7 +2,7 @@ define([
   'knockout',
   'leaflet',
   'arches',
-  'templates/views/components/workflows/iiif/iiif-simple-annotator-step.htm'
+  'templates/views/components/workflows/iiif-annotation/iiif-annotator-step.htm'
 ], function(ko, L, arches, template) {
 
   function viewModel(params) {
@@ -14,6 +14,66 @@ define([
       this.imageServiceUrl = params.imageServiceUrl;
     } else {
       this.imageServiceUrl = ko.observable(params.imageServiceUrl || '');
+    }
+
+    // Node ID for the IIIF URL (must match your graph definition)
+    var DIGITAL_RES_URL_NODE_ID = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
+
+    function updateUrlFromValue(val) {
+      if (!val) return;
+      console.log('[WF LOG] Annotator params.value update:', val);
+
+      // 1. If the value object already has imageServiceUrl (direct pass)
+      if (val.imageServiceUrl) {
+        self.imageServiceUrl(val.imageServiceUrl);
+        return;
+      }
+
+      // 2. If it looks like a tile ID (string or object with tileid)
+      var tileId = (val && typeof val === 'object' && val.tileid) ? val.tileid : val;
+      
+      // Check if it is a valid UUID string
+      if (typeof tileId === 'string' && tileId.length > 30) {
+        var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+        var tileUrl = (arches.urls && arches.urls.api_tile) ? arches.urls.api_tile : (baseUrl + 'tile');
+        if (!tileUrl.endsWith('/')) tileUrl += '/';
+        tileUrl += tileId;
+
+        fetch(tileUrl)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data.data && data.data[DIGITAL_RES_URL_NODE_ID]) {
+              var urlVal = data.data[DIGITAL_RES_URL_NODE_ID];
+              var url = null;
+              
+              // Handle Arches complex values (which are often objects like { "en": { "value": "...", ... } })
+              if (typeof urlVal === 'string') {
+                url = urlVal;
+              } else if (urlVal && typeof urlVal === 'object') {
+                var keys = Object.keys(urlVal);
+                if (keys.length && urlVal[keys[0]] && urlVal[keys[0]].value) {
+                  url = urlVal[keys[0]].value;
+                }
+              }
+              
+              if (url) {
+                console.log('[WF LOG] Resolved URL from tile:', url);
+                self.imageServiceUrl(url);
+              }
+            }
+          })
+          .catch(function(e) { console.error('[WF LOG] Tile fetch error:', e); });
+      }
+    }
+
+    // Subscribe to params.value changes
+    if (params.value) {
+      if (ko.isObservable(params.value)) {
+        params.value.subscribe(updateUrlFromValue);
+        updateUrlFromValue(params.value());
+      } else {
+        updateUrlFromValue(params.value);
+      }
     }
 
     console.log('[WF LOG] Annotator effective URL =', this.imageServiceUrl());
@@ -96,7 +156,7 @@ define([
     return self;
   }
 
-  return ko.components.register('iiif-simple-annotator-step', {
+  return ko.components.register('iiif-annotator-step', {
     viewModel: viewModel,
     template: template
   });
