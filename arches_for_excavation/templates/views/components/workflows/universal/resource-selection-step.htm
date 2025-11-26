@@ -1,0 +1,47 @@
+<div class="workflow-step resource-selection-step">
+    
+    <!-- Optional search box -->
+    <div class="form-group" data-bind="visible: enableSearch">
+        <label>Search Resources</label>
+        <input type="text" 
+               class="form-control" 
+               data-bind="textInput: searchText, 
+                          attr: { placeholder: searchPlaceholder }"
+               placeholder="Search...">
+    </div>
+
+    <!-- Resource dropdown -->
+    <div class="form-group">
+        <label>Select Resource</label>
+        <select class="form-control"
+                data-bind="options: availableResources,
+                           optionsText: 'label',
+                           optionsValue: 'id',
+                           value: selectedResourceId,
+                           optionsCaption: placeholderText,
+                           disable: loading">
+        </select>
+        
+        <!-- Loading indicator -->
+        <div data-bind="visible: loading" style="margin-top: 5px;">
+            <i class="fa fa-spinner fa-spin"></i> Loading resources...
+        </div>
+        
+        <!-- Error message -->
+        <div data-bind="visible: error" 
+             class="alert alert-danger" 
+             style="margin-top: 5px;">
+            <span data-bind="text: error"></span>
+        </div>
+    </div>
+
+    <!-- Selected resource info -->
+    <div class="form-group" 
+         data-bind="visible: selectedResourceId"
+         style="margin-top: 10px;">
+        <div class="alert alert-info">
+            <strong>Selected Resource ID:</strong>
+            <code data-bind="text: selectedResourceId"></code>
+        </div>
+    </div>
+</div>

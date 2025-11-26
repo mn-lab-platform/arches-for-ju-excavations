@@ -1,8 +1,7 @@
-// media/js/views/components/workflows/iiif/iiif-image-selection-step.js
 define([
     'knockout',
     'arches',
-    'templates/views/components/workflows/iiif/iiif-image-selection-step.htm',
+    'templates/views/components/workflows/iiif-addition/iiif-image-addition-step.htm',
     'bindings/dropzone'
 ], function(ko, arches, template) {
 
@@ -15,9 +14,9 @@ define([
     var DIGITAL_RES_NODEGROUP_ID = '04271267-d0a3-4930-8be3-0e8a2a34a735';
 
     // Trzy NODE_ID – te z wierszy: relation / iiif-url / _label
-    var DIGITAL_RES_LABEL_NODE_ID = '85301074-1385-40fd-9a73-43692fe242dd';
-    var DIGITAL_RES_URL_NODE_ID   = 'aa8a8e71-4a98-4071-89c3-12fbe5ca9337';
-    var DIGITAL_RES_REL_NODE_ID   = '9b7e1d56-2f2b-411b-8491-4dd40d34e8b3';
+    var DIGITAL_RES_LABEL_NODE_ID = '78422c09-4994-4eff-b764-60f21f3290cd';
+    var DIGITAL_RES_URL_NODE_ID   = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
+    var DIGITAL_RES_REL_NODE_ID   = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
 
     var REL_ONTOLOGY_PROPERTY_ID  = null;
     var REL_INVERSE_PROPERTY_ID   = null;
@@ -451,7 +450,7 @@ define([
         return self;
     }
 
-    return ko.components.register('iiif-image-selection-step', {
+    return ko.components.register('iiif-image-addition-step', {
         viewModel: viewModel,
         template: template
     });

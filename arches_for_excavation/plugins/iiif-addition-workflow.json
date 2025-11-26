@@ -1,0 +1,10 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2fd",
+  "name": "IIIF resource addition",
+  "icon": "fa fa-picture-o",
+  "component": "views/components/plugins/iiif-addition-workflow",
+  "componentname": "iiif-addition-workflow",
+  "config": { "show": true },
+  "slug": "iiif-addition-workflow",
+  "sortorder": 0
+}

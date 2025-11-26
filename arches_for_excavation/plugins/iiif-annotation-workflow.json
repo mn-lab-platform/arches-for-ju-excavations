@@ -1,7 +1,7 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2fd",
-  "name": "IIIF Annotations (No-DB)",
-  "icon": "fa fa-pencil-square-o",
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-wilk",
+  "name": "IIIF annotation workflow",
+  "icon": "fa fa-asterisk",
   "component": "views/components/plugins/iiif-annotation-workflow",
   "componentname": "iiif-annotation-workflow",
   "config": { "show": true },
