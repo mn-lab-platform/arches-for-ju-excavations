@@ -23,13 +23,18 @@ export default ko.components.register('cesium-viewer', {
             }
 
             self._initialized = true;
+            
             self.initializeViewer();
         }
 
         self.initializeViewer = async function () {
             try {
                 const token = getCesiumToken();
-                await initializeCesiumViewer(token, 'cesiumViewer', { georeferenced: true, readOnly: false });
+                console.log("params:", params);
+                console.log('tiles:', params.report.get('tiles'));
+                const georeferenced = params.georeferenced;
+                const readOnly = params.readOnly;
+                await initializeCesiumViewer(token, 'cesiumViewer', { georeferenced: georeferenced, readOnly: readOnly });
             } catch (error) {
                 console.error('Failed to initialize Cesium:', error);
             }

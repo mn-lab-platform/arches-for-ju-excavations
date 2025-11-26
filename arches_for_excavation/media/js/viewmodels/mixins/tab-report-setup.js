@@ -9,14 +9,18 @@ export function setupTabbedReport(viewModel, params, tabsConfig) {
     params.configKeys = ['tabs', 'activeTabIndex'];
     ReportViewModel.apply(viewModel, [params]);
 
+    if (!ko.isObservable(viewModel.activeTabIndex)) {
+        viewModel.activeTabIndex = ko.observable(Number(viewModel.activeTabIndex) || 0);
+    }
     viewModel.tabs = ko.observableArray(tabsConfig || []);
 
-    viewModel.activeTabIndex = ko.observable(0);
-    viewModel.activeTab = ko.observable(viewModel.tabs()[0]);
+    if (viewModel.activeTabIndex() > viewModel.tabs().length - 1) {
+        viewModel.activeTabIndex(0);
+    }
+    
     viewModel.icons = ko.observableArray([]);
 
-    viewModel.icons = ko.observableArray([]);
-    if (!viewModel.summary) {
+    if (!self.summary) {
         $.ajax({
             type: "GET",
             url: arches.urls.icons})
@@ -32,36 +36,23 @@ export function setupTabbedReport(viewModel, params, tabsConfig) {
             });
     }
 
-    viewModel.setActiveTab = function(tabIndex) {
+    viewModel.activeTab = ko.observable(viewModel.tabs()[ko.unwrap(viewModel.activeTabIndex)]);
+    viewModel.report.configJSON.subscribe(function(){
+        if (viewModel.tabs.indexOf(viewModel.activeTab()) === -1) {
+            viewModel.activeTab(viewModel.tabs()[ko.unwrap(viewModel.activeTabIndex)]);
+        }
+    });
+    viewModel.topcards = ko.unwrap(viewModel.report.cards).map(function(card){
+        return {name: card.model.name(), nodegroupid: card.nodegroupid};
+    });
+
+    viewModel.setActiveTab = function(tabIndex){
         viewModel.activeTabIndex(tabIndex);
         viewModel.activeTab(viewModel.tabs()[ko.unwrap(viewModel.activeTabIndex)]);
     };
 
-    viewModel.moveTab = function(v) {
-        if (v.sourceIndex === viewModel.activeTabIndex()) {
-            viewModel.setActiveTab(v.targetIndex);
-        }
-    };
-    
-    viewModel.addTab = function(){
-        const newTab = ko.mapping.fromJS({ name: '', icon: '', main_component: undefined, nodegroup_ids: [] });
-        viewModel.tabs.unshift(newTab);
-        viewModel.setActiveTab(0);
-    };
-
-    viewModel.removeTab = function(tab){
-        let index;
-        if (viewModel.tabs().length > 0) {
-            index = viewModel.tabs.indexOf(tab) > 0 ? viewModel.tabs.indexOf(tab) - 1 : 0;
-            viewModel.setActiveTab(index);
-            viewModel.tabs.remove(tab);
-        }
-    };
-
     viewModel.activeCards = ko.computed(function() {
         var cardList = [];
-        if (!viewModel.report || !viewModel.report.cards) return cardList;
-
         ko.unwrap(viewModel.report.cards).forEach(function(card) {
             if (viewModel.activeTabIndex() !== undefined && viewModel.tabs().length > 0 && viewModel.tabs().length -1 >= viewModel.activeTabIndex()) {
                 viewModel.tabs()[viewModel.activeTabIndex()]["nodegroup_ids"]().forEach( function(tabNodegroupId) {
@@ -79,4 +70,29 @@ export function setupTabbedReport(viewModel, params, tabsConfig) {
             return count += ko.unwrap(card.tiles).length || 0;
         }, 0) <= 0;
     });
-};
+
+    viewModel.moveTab = function(v) {
+        if (v.sourceIndex === viewModel.activeTabIndex()) {
+            viewModel.setActiveTab(v.targetIndex);
+        }
+    };
+
+    viewModel.addTab = function(){
+        var newTab = koMapping.fromJS({
+            icon: '',
+            name: '',
+            "nodegroup_ids": []
+        });
+        viewModel.tabs.unshift(newTab);
+        viewModel.setActiveTab(0);
+    };
+
+    viewModel.removeTab = function(tab){
+        var index;
+        if (viewModel.tabs().length > 0) {
+            index = viewModel.tabs.indexOf(tab) > 0 ? viewModel.tabs.indexOf(tab) - 1 : 0;
+            viewModel.setActiveTab(index);
+            viewModel.tabs.remove(tab);
+        }
+    };
+}

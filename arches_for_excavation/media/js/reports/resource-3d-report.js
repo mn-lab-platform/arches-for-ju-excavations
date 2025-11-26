@@ -11,15 +11,17 @@ export default ko.components.register('resource-3d-report', {
                 name: 'Info',
                 icon: 'fa-info-circle',
                 main_component: undefined,
-                nodegroup_ids: []
+                nodegroup_ids: ['1dc344d6-1f5e-44d3-ae3c-18031de00632']  
             }),
             ko.mapping.fromJS({
                 name: 'Cesium Viewer',
                 icon: 'fa-cube',
                 main_component: 'cesium-viewer',
-                nodegroup_ids: []
+                nodegroup_ids: []  
             })
         ];
+        self.georeferenced = true;
+        self.readOnly = false;
         setupTabbedReport(self, params, myTabs);
     },
     template: tabbedReportTemplate
