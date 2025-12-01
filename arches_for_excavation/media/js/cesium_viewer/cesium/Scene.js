@@ -7,6 +7,7 @@ export class Scene {
         this.georeferenced = georeferenced;
         this.readOnly = readOnly;
         this.scale = SCALE_FACTORS.METERS;
+        this.containerId = containerId;
 
         this.widget = new CesiumWidget(containerId, {
             globe: georeferenced ? undefined : false,
@@ -30,9 +31,11 @@ export class Scene {
         this.widget.scene.primitives.add(tileset);
 
         const boundingSphereRadius = tileset.boundingSphere.radius;
-
+        console.log("Bounding: ", boundingSphereRadius);
+        
         // if object's bounding sphere radius is smaller than 1 meter scale up for viewer to work correctly and to recognise unit between meters and centimeters
         this.scale = boundingSphereRadius > 1 ? SCALE_FACTORS.METERS : SCALE_FACTORS.CENTIMETERS; 
+        console.log("Scale set to: ", this.scale);
         this._scaleTileset(tileset);
 
         if (this.georeferenced) {

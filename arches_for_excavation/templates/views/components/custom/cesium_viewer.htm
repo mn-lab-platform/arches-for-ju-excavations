@@ -1,5 +1,9 @@
 <div data-bind="template: { afterRender: onCesiumViewerRendered }">
-    <div id="cesiumViewer">
-      <div class="toolsContainer"></div>
+    <!-- ko foreach: { data: viewerIds, as: 'viewerId', afterRender: $parent.onCesiumViewerRendered } -->
+    <div class="cesium-viewer-container" style="margin-bottom: 20px;">
+        <div data-bind="attr: { id: viewerId }" style="height: 600px; width: 100%;">
+            <div class="toolsContainer"></div>
+        </div>
     </div>
-  </div>
+    <!-- /ko -->
+</div>

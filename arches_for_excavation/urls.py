@@ -2,9 +2,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.urls import include, path
+from .views.model_3d import Model3DView
 
 urlpatterns = [
     # project-level urls
+    path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
 ]
 
 
