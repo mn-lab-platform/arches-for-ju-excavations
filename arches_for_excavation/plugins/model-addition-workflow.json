@@ -1,0 +1,10 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k7",
+  "name": "3D Model Addition",
+  "icon": "fa fa-cube",
+  "component": "views/components/plugins/model-addition-workflow",
+  "componentname": "model-addition-workflow",
+  "config": { "show": true },
+  "slug": "model-addition-workflow",
+  "sortorder": 0
+}
