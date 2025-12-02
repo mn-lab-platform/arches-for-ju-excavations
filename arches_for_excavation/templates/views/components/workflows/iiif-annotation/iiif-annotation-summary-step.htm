@@ -1,6 +1,27 @@
 <div class="workflow-step">
   <h3>Finalize</h3>
 
+  <!-- Debug Panel - Dodaj na początku -->
+  <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 20px; font-family: monospace; font-size: 12px;">
+    <h5 style="margin-top: 0; color: #495057;">🐛 Debug Info</h5>
+    <div style="display: grid; grid-template-columns: 200px 1fr; gap: 5px;">
+      <span>Can Continue:</span> 
+      <span data-bind="text: debugCanContinue(), style: { color: debugCanContinue() ? 'green' : 'red' }"></span>
+      
+      <span>Current Mode:</span> 
+      <span data-bind="text: debugMode()"></span>
+      
+      <span>Target Graph ID:</span> 
+      <span data-bind="text: debugTargetGraph(), style: { color: debugTargetGraph() ? 'green' : 'red' }"></span>
+      
+      <span>RI Value:</span> 
+      <span data-bind="text: debugRiValue(), style: { color: debugRiValue() ? 'green' : 'red' }"></span>
+      
+      <span>Add Button Visible:</span> 
+      <span data-bind="text: debugAddButtonVisible(), style: { color: debugAddButtonVisible() ? 'green' : 'red' }"></span>
+    </div>
+  </div>
+
   <!-- ko if: !payload() -->
   <div class="alert alert-danger">
     Missing payload from previous step.
@@ -109,3 +130,32 @@
 
   <!-- /ko -->
 </div>
+<style>
+    /* Zwiększamy wysokość i dodajemy relative, żeby pozycjonowanie działało poprawnie */
+    .resource-creator-panel {
+        position: relative;
+        min-height: 400px; /* Dajemy miejsce na formularz */
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-top: 15px;
+    }
+
+    /* Kluczowa poprawka: Wymuszamy, aby panel przycisków był widoczny w przepływie */
+    .resource-creator-panel .install-buttons {
+        position: static !important; /* Wyłącza absolute positioning */
+        display: flex !important;
+        justify-content: flex-end; /* Przesuwa przyciski do prawej */
+        padding: 10px 0;
+        margin-top: 20px;
+        background: transparent !important;
+        width: 100%;
+        border-top: 1px solid #eee;
+    }
+
+    /* Opcjonalnie: poprawki dla samej karty, żeby nie próbowała być na 100% wysokości ekranu */
+    .resource-creator-panel .card-component {
+        height: auto !important;
+        min-height: unset !important;
+    }
+</style>

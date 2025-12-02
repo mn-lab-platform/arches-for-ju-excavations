@@ -76,7 +76,6 @@ define([
 
             if (!gid) return Promise.resolve(null);
 
-            // Build the URL manually - arches.urls.graphs_api doesn't exist
             const baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
             const graphsUrl = baseUrl + 'graphs/' + encodeURIComponent(gid) + '?cards=true';
             
@@ -84,19 +83,29 @@ define([
 
             return window.fetch(graphsUrl, { credentials: 'include' })
                 .then(r => {
+                    console.log('[WF LOG][summary] Graph fetch response status:', r.status);
                     if (!r.ok) throw new Error(`graph fetch failed: ${r.status}`);
                     return r.json();
                 })
                 .then(json => {
-                    console.log('[WF LOG][summary] Graph API response:', json);
+                    console.log('[WF LOG][summary] Graph API full response:', json);
                     
-                    // The response structure might vary - try different paths
-                    const cards = json?.graph?.cards || json?.cards || [];
+                    // Try multiple possible paths for cards
+                    let cards = [];
+                    if (json?.graph?.cards) cards = json.graph.cards;
+                    else if (json?.cards) cards = json.cards;
+                    else if (json?.data?.cards) cards = json.data.cards;
+                    else if (Array.isArray(json)) cards = json;
+                    
+                    console.log('[WF LOG][summary] Found cards:', cards);
+                    
                     const active = cards.find(c => c && c.active !== false) || cards[0];
                     const cardid = active?.cardid || active?.cardId || active?.card_id || null;
                     
-                    self.creatorCardId(cardid);
+                    console.log('[WF LOG][summary] Selected card:', active);
                     console.log('[WF LOG][summary] creatorCardId ->', cardid);
+                    
+                    self.creatorCardId(cardid);
                     return cardid;
                 })
                 .catch(err => {
@@ -127,40 +136,34 @@ define([
             if (!gid) return;
 
             try {
-                console.log('[WF LOG][summary] graphids: ko.observableArray([gid]) RIS for graphid:',ko.observableArray([gid]));
+                console.log('[WF LOG][summary] Creating RIS for graphid:', gid);
+                console.log('[WF LOG][summary] Available RIS constructor:', RIS);
+                
                 const newVm = new RIS({
                     renderContext: 'workflow',
                     multiple: false,
-
-                    // Critical: RIS manages this observable (string resourceid)
                     value: self.riValue,
-
                     allowInstanceCreation: true,
-
-                    // Filter dropdown to the chosen graph
                     graphids: ko.observableArray([gid]),
-
                     label: 'Target resource',
                     placeholder: 'Search or create new resource…',
-
                     displayOntologyTable: false,
                     onlyManageResourceIds: true,
-
-                    // Passing form helps in workflow context (locked etc.)
                     form: params.form || null,
                     tile: null,
-
                     pageVm: params.pageVm
                 });
 
+                console.log('[WF LOG][summary] RIS created successfully:', newVm);
+                console.log('[WF LOG][summary] RIS newResourceInstance:', newVm.newResourceInstance);
+                
                 self.riVm(newVm);
 
-                // select2Config becomes available after RIS init; just flip ready a tick later
                 window.setTimeout(function() {
+                    console.log('[WF LOG][summary] RIS select2Config:', newVm.select2Config);
                     self.riVmReady(true);
                 }, 50);
 
-                // ensure we have a cardid ready for creator UI
                 fetchCreatorCardId(gid);
 
             } catch (err) {
@@ -239,6 +242,54 @@ define([
         self.dispose = function() {
             // no custom subscriptions to clean right now
         };
+
+        console.log('[WF LOG][summary] Available KO components:', ko.components._allRegistrations);
+        console.log('[WF LOG][summary] Related instance creator registered:', 
+            ko.components.isRegistered('related-instance-creator'));
+
+        // Dodaj obliczenia debugowe
+        self.debugTileId = ko.pureComputed(function() {
+            var result = !tile.tileid;
+            console.log('[DEBUG] !tile.tileid:', result, 'tileid value:', tile.tileid);
+            return result;
+        });
+
+        self.debugShowChildCards = ko.pureComputed(function() {
+            var result = !showChildCards();
+            console.log('[DEBUG] !showChildCards():', result, 'showChildCards value:', showChildCards());
+            return result;
+        });
+
+        // Debug workflow conditions
+        self.debugCanContinue = ko.pureComputed(function() {
+            var canContinue = self.canContinue();
+            console.log('[DEBUG] Can continue:', canContinue);
+            return canContinue;
+        });
+
+        self.debugMode = ko.pureComputed(function() {
+            var mode = self.mode();
+            console.log('[DEBUG] Current mode:', mode);
+            return mode;
+        });
+
+        self.debugTargetGraph = ko.pureComputed(function() {
+            var graphId = self.targetGraphId();
+            console.log('[DEBUG] Target graph ID:', graphId);
+            return !!graphId;
+        });
+
+        self.debugRiValue = ko.pureComputed(function() {
+            var riValue = self.riValue();
+            console.log('[DEBUG] RI Value:', riValue);
+            return !!riValue;
+        });
+
+        self.debugAddButtonVisible = ko.pureComputed(function() {
+            var result = self.debugCanContinue() || self.debugMode() || self.debugTargetGraph() || self.debugRiValue();
+            console.log('[DEBUG] Add button visible (any condition true):', result);
+            return result;
+        });
     }
 
     return ko.components.register('iiif-annotation-summary-step', {
