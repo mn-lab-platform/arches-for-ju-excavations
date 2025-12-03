@@ -1,0 +1,8 @@
+{
+    "name": "Digital Resource 3D Report",
+    "componentid": "a942ac6f-28cf-4976-a853-5fe173023129",
+    "component": "reports/digital-resource-3d-report",
+    "componentname": "digital-resource-3d-report",
+    "description": "Digital Resource 3D Report",
+    "defaultconfig": {}
+}

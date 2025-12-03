@@ -24,7 +24,7 @@ export default ko.components.register('resource-3d-report', {
         
         console.log("related: ", relatedResources);
         const model3DResource = Object.entries(relatedResources)
-            .filter(([_, value]) => (value.name === 'Model 3D'))
+            .filter(([_, value]) => (value.name === 'Digital Resource 3D'))
             .map(([_, value]) => value);
 
         console.log("models: ", model3DResource);

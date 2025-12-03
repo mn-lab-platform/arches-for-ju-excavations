@@ -44,7 +44,7 @@ class Model3DView(View):
                 except (KeyError, json.JSONDecodeError) as e:
                     print(f"tileset.json invalid: {e}")
                     return 'tileset.json is not valid JSON.'
-                tile_extensions = ('.b3dm', '.pnts', '.i3dm', '.cmpt')
+                tile_extensions = ('.b3dm', '.pnts', '.i3dm', '.cmpt', '.glb', '.gltf')
                 if not any(name.lower().endswith(tile_extensions) for name in namelist):
                     return 'No tile files found (e.g., .b3dm, .pnts).'
         except zipfile.BadZipFile as e:

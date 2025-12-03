@@ -11,6 +11,8 @@ define([
             self.REL_ONTOLOGY_PROPERTY_ID = null;
             self.REL_INVERSE_PROPERTY_ID = null;
             self.NAME_NODE_ID = 'e86d68d2-04f0-4d26-b9a1-ee2d17d18232'
+            self.CREATED_AT_NODE_ID = '79e9e772-d8cb-41e5-87a3-f4a0cce70f69'
+            self.GEOREFERENCED_NODE_ID = '6f57cc4e-3c15-4483-8517-753a999ac448'
             self.URL_NODE_ID = '5c156476-b54c-4e7b-80b2-005667812d4e'
             self.RELATED_NODE_ID = '19d7fe5b-59ff-46e4-8366-9b2cc77b0a8d'
 
@@ -66,13 +68,17 @@ define([
             } 
 
             self._createModelResource = function(name, url, resourceId) {
-                // wrap values into objects keyed by node id (server expects an object mapping node IDs -> values)
                 const nameData = {};
                 nameData[self.NAME_NODE_ID] = name;
 
                 const urlData = {};
-                // if the URL node expects a language object, change to { [lang]: { value: url, direction: 'ltr' } }
                 urlData[self.URL_NODE_ID] = url;
+                
+                const georeferencedData = {};
+                georeferencedData[self.GEOREFERENCED_NODE_ID] = self.isGeoreferenced();
+
+                const createdAtData = {};
+                createdAtData[self.CREATED_AT_NODE_ID] = new Date().toISOString();
 
                 let relData = {};
                 relData[self.RELATED_NODE_ID] = [{
@@ -81,6 +87,7 @@ define([
                     inverseOntologyProperty: self.REL_INVERSE_PROPERTY_ID || "",
                     resourceXresourceId: ""
                 }];
+
                 console.log("relData", relData);
                 return self._postTile(self.NAME_NODE_ID, nameData, resourceId)
                     .then(function() {
@@ -88,6 +95,12 @@ define([
                     })
                     .then(function() {
                         return self._postTile(self.RELATED_NODE_ID, relData, resourceId);
+                    })
+                    .then(function() {
+                        return self._postTile(self.CREATED_AT_NODE_ID, createdAtData, resourceId);
+                    })
+                    .then(function() {
+                        return self._postTile(self.GEOREFERENCED_NODE_ID, georeferencedData, resourceId);
                     })
                     .catch(function(error) {
                         console.error('Error creating model resource:', error);
@@ -147,7 +160,8 @@ define([
                     dz.on('success', function(file, response) {
                         console.log('Upload successful:', response);
                         const {_, model_id, url} = response;
-                        self._createModelResource(file.name, url, model_id);
+                        const nameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+                        self._createModelResource(nameWithoutExt, url, model_id);
                         self.loading(false);
                         self.errorMessage('');
                         self.successMessage('3D model uploaded successfully.');

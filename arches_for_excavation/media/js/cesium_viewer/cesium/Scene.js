@@ -52,10 +52,7 @@ export class Scene {
     }
 
     _handleGeoreferencedTileset(tileset) {
-        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, {
-            duration: 1.5,
-            offset: new HeadingPitchRange(0.5, -0.5, tileset.boundingSphere.radius * 3)
-        });
+        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, { duration: 1.5 });
     }
 
     _scaleTileset(tileset) {

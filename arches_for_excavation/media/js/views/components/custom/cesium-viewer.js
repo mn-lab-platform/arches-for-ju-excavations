@@ -1,5 +1,5 @@
 import ko from 'knockout';
-import viewerTemplate from 'templates/views/components/custom/cesium_viewer.htm';
+import viewerTemplate from 'templates/views/components/custom/cesium-viewer.htm';
 import { initializeCesiumViewer } from '../../../cesium_viewer';
 import { getCesiumToken } from '../../../config/config';
 
@@ -12,6 +12,7 @@ export default ko.components.register('cesium-viewer', {
         const models = params.models3D() || [];
         console.log("Cesium Viewer models:", models);
         self.viewerIds = models.map((_, index) => `cesiumViewer-${index}`);
+        self.modelLabels = ko.observableArray(models.map(m => m.resource.Name || 'Unnamed Model'));
         self.readOnly = params.readOnly() || false;
         console.log("readonly:", self.readOnly);
         self.initializedViewers = new Set();
@@ -27,7 +28,8 @@ export default ko.components.register('cesium-viewer', {
 
             for (let i = 0; i < models.length; i++) {
                 const model = models[i];
-                const modelUrl = `${model.resource.URL}/tileset.json`;
+                const modelUrl = `${model.resource.Url}/tileset.json`;
+                const georeferenced = String(model.resource.Georeferenced).toLowerCase() === 'true';
                 const viewerId = `cesiumViewer-${i}`;
 
                 if (self.initializedViewers.has(viewerId)) {
@@ -47,7 +49,7 @@ export default ko.components.register('cesium-viewer', {
                         token, 
                         viewerId, 
                         { 
-                            georeferenced: false, 
+                            georeferenced: georeferenced, 
                             readOnly: self.readOnly,
                             modelUrl: modelUrl
                         }
