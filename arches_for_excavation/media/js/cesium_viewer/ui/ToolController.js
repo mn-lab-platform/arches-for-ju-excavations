@@ -8,6 +8,7 @@ export class ToolController {
     constructor(scene) {
         this.readOnly = scene.readOnly;
         this.toolDisplays = new Map();
+        this.parentContainerId = scene.containerId;
         this.tools = [
             new DistanceTool(scene, TOOL_NAMES.DISTANCE, {
                 [TOOL_CALLBACKS.ON_DISTANCE_UPDATE]: (distance) => this._updateDistanceDisplay(distance)
@@ -34,7 +35,16 @@ export class ToolController {
     }
 
     _initializeToolUi(tool, iconPath) {
-        const toolsContainer = document.querySelector('.toolsContainer');
+        const container = document.getElementById(this.parentContainerId);
+        if (!container) {
+            console.error(`Container ${this.parentContainerId} not found`);
+            return;
+        }
+        const toolsContainer = container.querySelector('.toolsContainer');
+        if (!toolsContainer) {
+            console.error(`toolsContainer not found in ${this.parentContainerId}`);
+            return;
+        }
 
         const toolWrapper = document.createElement('div');
         toolWrapper.classList.add('toolWrapper');
