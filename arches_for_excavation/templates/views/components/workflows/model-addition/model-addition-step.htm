@@ -17,6 +17,19 @@
     100% { transform: rotate(360deg); }
 }
 
+/* Pulsating blue shadow for dragover */
+@keyframes pulse-blue {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+.panel-body.dragover {
+    animation: pulse-blue 1.5s infinite;
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
 /* nazwa pliku + rozmiar */
 .dz-details {
 display: flex;
@@ -71,6 +84,7 @@ display: none;
     border:1px dashed #999; 
     padding:10px; 
     text-align:center;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
 section {
@@ -85,6 +99,23 @@ section {
 
 #georeferenced-checkbox {
     accent-color: #5bc0de;
+}
+
+/* Simple button styling */
+.fileinput-zip-button {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.fileinput-zip-button:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
 }
 
 </style>
@@ -103,7 +134,7 @@ section {
         <div class="panel-body"
              data-bind="dropzone: dropzoneOptionsZip">
             <div id="dropzone-preview"></div>
-            <button id="dropzone-button" type="button" class="btn btn-default fileinput-zip-button">
+            <button id="dropzone-button" type="button" class="fileinput-zip-button">
                 Choose ZIP file…
             </button>
         </div>

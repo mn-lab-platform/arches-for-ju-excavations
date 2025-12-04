@@ -176,6 +176,18 @@ define([
                     dz.on('complete', function() {
                         self.loading(false);
                     });
+
+                    dz.on('dragover', function() {
+                        dz.element.classList.add('dragover');
+                    });
+
+                    dz.on('dragleave', function() {
+                        dz.element.classList.remove('dragover');
+                    });
+
+                    dz.on('drop', function() {
+                        dz.element.classList.remove('dragover');
+                    });
                 }
             };
 
