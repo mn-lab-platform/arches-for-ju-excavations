@@ -199,97 +199,235 @@ define([
         // Can continue?
         self.canContinue = ko.pureComputed(function() {
             const p = self.payload();
-            if (!p) return false;
-
-            if (self.mode() === 'annotation-and-resource') {
-                return !!(self.targetGraphId() && self.riValue());
-            }
-            return true;
+            const canContinue = p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue()));
+            console.log('[DEBUG] canContinue:', canContinue, {
+                payload: !!p,
+                mode: self.mode(),
+                targetGraphId: self.targetGraphId(),
+                riValue: self.riValue()
+            });
+            return canContinue;
         });
 
         // Wire workflow step
         if (params.form) {
             params.form.complete = self.canContinue;
+            console.log('[WF LOG][summary] Workflow step complete condition set.');
+        }
 
-            params.form.save = function() {
-                const p = self.payload() || {};
+        // ===================== HELPER FUNCTIONS =====================
+        
+        function uuidv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0;
+                var v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
 
-                const finalPayload = {
-                    hostResourceId: p.hostResourceId || null,
-                    iiifServiceUrl: p.iiifServiceUrl || null,
-                    annotations: p.annotations || [],
-                    output: {
-                        mode: self.mode(),
-                        targetGraphId: (self.targetGraphId() || '').trim() || null,
-                        targetResourceId: (self.mode() === 'annotation-and-resource') ? (self.riValue() || null) : null
-                    },
-                    metadata: {
-                        label: (self.annotationLabel() || '').trim() || null,
-                        note: (self.annotationNote() || '').trim() || null
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
                     }
-                };
+                }
+            }
+            return cookieValue;
+        }
 
-                console.log('[WF LOG][summary] save, finalPayload:', finalPayload);
-                self.value(finalPayload);
+        function postTile(nodegroupId, data, resourceId) {
+            var payload = {
+                tileid: '',
+                nodegroup_id: nodegroupId,
+                parenttile_id: null,
+                resourceinstance_id: resourceId,
+                sortorder: 0,
+                tiles: {},
+                data: data
             };
-        }
 
-        // Restore if previously set
-        if (self.targetResourceId()) {
-            self.riValue(self.targetResourceId());
-        }
+            var formData = new window.FormData();
+            formData.append('data', JSON.stringify(payload));
+
+            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            var url = (arches.urls && typeof arches.urls.api_tile === 'string')
+                ? arches.urls.api_tile
+                : baseUrl + 'tile';
+
+            console.log('[WF LOG][summary] POST tile ->', url, payload);
+
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: formData
+            }).then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.json ? resp.json() : {};
+            });
+        }    
+        self.updateManifestOnServer = function(annotationData, digitalResourceId) {
+                    var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+                    var backendUrl = baseUrl + 'api/manifest/update_db'; 
+
+                    // Używamy selektora z annotatora
+                    var selector = annotationData.selector; // {type:..., value:...} (svg/xywh)
+                    
+                    // Preferuj xywh z annotatora, jeśli brakuje
+                    if (!selector && annotationData.geometry) {
+                        // fallback (gdyby coś poszło nie tak, ale getIIIFSelectorFromLayer powinien to załatwić)
+                        var xywhString = getXYWHFromGeoJSON(annotationData.geometry);
+                        selector = { type: 'xywh', value: xywhString };
+                    }
+
+                    var payload = {
+                        digital_resource_id: digitalResourceId,
+                        annotation: {
+                            label: self.annotationLabel() || 'Annotation',
+                            description: self.annotationNote() || '', // <--- DODANO TO POLE
+                            selector: selector,
+                            geometry: annotationData.geometry
+                        }
+                    };
+
+                    console.log('[WF LOG][summary] Sending to backend:', payload);
+
+                    return $.ajax({
+                        type: "POST",
+                        url: backendUrl,
+                        data: JSON.stringify(payload),
+                        contentType: "application/json",
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                    }).then(function(res) {
+                        console.log("[WF LOG][summary] Manifest updated:", res);
+                        return res;
+                    });
+                };
+        // ===================== CREATE ANNOTATION RESOURCE =====================
+        
+        self.createAnnotationResource = function(anno, hostResourceId) {
+            var ANNOTATION_GRAPH_ID = '96e396f9-3fb8-47bf-b14c-189e9c1dee97'; 
+            var NODE_ID_LABEL = 'f51dfa50-b888-4ea7-93e8-d5263fbeaf87';
+            var NODE_ID_DESCRIPTION = '05c7457d-69ba-4856-b898-88e9451a1aa5';
+            var NODE_ID_GEOMETRY = 'b2ad31fe-9cdb-4ab5-a7de-a227ef1c8b0c';
+            var NODE_ID_HOST_LINK = '4318dc2f-d592-46f3-883a-91a0f95bedcd';
+
+            var resourceId = uuidv4();
+            console.log('[WF LOG][summary] Creating annotation resource:', resourceId, 'for geometry:', anno.geometry);
+
+            var labelData = {};
+            if (self.annotationLabel()) {
+                labelData[NODE_ID_LABEL] = self.annotationLabel();
+            }
+
+            var descData = {};
+            if (self.annotationNote()) {
+                descData[NODE_ID_DESCRIPTION] = self.annotationNote();
+            }
+
+            var geomData = {};
+            geomData[NODE_ID_GEOMETRY] = JSON.stringify(anno.geometry);
+
+            var hostLinkData = {};
+            hostLinkData[NODE_ID_HOST_LINK] = [{
+                resourceId: hostResourceId,
+                ontologyProperty: "",
+                inverseOntologyProperty: "",
+                resourceXresourceId: ""
+            }];
+
+            // Chain tile creation
+            var promise = Promise.resolve();
+
+            if (self.annotationLabel()) {
+                promise = promise.then(function() {
+                    return postTile(NODE_ID_LABEL, labelData, resourceId);
+                });
+            }
+
+            if (self.annotationNote()) {
+                promise = promise.then(function() {
+                    return postTile(NODE_ID_DESCRIPTION, descData, resourceId);
+                });
+            }
+
+            return promise
+                .then(function() {
+                    return postTile(NODE_ID_GEOMETRY, geomData, resourceId);
+                })
+                .then(function() {
+                    return postTile(NODE_ID_HOST_LINK, hostLinkData, resourceId);
+                })
+                .then(function() {
+                    console.log('[WF LOG][summary] Annotation resource created successfully:', resourceId);
+                    return resourceId;
+                });
+        };
+
+        // ===================== MANUAL SAVE =====================
+        
+        self.manualSave = function() {
+            console.log('[WF LOG][summary] manualSave clicked');
+            self.isLoading(true);
+            self.error('');
+            
+            var payload = self.payload() || {};
+            var annotations = payload.annotations || [];
+            var hostResourceId = payload.hostResourceId; // ✅ To jest ID zdjęcia z manifestem
+
+            if (!payload || annotations.length === 0) {
+                self.error('Brak adnotacji do zapisania.');
+                self.isLoading(false);
+                return;
+            }
+
+            if (!hostResourceId) {
+                self.error('Brak ID zasobu hosta (zdjęcia z manifestem).');
+                self.isLoading(false);
+                return;
+            }
+
+            console.log('[WF LOG][summary] Host resource ID:', hostResourceId);
+            console.log('[WF LOG][summary] Creating', annotations.length, 'annotation(s)');
+
+            // ✅ Najpierw wywołaj backend Python dla każdej adnotacji
+            var manifestUpdatePromises = annotations.map(function(anno) {
+                return self.updateManifestOnServer(anno, hostResourceId); // ✅ Używaj hostResourceId
+            });
+
+            Promise.all(manifestUpdatePromises)
+                .then(function(manifestResults) {
+                    console.log('[WF LOG][summary] Manifests updated:', manifestResults);
+                    
+                    // ✅ Dopiero potem twórz zasoby Annotation
+                    var annoResourcePromises = annotations.map(function(anno) {
+                        return self.createAnnotationResource(anno, hostResourceId);
+                    });
+                    
+                    return Promise.all(annoResourcePromises);
+                })
+                .then(function(annoResourceIds) {
+                    self.isLoading(false);
+                    self.error('');
+                    console.log('[WF LOG][summary] All done! Annotation IDs:', annoResourceIds);
+                    alert('✅ Adnotacje zapisane w manifeście i jako zasoby!\nIDs: ' + annoResourceIds.join(', '));
+                })
+                .catch(function(err) {
+                    self.isLoading(false);
+                    self.error('Błąd zapisu: ' + (err.message || err));
+                    console.error('[WF LOG][summary] Save failed:', err);
+                });
+        };
 
         self.dispose = function() {
             // no custom subscriptions to clean right now
         };
 
-        console.log('[WF LOG][summary] Available KO components:', ko.components._allRegistrations);
-        console.log('[WF LOG][summary] Related instance creator registered:', 
-            ko.components.isRegistered('related-instance-creator'));
-
-        // Dodaj obliczenia debugowe
-        self.debugTileId = ko.pureComputed(function() {
-            var result = !tile.tileid;
-            console.log('[DEBUG] !tile.tileid:', result, 'tileid value:', tile.tileid);
-            return result;
-        });
-
-        self.debugShowChildCards = ko.pureComputed(function() {
-            var result = !showChildCards();
-            console.log('[DEBUG] !showChildCards():', result, 'showChildCards value:', showChildCards());
-            return result;
-        });
-
-        // Debug workflow conditions
-        self.debugCanContinue = ko.pureComputed(function() {
-            var canContinue = self.canContinue();
-            console.log('[DEBUG] Can continue:', canContinue);
-            return canContinue;
-        });
-
-        self.debugMode = ko.pureComputed(function() {
-            var mode = self.mode();
-            console.log('[DEBUG] Current mode:', mode);
-            return mode;
-        });
-
-        self.debugTargetGraph = ko.pureComputed(function() {
-            var graphId = self.targetGraphId();
-            console.log('[DEBUG] Target graph ID:', graphId);
-            return !!graphId;
-        });
-
-        self.debugRiValue = ko.pureComputed(function() {
-            var riValue = self.riValue();
-            console.log('[DEBUG] RI Value:', riValue);
-            return !!riValue;
-        });
-
-        self.debugAddButtonVisible = ko.pureComputed(function() {
-            var result = self.debugCanContinue() || self.debugMode() || self.debugTargetGraph() || self.debugRiValue();
-            console.log('[DEBUG] Add button visible (any condition true):', result);
-            return result;
-        });
     }
 
     return ko.components.register('iiif-annotation-summary-step', {

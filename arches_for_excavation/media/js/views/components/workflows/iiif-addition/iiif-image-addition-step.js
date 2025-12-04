@@ -86,40 +86,6 @@ define([
         return images;
     }
 
-    function postTile(nodegroupId, data, resourceId) {
-        var payload = {
-            tileid: '',
-            nodegroup_id: nodegroupId,
-            parenttile_id: null,
-            resourceinstance_id: resourceId,
-            sortorder: 0,
-            tiles: {},
-            data: data
-        };
-
-        var formData = new window.FormData();
-        formData.append('data', JSON.stringify(payload));
-
-        var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-        var url = (arches.urls && typeof arches.urls.api_tile === 'string')
-            ? arches.urls.api_tile          // np. "/tile"
-            : baseUrl + 'tile';
-
-        console.log('[WF LOG][image-select] POST tile ->', url, payload);
-
-        return fetch(url, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') },
-            body: formData
-        }).then(function(resp) {
-            if (!resp.ok) {
-                throw new Error('HTTP ' + resp.status);
-            }
-            return resp.json ? resp.json() : {};
-        });
-    }
-
     // =============================================================
     function viewModel(params) {
         var self = this;
@@ -177,6 +143,8 @@ define([
         self.formData = new window.FormData();
         self.dropzone = null;
 
+        self.lastManifestGlobalId = null;
+
         var csrftoken = getCookie('csrftoken');
         var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
         var manifestManagerUrl = (arches && arches.urls && arches.urls.manifest_manager)
@@ -217,9 +185,12 @@ define([
             });
         }
 
-        self.createDigitalResource = function(serviceUrl, labelText) {
-            var resourceId = uuidv4();
+        self.createDigitalResource = function(serviceUrl, labelText, manifestGlobalId) {
+            // ✅ Użyj globalid z manifestu jako ID zasobu, jeśli jest dostępny
+            var resourceId = manifestGlobalId || uuidv4();
             var label = labelText || serviceUrl || ('digital resource: iiif ' + new Date().toISOString());
+
+            console.log('[WF LOG][image-select] Creating digital resource with ID:', resourceId);
 
             var labelData = {};
             labelData[DIGITAL_RES_LABEL_NODE_ID] = makeLangValue(label);
@@ -250,6 +221,7 @@ define([
                         digitalResourceId: resourceId,
                         targetResourceId: self.targetResourceId()
                     });
+                    console.log('[WF LOG][image-select] Digital resource created with manifest-matched ID:', resourceId);
                     return resourceId;
                 });
         }
@@ -383,6 +355,13 @@ define([
                 })
                 .then(function(response) {
                     console.log('[WF LOG][image-select] manifest_manager response:', response);
+                    
+                    // ✅ Zapisz globalid przed loadManifest
+                    if (response && response.globalid) {
+                        self.lastManifestGlobalId = response.globalid;
+                        console.log('[WF LOG][image-select] Stored manifest globalid:', self.lastManifestGlobalId);
+                    }
+                    
                     if (response && response.url) {
                         self.loadManifest(response.url);
                     } else {
@@ -414,7 +393,10 @@ define([
 
             self.digitalResourceId(null);
 
-            self.createDigitalResource(image.serviceUrl, image.label)
+            // ✅ Wyciągnij globalid z manifestu (jeśli jest)
+            var manifestGlobalId = self.lastManifestGlobalId || null;
+
+            self.createDigitalResource(image.serviceUrl, image.label, manifestGlobalId)
                 .then(function(resourceId) {
                     console.log('[WF LOG][image-select] digital resource: iiif created with id', resourceId);
                 })

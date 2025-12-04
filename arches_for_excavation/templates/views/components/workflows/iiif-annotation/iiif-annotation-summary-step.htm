@@ -1,26 +1,6 @@
 <div class="workflow-step">
   <h3>Finalize</h3>
 
-  <!-- Debug Panel - Dodaj na początku -->
-  <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 20px; font-family: monospace; font-size: 12px;">
-    <h5 style="margin-top: 0; color: #495057;">🐛 Debug Info</h5>
-    <div style="display: grid; grid-template-columns: 200px 1fr; gap: 5px;">
-      <span>Can Continue:</span> 
-      <span data-bind="text: debugCanContinue(), style: { color: debugCanContinue() ? 'green' : 'red' }"></span>
-      
-      <span>Current Mode:</span> 
-      <span data-bind="text: debugMode()"></span>
-      
-      <span>Target Graph ID:</span> 
-      <span data-bind="text: debugTargetGraph(), style: { color: debugTargetGraph() ? 'green' : 'red' }"></span>
-      
-      <span>RI Value:</span> 
-      <span data-bind="text: debugRiValue(), style: { color: debugRiValue() ? 'green' : 'red' }"></span>
-      
-      <span>Add Button Visible:</span> 
-      <span data-bind="text: debugAddButtonVisible(), style: { color: debugAddButtonVisible() ? 'green' : 'red' }"></span>
-    </div>
-  </div>
 
   <!-- ko if: !payload() -->
   <div class="alert alert-danger">
@@ -34,19 +14,25 @@
     <div class="panel-heading">Annotation metadata</div>
     <div class="panel-body">
       <div style="margin-bottom:10px;">
-        <label>Label (optional)</label>
+        <label>Label </label>
         <input class="form-control"
                data-bind="textInput: annotationLabel"
                placeholder="e.g. 'Crack on the north wall'">
       </div>
 
       <div>
-        <label>Note (optional)</label>
+        <label>Description </label>
         <textarea class="form-control"
                   rows="3"
                   data-bind="textInput: annotationNote"
                   placeholder="Any extra context…"></textarea>
       </div>
+
+      <button class="btn btn-primary" data-bind="click: manualSave, enable: canContinue()">Zapisz adnotacje</button>
+      <span data-bind="visible: isLoading()" style="margin-left:10px;">
+        <i class="fa fa-spinner fa-spin"></i> Zapisuję...
+      </span>
+      <span data-bind="visible: error()" class="text-danger" style="margin-left:10px;" data-bind="text: error"></span>
     </div>
   </div>
 

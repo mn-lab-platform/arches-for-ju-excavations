@@ -1,100 +1,51 @@
 <div class="workflow-step-container">
-
   <h4>IIIF Annotator</h4>
 
-  <div data-bind="visible: !ko.unwrap(imageServiceUrl)" class="alert alert-warning">
-    <p>No IIIF image detected on the selected host resource. Go back and pick another resource or ensure it has a IIIF URL.</p>
+  <div data-bind="visible: !imageServiceUrl()" class="alert alert-warning">
+    <p>Loading image or no IIIF URL found...</p>
   </div>
 
-  <div data-bind="visible: ko.unwrap(imageServiceUrl)">
-    <p>Image Service URL: <code data-bind="text: ko.unwrap(imageServiceUrl)"></code></p>
+  <div data-bind="visible: imageServiceUrl">
+    <p>Image Service URL: <code data-bind="text: imageServiceUrl"></code></p>
 
-    <div data-bind="template: { afterRender: afterMapRender }">
-      <div id="annotation-map"
-           style="height:600px;width:100%;background:#f0f0f0;border:1px solid #ddd;">
-      </div>
+    <div style="height:600px; width:100%; margin-bottom:15px;">
+        <iiif-map-viewer params="
+            serviceUrl: imageServiceUrl,
+            existingAnnotations: existingAnnotations,
+            onAnnotationCreated: handleNewAnnotation,
+            onAnnotationDeleted: handleAnnotationDeleted
+        "></iiif-map-viewer>
     </div>
 
-    <div style="margin-top: 15px; display:flex; gap:10px; align-items:center;">
+    <div style="display:flex; gap:10px; align-items:center;">
       <button class="btn btn-primary"
-              data-bind="click: openFinalizeModal, enable: annotations().length > 0">
+              data-bind="click: openFinalizeModal, enable: newAnnotations().length > 0">
         Finalize output
       </button>
 
-      <span class="text-muted" data-bind="visible: annotations().length === 0">
-        Draw at least one annotation to enable finalize.
+      <span class="text-muted" data-bind="visible: newAnnotations().length === 0">
+        Draw at least one new annotation to enable finalize.
       </span>
-
-      <span class="text-success" data-bind="visible: isFinalized">
-        Finalized ✓
+      
+      <span class="text-info" data-bind="visible: newAnnotations().length > 0">
+        New annotations pending: <strong data-bind="text: newAnnotations().length"></strong>
       </span>
-    </div>
-
-    <div data-bind="visible: annotations().length > 0" style="margin-top:20px;">
-      <h5>Annotations (<span data-bind="text: annotations().length"></span>)</h5>
-      <ul data-bind="foreach: annotations">
-        <li>
-          <span data-bind="text: type"></span>
-          <small class="text-muted" data-bind="text: created"></small>
-        </li>
-      </ul>
     </div>
   </div>
 
-  <!-- modal -->
-  <div class="wf-modal-backdrop"
-       data-bind="visible: showFinalizeModal, click: cancelFinalizeModal"></div>
-
-  <div class="wf-modal"
-       data-bind="visible: showFinalizeModal, click: function(_, e){ e.stopPropagation(); return true; }">
-    <div class="wf-modal-card" data-bind="click: function(_, e){ e.stopPropagation(); return true; }">
-      <div class="wf-modal-header">
-        <h4 style="margin:0;">Finalize output</h4>
-      </div>
-
+  <div class="wf-modal-backdrop" data-bind="visible: showFinalizeModal, click: cancelFinalizeModal"></div>
+  <div class="wf-modal" data-bind="visible: showFinalizeModal">
+    <div class="wf-modal-card">
+      <div class="wf-modal-header"><h4>Finalize output</h4></div>
       <div class="wf-modal-body">
         <div class="form-group">
-          <label>What do you want to save?</label>
-
-          <div class="radio">
-            <label>
-              <input type="radio" name="mode" value="annotation-only"
-                     data-bind="checked: outputMode">
-              Annotation only
-            </label>
-          </div>
-
-          <div class="radio">
-            <label>
-              <input type="radio" name="mode" value="annotation-and-resource"
-                     data-bind="checked: outputMode">
-              Annotation + create a new resource
-            </label>
-          </div>
-        </div>
-
-        <div data-bind="visible: outputMode() === 'annotation-and-resource'">
-          <div class="form-group">
-            <label>Select new resource type</label>
-            <select class="form-control"
-                    data-bind="options: availableOutputGraphs,
-                               optionsText: 'name',
-                               optionsValue: 'graphid',
-                               value: targetGraphId,
-                               optionsCaption: '— choose resource type —'">
+            <label>Save Mode</label>
+            <select class="form-control" data-bind="value: outputMode">
+                <option value="annotation-only">Annotation Only</option>
+                <option value="annotation-and-resource">Create New Resource</option>
             </select>
-
-            <div class="help-block" data-bind="visible: targetGraphId">
-              Selected graphid: <code data-bind="text: targetGraphId"></code>
-            </div>
-          </div>
-        </div>
-
-        <div class="alert alert-info">
-          Next step will ask you for metadata depending on the choice above.
         </div>
       </div>
-
       <div class="wf-modal-footer">
         <button class="btn btn-default" data-bind="click: cancelFinalizeModal">Cancel</button>
         <button class="btn btn-success" data-bind="click: confirmFinalizeModal">Confirm</button>
@@ -104,29 +55,7 @@
 </div>
 
 <style>
-.workflow-step-container { padding: 20px; }
-
-.wf-modal-backdrop{
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.35);
-  z-index: 9998;
-}
-.wf-modal{
-  position: fixed; inset: 0;
-  display:flex; align-items:center; justify-content:center;
-  z-index: 9999;
-}
-.wf-modal-card{
-  background:#fff; border-radius:10px;
-  width: min(720px, 92vw);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
-  overflow:hidden;
-}
-.wf-modal-header{ padding: 16px 18px; border-bottom: 1px solid #eee; }
-.wf-modal-body{ padding: 16px 18px; }
-.wf-modal-footer{
-  padding: 12px 18px;
-  border-top: 1px solid #eee;
-  display:flex; justify-content:flex-end; gap: 10px;
-}
+.wf-modal-backdrop { position: fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; }
+.wf-modal { position: fixed; inset:0; display:flex; justify-content:center; align-items:center; z-index:9001; }
+.wf-modal-card { background:white; width: 500px; padding: 20px; border-radius: 5px; }
 </style>
