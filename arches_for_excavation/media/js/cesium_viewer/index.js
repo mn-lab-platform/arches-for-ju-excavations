@@ -7,7 +7,8 @@ export async function initializeCesiumViewer(cesiumToken, cesiumContainerId, vie
     const sceneOptions = {
         token: cesiumToken,
         georeferenced: viewerOptions.georeferenced || false,
-        readOnly: viewerOptions.readOnly || false,
+        allowAnnotationsEdits: viewerOptions.allowAnnotationsEdits || false,
+        allowObjectPicking: viewerOptions.allowObjectPicking || false,
         containerId: viewerOptions.containerId || cesiumContainerId
     };
 

@@ -2,51 +2,243 @@
     .workflow-tab-controls {
         display: none;
     }
+    
+    .resource-selection-step {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .resource-search-container {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .resource-search-input {
+        width: 100%;
+        padding: 12px 40px 12px 12px;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        transition: border-color 0.2s;
+    }
+    
+    .resource-search-input:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    }
+    
+    .resource-search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+    
+    .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .resource-card {
+        padding: 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #fff;
+        position: relative;
+        display: flex;
+        align-items: start;
+        gap: 12px;
+    }
+    
+    .resource-card:hover {
+        border-color: #4a90e2;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .resource-card.selected {
+        border-color: #4a90e2;
+        background: #f0f7ff;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    }
+    
+    .resource-card-icon {
+        font-size: 24px;
+        color: #4a90e2;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    
+    .resource-card.selected .resource-card-icon {
+        color: #2d5fa8;
+    }
+    
+    .resource-card-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .resource-card-checkmark {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        color: #4a90e2;
+        font-size: 20px;
+    }
+    
+    .resource-card-name {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 4px;
+        word-wrap: break-word;
+    }
+    
+    .resource-card-graph {
+        font-size: 11px;
+        color: #888;
+        margin-bottom: 2px;
+    }
+    
+    .resource-card-description {
+        font-size: 11px;
+        color: #666;
+        font-family: monospace;
+    }
+    
+    .resource-loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+    
+    .resource-loading i {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+    
+    .resource-error {
+        padding: 16px;
+        background: #fff3f3;
+        border: 1px solid #ffcdd2;
+        border-radius: 4px;
+        color: #c62828;
+        margin-bottom: 20px;
+    }
+    
+    .resource-count {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 12px;
+    }
+    
+    .resource-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .resource-empty i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+    
+    .selected-resource-info {
+        padding: 16px;
+        background: #e8f5e9;
+        border: 1px solid #a5d6a7;
+        border-radius: 4px;
+        margin-top: 20px;
+    }
+    
+    .selected-resource-info strong {
+        color: #2e7d32;
+    }
+
 </style>
+
 <div class="workflow-step resource-selection-step">
     
-    <!-- Optional search box -->
-    <div class="form-group" data-bind="visible: enableSearch">
-        <label>Search Resources</label>
+    <!-- Search Box -->
+    <div class="resource-search-container" data-bind="visible: enableSearch">
         <input type="text" 
-               class="form-control" 
+               class="resource-search-input"
                data-bind="textInput: searchText, 
-                          attr: { placeholder: searchPlaceholder }"
-               placeholder="Search...">
+                          attr: { placeholder: searchPlaceholder },
+                          disable: loading"
+               placeholder="Search resources...">
+        <i class="fa fa-search resource-search-icon"></i>
     </div>
-
-    <!-- Resource dropdown -->
-    <div class="form-group">
-        <label>Select Resource</label>
-        <select class="form-control"
-                data-bind="options: availableResources,
-                           optionsText: 'label',
-                           optionsValue: 'id',
-                           value: selectedResourceId,
-                           optionsCaption: placeholderText,
-                           disable: loading">
-        </select>
-        
-        <!-- Loading indicator -->
-        <div data-bind="visible: loading" style="margin-top: 5px;">
-            <i class="fa fa-spinner fa-spin"></i> Loading resources...
+    
+    <!-- Error Message -->
+    <div class="resource-error" data-bind="visible: error">
+        <i class="fa fa-exclamation-circle"></i>
+        <span data-bind="text: error"></span>
+    </div>
+    
+    <!-- Loading State -->
+    <div class="resource-loading" data-bind="visible: loading">
+        <div>
+            <i class="fa fa-spinner fa-spin"></i>
         </div>
-        
-        <!-- Error message -->
-        <div data-bind="visible: error" 
-             class="alert alert-danger" 
-             style="margin-top: 5px;">
-            <span data-bind="text: error"></span>
+        <div>Loading resources...</div>
+    </div>
+    
+    <!-- Resource Count -->
+    <div class="resource-count" data-bind="visible: !loading() && availableResources().length > 0">
+        <span data-bind="text: availableResources().length"></span> 
+        <span data-bind="text: availableResources().length === 1 ? 'resource' : 'resources'"></span>
+        <span data-bind="visible: searchText().trim()"> found</span>
+    </div>
+    
+    <!-- Resource Grid -->
+    <div class="resource-grid" data-bind="visible: !loading() && availableResources().length > 0">
+        <!-- ko foreach: availableResources -->
+        <div class="resource-card" 
+             data-bind="click: $parent.selectResource.bind($parent, $data),
+                        css: { selected: $parent.selectedResourceId() === id }">
+            
+            <!-- Checkmark for selected -->
+            <i class="fa fa-check-circle resource-card-checkmark" 
+               data-bind="visible: $parent.selectedResourceId() === id"></i>
+            
+            <!-- Resource Info -->
+            <div class="resource-card-content">
+                <div class="resource-card-name" data-bind="text: name"></div>
+                <div class="resource-card-description" data-bind="text: description"></div>
+            </div>
+        </div>
+        <!-- /ko -->
+    </div>
+    
+    <!-- Empty State -->
+    <div class="resource-empty" 
+         data-bind="visible: !loading() && availableResources().length === 0 && !error()">
+        <div>
+            <i class="fa fa-inbox"></i>
+        </div>
+        <div>No resources found</div>
+        <div style="font-size: 12px; margin-top: 8px;" data-bind="visible: searchText().trim()">
+            Try adjusting your search terms
+        </div>
+        <div style="font-size: 12px; margin-top: 8px;" data-bind="visible: !searchText().trim()">
+            No resources available for this type
         </div>
     </div>
-
-    <!-- Selected resource info -->
-    <div class="form-group" 
-         data-bind="visible: selectedResourceId"
-         style="margin-top: 10px;">
-        <div class="alert alert-info">
-            <strong>Selected Resource ID:</strong>
-            <code data-bind="text: selectedResourceId"></code>
+    
+    <!-- Selected Resource Info -->
+    <div class="selected-resource-info" data-bind="visible: selectedResourceId">
+        <strong><i class="fa fa-check"></i> Selected:</strong>
+        <div style="margin-top: 8px;">
+            <div data-bind="text: selectedResourceName"></div>
+            <code style="font-size: 11px; color: #1b5e20;" data-bind="text: selectedResourceId"></code>
         </div>
     </div>
+    
 </div>

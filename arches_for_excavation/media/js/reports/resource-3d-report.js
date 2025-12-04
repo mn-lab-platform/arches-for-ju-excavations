@@ -8,7 +8,8 @@ export default ko.components.register('resource-3d-report', {
     viewModel: function(params) {
         const self = this;
         self.models3D = ko.observableArray([]);
-        self.readOnly = ko.observable(true);
+        self.allowAnnotationsEdits = ko.observable(false);
+        self.allowObjectPicking = ko.observable(true);
 
         const myTabs = [
             ko.mapping.fromJS({
@@ -36,7 +37,7 @@ export default ko.components.register('resource-3d-report', {
                 nodegroup_ids: [],
                 component_params: {
                     models3D: self.models3D,
-                    readOnly: self.readOnly
+                    allowAnnotationsEdits: self.allowAnnotationsEdits,
                 }
             }));
             

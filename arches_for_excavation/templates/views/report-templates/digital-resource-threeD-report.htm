@@ -12,19 +12,9 @@
   <div class="report-provisional-flag">{% trans 'This resource has provisional edits that are pending review' %}</div>
 <!--/ko-->
 
-<!-- Show loading message while fetching model data -->
-<!-- ko if: isLoading -->
-  <div class="rp-report-section">
-    <div style="text-align: center; padding: 20px;">
-      <i class="fa fa-spinner fa-spin fa-2x"></i>
-      <p>Loading 3D model...</p>
-    </div>
-  </div>
-<!-- /ko -->
-
 <!-- Render the cesium-viewer component only when data is loaded -->
-<!-- ko if: !isLoading() && models3D().length > 0 -->
-  <!-- ko component: { name: 'cesium-viewer', params: { models3D: models3D, readOnly: readOnly } } -->
+<!-- ko if: models3D().length > 0 -->
+  <!-- ko component: { name: 'cesium-viewer', params: { models3D: models3D, allowAnnotationsEdits: allowAnnotationsEdits, allowObjectPicking: allowObjectPicking } } -->
   <!-- /ko -->
 <!-- /ko -->
 

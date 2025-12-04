@@ -1,4 +1,4 @@
-export function createAnnotationModal(parentElement, existingAnnotationData = {}, tool, allowsDelete = false, readOnly = false) {
+export function createAnnotationModal(parentElement, existingAnnotationData = {}, tool, allowsDelete = false, allowAnnotationsEdits = false) {
     parentElement.classList.add('infoDisplayWithModal');
 
     const modalContent = document.createElement('div');
@@ -16,7 +16,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     modalContent.appendChild(closeButton);
 
     const title = document.createElement('h2');
-    title.textContent = `${readOnly ? 'View' : (allowsDelete ? 'Edit' : 'Create')} Annotation`;
+    title.textContent = `${allowAnnotationsEdits ? (allowsDelete ? 'Edit' : 'Create') : 'View'} Annotation`;
     modalContent.appendChild(title);
 
     const annotationNameWrapper = document.createElement('div');
@@ -33,7 +33,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     if (existingAnnotationData.name) {
         annotationNameInput.value = existingAnnotationData.name;
     }
-    annotationNameInput.disabled = readOnly;
+    annotationNameInput.disabled = !allowAnnotationsEdits;
     annotationNameWrapper.appendChild(annotationNameLabel);
     annotationNameWrapper.appendChild(annotationNameInput);
     modalContent.appendChild(annotationNameWrapper);
@@ -52,7 +52,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
         annotationDescriptionInput.value = existingAnnotationData.description;
     }
     annotationDescriptionInput.rows = 4;
-    annotationDescriptionInput.disabled = readOnly;
+    annotationDescriptionInput.disabled = !allowAnnotationsEdits;
     annotationDescriptionWrapper.appendChild(annotationDescriptionLabel);
     annotationDescriptionWrapper.appendChild(annotationDescriptionInput);
     modalContent.appendChild(annotationDescriptionWrapper);
@@ -68,7 +68,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     colorPicker.type = 'color';
     colorPicker.value = `${existingAnnotationData.color || '#64ff64'}`;
     colorPicker.id = 'annotationColorPicker';
-    colorPicker.disabled = readOnly;
+    colorPicker.disabled = !allowAnnotationsEdits;
     colorWrapper.appendChild(colorLabel);   
     colorWrapper.appendChild(colorPicker);
     modalContent.appendChild(colorWrapper);
@@ -104,7 +104,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
         }
     };
     
-    if (!readOnly) {
+    if (allowAnnotationsEdits) {
         controlPanel.appendChild(saveButton);
         if (allowsDelete) {
             controlPanel.appendChild(deleteButton);

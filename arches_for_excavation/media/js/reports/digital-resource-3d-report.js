@@ -10,8 +10,8 @@ export default ko.components.register('digital-resource-3d-report', {
         params.configKeys = [];
         self._initialized = false;
         self.models3D = ko.observableArray([]);
-        self.readOnly = ko.observable(true);
-        self.isLoading = ko.observable(true); // Add loading state
+        self.allowAnnotationsEdits = ko.observable(false);
+        self.allowObjectPicking = ko.observable(false);
 
         ReportViewModel.apply(self, [params]);
         console.log("params: ", params);
@@ -23,10 +23,8 @@ export default ko.components.register('digital-resource-3d-report', {
             data.resourceId = resourceId;
             self.models3D.push(data);
             console.log("Added model to models3D:", data);
-            self.isLoading(false);
         }).catch(error => {
             console.error("Failed to load model data:", error);
-            self.isLoading(false);
         });
     },
     template: model3dReportTemplate,

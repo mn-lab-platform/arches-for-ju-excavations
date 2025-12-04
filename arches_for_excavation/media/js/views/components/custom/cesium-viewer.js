@@ -13,8 +13,11 @@ export default ko.components.register('cesium-viewer', {
         console.log("Cesium Viewer models:", models);
         self.viewerIds = models.map((_, index) => `cesiumViewer-${index}`);
         self.modelLabels = ko.observableArray(models.map(m => m.resource.Name || 'Unnamed Model'));
-        self.readOnly = params.readOnly() || false;
-        console.log("readonly:", self.readOnly);
+        self.allowAnnotationsEdits = params.allowAnnotationsEdits() || false;
+        self.allowObjectPicking = params.allowObjectPicking() || false;
+
+        console.log("Received params: ", self.allowAnnotationsEdits, self.allowObjectPicking);
+        
         self.initializedViewers = new Set();
 
         self.onCesiumViewerRendered = function () {
@@ -50,8 +53,9 @@ export default ko.components.register('cesium-viewer', {
                         viewerId, 
                         { 
                             georeferenced: georeferenced, 
-                            readOnly: self.readOnly,
-                            modelUrl: modelUrl
+                            allowAnnotationsEdits: self.allowAnnotationsEdits,
+                            allowObjectPicking: self.allowObjectPicking,
+                            modelUrl: modelUrl,
                         }
                     );
                     self.initializedViewers.add(viewerId);
