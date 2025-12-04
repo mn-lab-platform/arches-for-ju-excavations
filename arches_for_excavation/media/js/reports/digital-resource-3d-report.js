@@ -19,7 +19,7 @@ export default ko.components.register('digital-resource-3d-report', {
 
         const resourceId = params.report.attributes.resourceid;
         
-        resourceService.getResourceData(resourceId).then(data => {
+        resourceService.getOne(resourceId).then(data => {
             data.resourceId = resourceId;
             self.models3D.push(data);
             console.log("Added model to models3D:", data);

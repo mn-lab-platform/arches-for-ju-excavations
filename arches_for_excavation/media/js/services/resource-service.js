@@ -13,8 +13,8 @@ function getCookie(name) {
     return cookieValue;
 }
 
-const getResourceData = (resourceId) => {
-    console.log("getResourceData called with resourceId:", resourceId, "type:", typeof resourceId);
+const getOne = (resourceId) => {
+    console.log("getOne called with resourceId:", resourceId, "type:", typeof resourceId);
     const url = `/resources/${resourceId}`;
     console.log("Fetching URL:", url);
     
@@ -32,6 +32,33 @@ const getResourceData = (resourceId) => {
     });
 };
 
+const getAll = (graphId=null) => {
+    const url = '/search/resources';
+    let queryParams = [];
+
+    if (graphId) {
+        const resourceTypeFilter = JSON.stringify([{
+            "graphid": graphId,
+            "inverted": false,
+        }]);
+        queryParams.push('resource-type-filter=' + encodeURIComponent(resourceTypeFilter));  
+    }
+    queryParams.push('limit=1000');
+
+    return fetch(queryParams.length > 0 ? url + '?' + queryParams.join('&') : url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Accept': 'application/json'
+        }
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json(); 
+    });
+}
+
 export default {
-    getResourceData
+    getOne: getOne,
+    getAll: getAll
 }

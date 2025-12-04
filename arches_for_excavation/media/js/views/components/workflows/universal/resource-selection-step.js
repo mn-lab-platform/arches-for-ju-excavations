@@ -1,48 +1,47 @@
 define([
     'knockout',
     'arches',
-    'templates/views/components/workflows/universal/resource-selection-step.htm'
-], function(ko, arches, template) {
+    'templates/views/components/workflows/universal/resource-selection-step.htm',
+    '../../../../services/resource-service'
+], function(ko, arches, template, resourceServiceModule) {
 
     function viewModel(params) {
-        var self = this;
+        const self = this;
 
+        const resourceService = resourceServiceModule.default || resourceServiceModule;
+        
         // ===== Configuration =====
         self.graphId = params.graphid || params.graphId || null;
-        self.placeholderText = params.placeholderText || '— choose resource —';
         self.searchPlaceholder = params.searchPlaceholder || 'Search resources...';
-        self.enableSearch = params.enableSearch !== false;
         self.resultLimit = params.resultLimit || 100;
 
         // ===== State =====
         self.searchText = ko.observable('');
         self.allResources = ko.observableArray([]);
-        self.selectedResourceId = ko.observable('');
+        self.selectedResourceId = ko.observable(params.value && params.value() ? params.value() : '');
         self.loading = ko.observable(false);
         self.error = ko.observable('');
 
         // ===== Computed: Filtered resources based on search =====
         self.availableResources = ko.pureComputed(function() {
-            var searchTerm = (self.searchText() || '').trim().toLowerCase();
+            const searchTerm = (self.searchText() || '').trim().toLowerCase();
             if (!searchTerm) {
                 return self.allResources();
             }
             
-            return self.allResources().filter(function(resource) {
-                return resource.name.toLowerCase().indexOf(searchTerm) !== -1;
-            });
+            return self.allResources().filter(resource => resource.name.toLowerCase().indexOf(searchTerm) !== -1);
         });
 
         // ===== Computed: Get selected resource label =====
         self.selectedResourceName = ko.pureComputed(function() {
-            var selectedId = self.selectedResourceId();
+            const selectedId = self.selectedResourceId();
             if (!selectedId) return '';
             
-            var resource = self.allResources().find(function(r) {
+            const resource = self.allResources().find(function(r) {
                 return r.id === selectedId;
             });
             
-            return resource ? resource.label : selectedId;
+            return resource ? resource.name : selectedId;
         });
 
         // ===== Method: Select a resource =====
@@ -52,61 +51,24 @@ define([
             }
         };
 
-        // ===== Ensure params.value is observable =====
-        if (typeof params.value !== 'function') {
-            params.value = ko.observable();
-        }
-
-        // ===== Two-way binding with params.value =====
+        // ===== Sync selectedResourceId with external params =====
         self.selectedResourceId.subscribe(function(val) {
-            params.value(val || null);
+            if (typeof params.value === 'function') {
+                params.value(val || null);
+            }
             
             if (params.form) {
                 params.form.resourceid = val || null;
             }
         });
 
-        if (ko.isObservable(params.value)) {
-            params.value.subscribe(function(val) {
-                if (val !== self.selectedResourceId()) {
-                    self.selectedResourceId(val || '');
-                }
-            });
-        }
-
-        // ===== API Integration (Load Once) =====
-        function buildResourcesUrl() {
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-            var url = baseUrl + 'search/resources';
-            var queryParams = [];
-
-            if (self.graphId) {
-                var resourceTypeFilter = JSON.stringify([{
-                    "graphid": self.graphId,
-                    "inverted": false
-                }]);
-                queryParams.push('resource-type-filter=' + encodeURIComponent(resourceTypeFilter));
-            }
-
-            queryParams.push('limit=' + self.resultLimit);
-
-            return queryParams.length > 0 ? url + '?' + queryParams.join('&') : url;
-        }
-
         self.loadResources = function() {
             self.loading(true);
             self.error('');
             
-            fetch(buildResourcesUrl(), {credentials: 'include'})
-                .then(function(resp) {
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    return resp.json();
-                })
+            resourceService.getAll(self.graphId)
                 .then(function(data) {
                     const rows = data.results.hits.hits.map(function(hit) { return hit._source; });
-                    console.log("Data: ", data);
-
-                    console.log("Rows: ", rows);
 
                     self.allResources(rows.map(function(r) {
                         return {
@@ -125,32 +87,29 @@ define([
                 });
         };
         
-        // Load resources once on initialization
+        // Load resources on initialization
         self.loadResources();
 
         // ===== Workflow Integration =====
-        if (params.form && params.form.complete) {
-            params.form.complete(ko.pureComputed(function() {
-                var rid = self.selectedResourceId();
-                return !!(rid && rid.trim());
-            }));
-        }
+        if (params.form) {
+            // Set complete status
+            if (params.form.complete) {
+                params.form.complete(ko.pureComputed(function() {
+                    return !!(self.selectedResourceId() && self.selectedResourceId().trim());
+                }));
+            }
 
-        if (params.form && params.form.save) {
-            var originalSave = params.form.save;
-            params.form.save = function() {
-                var rid = (self.selectedResourceId() || '').trim();
-                if (!rid) {
-                    return Promise.reject(new Error('No resource selected'));
-                }
-
-                params.value(rid);
-                if (params.form) {
-                    params.form.resourceid = rid;
-                }
-
-                return originalSave ? originalSave.apply(params.form, arguments) : Promise.resolve(true);
-            };
+            // Override save method
+            if (params.form.save) {
+                const originalSave = params.form.save;
+                params.form.save = function() {
+                    const rid = (self.selectedResourceId() || '').trim();
+                    if (!rid) {
+                        return Promise.reject(new Error('No resource selected'));
+                    }
+                    return originalSave.apply(params.form, arguments);
+                };
+            }
         }
 
         return self;

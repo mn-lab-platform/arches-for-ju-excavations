@@ -9,7 +9,7 @@ export default ko.components.register('resource-3d-report', {
         const self = this;
         self.models3D = ko.observableArray([]);
         self.allowAnnotationsEdits = ko.observable(false);
-        self.allowObjectPicking = ko.observable(true);
+        self.allowObjectPicking = ko.observable(false);
 
         const myTabs = [
             ko.mapping.fromJS({
@@ -49,7 +49,7 @@ export default ko.components.register('resource-3d-report', {
                     const resourceId = modelResource.link.split('/').pop();
                     console.log("Processing resource id: ", resourceId);
                     
-                    resourceService.getResourceData(resourceId).then(data => {
+                    resourceService.getOne(resourceId).then(data => {
                         data.resourceId = resourceId;
                         self.models3D.push(data);
                         console.log("Added model to models3D:", data);

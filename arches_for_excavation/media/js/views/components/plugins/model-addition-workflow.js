@@ -21,10 +21,6 @@ define([
           title: 'Select Resource',
           name: 'resource-selection',
           required: true,
-          informationboxdata: {
-            heading: 'Select Resource',
-            text: 'Choose an existing resource to attach a IIIF image to.'
-          },
           layoutSections: [{
             componentConfigs: [{
               componentName: 'resource-selection-step',
@@ -45,7 +41,7 @@ define([
           required: true,
           informationboxdata: {
             heading: 'Select or upload 3D model',
-            text: 'Upload/select a 3D model and create a 3D model resource linked to the resource from step 1.'
+            text: 'Upload/select a ZIP file containing valid 3D Tiles to create a 3D model resource linked to the resource from step 1.'
           },
           layoutSections: [{
             componentConfigs: [{
