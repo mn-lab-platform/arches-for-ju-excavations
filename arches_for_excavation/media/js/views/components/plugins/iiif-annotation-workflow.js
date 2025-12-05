@@ -3,14 +3,17 @@ define([
   'jquery',
   'arches',
   'viewmodels/workflow',
+
   'templates/views/components/plugins/iiif-annotation-workflow.htm',
+  'viewmodels/workflow-step',  
   'views/components/workflows/iiif-annotation/iiif-annotator-step',
   'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/iiif-annotation/iiif-annotation-summary-step'
 ], function(ko, $, arches, Workflow, workflowTemplate) {
+  // Only 5 parameters for 9 imports - the last 4 are self-registering components
+  
   return ko.components.register('iiif-annotation-workflow', {
     viewModel: function(params) {
-      //var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
-
       this.componentName = 'iiif-annotation-workflow';
       this.quitUrl = (arches && arches.urls && arches.urls.plugin)
         ? arches.urls.plugin('init-workflow')
@@ -41,7 +44,7 @@ define([
           }]
         },
         {
-          title: 'Add IIIF Image',
+          title: 'Add annotation to IIIF',
           name: 'iiif-image-selection',
           required: true,
           informationboxdata: {
@@ -55,6 +58,25 @@ define([
               tilesManaged: 'none',
               parameters: {
                 hostResourceId: "['resource-selection']['resource-selection-instance']['value']"
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Review & finish',
+          name: 'iiif-annotation-summary',
+          required: true,
+          informationboxdata: {
+            heading: 'Review annotation payload',
+            text: 'Check what will be saved/used in the next processing step.'
+          },
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'iiif-annotation-summary-step',
+              uniqueInstanceName: 'iiif-annotation-summary-instance',
+              tilesManaged: 'none',
+              parameters: {
+                payload: "['iiif-image-selection']['iiif-annotator-instance']['value']"
               }
             }]
           }]

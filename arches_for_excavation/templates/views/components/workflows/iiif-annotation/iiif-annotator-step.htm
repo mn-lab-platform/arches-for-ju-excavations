@@ -1,30 +1,61 @@
 <div class="workflow-step-container">
-  <h4>Create Annotations</h4>
+  <h4>IIIF Annotator</h4>
 
-  <div data-bind="visible: !ko.unwrap(imageServiceUrl)" class="alert alert-warning">
-    <p>No image selected. Please go back and select an image first.</p>
+  <div data-bind="visible: !imageServiceUrl()" class="alert alert-warning">
+    <p>Loading image or no IIIF URL found...</p>
   </div>
 
-  <div data-bind="visible: ko.unwrap(imageServiceUrl)">
-    <p>Image Service URL: <code data-bind="text: ko.unwrap(imageServiceUrl)"></code></p>
+  <div data-bind="visible: imageServiceUrl">
+    <p>Image Service URL: <code data-bind="text: imageServiceUrl"></code></p>
 
-    <!-- afterRender receives an ARRAY of nodes -->
-    <div data-bind="template: { afterRender: afterMapRender }">
-      <div id="annotation-map" style="height:600px;width:100%;background:#f0f0f0;border:1px solid #ddd;">
-        <div style="padding:20px;text-align:center;">
-          <p>Map viewer will be displayed here</p>
-          <p><small>Leaflet.IIIF plugin must be loaded</small></p>
-        </div>
-      </div>
+    <div style="height:600px; width:100%; margin-bottom:15px;">
+        <iiif-map-viewer params="
+            serviceUrl: imageServiceUrl,
+            existingAnnotations: existingAnnotations,
+            onAnnotationCreated: handleNewAnnotation,
+            onAnnotationDeleted: handleAnnotationDeleted
+        "></iiif-map-viewer>
     </div>
 
-    <div data-bind="visible: annotations().length > 0" style="margin-top:20px;">
-      <h5>Annotations (<span data-bind="text: annotations().length"></span>)</h5>
-      <ul data-bind="foreach: annotations">
-        <li><span data-bind="text: type"></span></li>
-      </ul>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn btn-primary"
+              data-bind="click: openFinalizeModal, enable: newAnnotations().length > 0">
+        Finalize output
+      </button>
+
+      <span class="text-muted" data-bind="visible: newAnnotations().length === 0">
+        Draw at least one new annotation to enable finalize.
+      </span>
+      
+      <span class="text-info" data-bind="visible: newAnnotations().length > 0">
+        New annotations pending: <strong data-bind="text: newAnnotations().length"></strong>
+      </span>
+    </div>
+  </div>
+
+  <div class="wf-modal-backdrop" data-bind="visible: showFinalizeModal, click: cancelFinalizeModal"></div>
+  <div class="wf-modal" data-bind="visible: showFinalizeModal">
+    <div class="wf-modal-card">
+      <div class="wf-modal-header"><h4>Finalize output</h4></div>
+      <div class="wf-modal-body">
+        <div class="form-group">
+            <label>Save Mode</label>
+            <select class="form-control" data-bind="value: outputMode">
+                <option value="annotation-only">Annotation Only</option>
+                <option value="annotation-and-resource">Create New Resource</option>
+            </select>
+        </div>
+      </div>
+      <div class="wf-modal-footer">
+        <button class="btn btn-default" data-bind="click: cancelFinalizeModal">Cancel</button>
+        <button class="btn btn-success" data-bind="click: confirmFinalizeModal">Confirm</button>
+      </div>
     </div>
   </div>
 </div>
 
-<style>.workflow-step-container{padding:20px}</style>
+<style>
+.wf-modal-backdrop { position: fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; }
+.wf-modal { position: fixed; inset:0; display:flex; justify-content:center; align-items:center; z-index:9001; }
+.wf-modal-card { background:white; width: 500px; padding: 20px; border-radius: 5px; }
+</style>
