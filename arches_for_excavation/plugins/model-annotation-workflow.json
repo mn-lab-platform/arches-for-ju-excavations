@@ -1,0 +1,10 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k8",
+  "name": "Digital Resource 3D Annotation Workflow",
+  "icon": "fa fa-bookmark",
+  "component": "views/components/plugins/model-annotation-workflow",
+  "componentname": "model-annotation-workflow",
+  "config": { "show": false },
+  "slug": "model-annotation-workflow",
+  "sortorder": 0
+}

@@ -10,11 +10,17 @@ const getOne = (resourceId) => {
         credentials: 'include',
         headers: {
             'X-CSRFToken': getCookie('csrftoken'),
-            'Accept': 'application/json'
+            'Accept': 'application/json'  
         }
     }).then(resp => {
         console.log("Response status:", resp.status, "for URL:", url);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (!resp.ok) {
+            // Log response body for debugging
+            return resp.text().then(text => {
+                console.error("Error response body:", text);
+                throw new Error(`HTTP ${resp.status}: ${text}`);
+            });
+        }
         return resp.json();
     });
 };
@@ -36,8 +42,7 @@ const getAll = (graphId=null) => {
         method: 'GET',
         credentials: 'include',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Accept': 'application/json'
+            'X-CSRFToken': getCookie('csrftoken')
         }
     }).then(resp => {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -51,8 +56,7 @@ const deleteOne = (resourceId) => {
         method: 'DELETE',
         credentials: 'include',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Accept': 'application/json'
+            'X-CSRFToken': getCookie('csrftoken')
         }
     }).then(resp => {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -60,8 +64,41 @@ const deleteOne = (resourceId) => {
     });
 };
 
+const getOneRelatedTo = (relatedResourceId, targetResourceGraphId) => {
+    const url = '/search/resources';
+    let queryParams = [];
+
+    queryParams.push('relatesto=' + relatedResourceId);
+    
+    if (targetResourceGraphId) {
+        const resourceTypeFilter = JSON.stringify([{
+            "graphid": targetResourceGraphId,
+            "inverted": false
+        }]);
+        queryParams.push('resource-type-filter=' + encodeURIComponent(resourceTypeFilter));
+    }
+    
+    queryParams.push('limit=1000');
+
+    return fetch(url + '?' + queryParams.join('&'), {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    }).then(searchResults => {
+        const resourceIds = searchResults.results.hits.hits.map(hit => hit._source.resourceinstanceid);
+        const fetchPromises = resourceIds.map(id => getOne(id));
+        return Promise.all(fetchPromises);
+    });
+}
+
 export default {
     getOne: getOne,
     getAll: getAll,
-    deleteOne: deleteOne
+    deleteOne: deleteOne,
+    getOneRelatedTo: getOneRelatedTo
 }

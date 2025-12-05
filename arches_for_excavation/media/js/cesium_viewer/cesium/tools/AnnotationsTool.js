@@ -76,7 +76,7 @@ export class AnnotationsTool extends Tool {
         if (this.pendingAnnotation) {
             const color = Color.fromCssColorString(annotationData.color);
             this.annotation = this.widget.entities.add({
-                id: utils.generateUniqueId('annotation'),
+                id: utils.generateUniqueId(),
                 name: annotationData.name,
                 description: annotationData.description,
                 polygon: {

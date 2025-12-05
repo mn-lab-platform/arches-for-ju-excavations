@@ -4,7 +4,7 @@
   "icon": "fa fa-cube",
   "component": "views/components/plugins/model-addition-workflow",
   "componentname": "model-addition-workflow",
-  "config": { "show": true },
+  "config": { "show": false },
   "slug": "model-addition-workflow",
   "sortorder": 0
 }

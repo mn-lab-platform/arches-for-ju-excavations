@@ -84,7 +84,7 @@ define([
                 const createdAtData = {};
                 createdAtData[self.CREATED_AT_NODE_ID] = new Date().toISOString();
 
-                let relData = {};
+                const relData = {};
                 relData[self.RELATED_NODE_ID] = [{
                     resourceId: self.parentResourceId(),
                     ontologyProperty: self.REL_ONTOLOGY_PROPERTY_ID || "",

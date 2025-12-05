@@ -16,7 +16,7 @@ function extractAnnotationData(annotationEntity) {
 
 function _cesiumColorToHex(color) {
     function componentToHex(c) {
-        var hex = c.toString(16);
+        const hex = c.toString(16);
         return hex.length == 1 ? "0" + hex : hex;
     }
     const r = Math.floor(color.red * 255);
@@ -26,8 +26,12 @@ function _cesiumColorToHex(color) {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
-function generateUniqueId(prefix) {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+function generateUniqueId() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }
 
 export default {
