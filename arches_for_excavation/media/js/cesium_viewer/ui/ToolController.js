@@ -5,11 +5,12 @@ import { TOOL_CALLBACKS, TOOL_NAMES } from '../const/const.js';
 import { createAnnotationModal } from './templates/AnnotationModal.js';
 
 export class ToolController {
-    constructor(scene) {
+    constructor(scene, externalCallbacks = {}) {
         this.allowAnnotationsEdits = scene.allowAnnotationsEdits;
         this.allowObjectPicking = scene.allowObjectPicking;
         this.toolDisplays = new Map();
         this.parentContainerId = scene.containerId;
+        this.customCallbacks = externalCallbacks;
         this.tools = [
             new DistanceTool(scene, TOOL_NAMES.DISTANCE, {
                 [TOOL_CALLBACKS.ON_DISTANCE_UPDATE]: (distance) => this._updateDistanceDisplay(distance)
@@ -105,12 +106,12 @@ export class ToolController {
 
     _showAnnotationToolModal() {
         const display = this.toolDisplays.get(TOOL_NAMES.ANNOTATIONS);
-        createAnnotationModal(display, {}, this.tools.find(tool => tool.name === TOOL_NAMES.ANNOTATIONS));
+        createAnnotationModal(display, {}, this.tools.find(tool => tool.name === TOOL_NAMES.ANNOTATIONS), this.allowAnnotationsEdits);
     }
 
     _showPickerToolModal(annotationData) {
         const display = this.toolDisplays.get(TOOL_NAMES.PICKER);
-        createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === TOOL_NAMES.PICKER), true, this.allowAnnotationsEdits);
+        createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === TOOL_NAMES.PICKER), this.allowAnnotationsEdits);
     }
 
     _onAnnotationSaved(annotationData) {
@@ -124,9 +125,15 @@ export class ToolController {
          * }
          */
         console.log('Annotation created:', annotationData);
+        if (this.customCallbacks.onAnnotationSaved) {
+            this.customCallbacks.onAnnotationSaved(annotationData);
+        }
     }
 
     _onAnnotationDeleted(annotationId) {
         console.log('Annotation deleted:', annotationId);
+        if (this.customCallbacks.onAnnotationDeleted) {
+            this.customCallbacks.onAnnotationDeleted(annotationId);
+        }
     }
 }

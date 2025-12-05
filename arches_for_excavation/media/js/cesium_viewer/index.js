@@ -15,6 +15,11 @@ export async function initializeCesiumViewer(cesiumToken, cesiumContainerId, vie
     const scene = new Scene(cesiumContainerId, sceneOptions);
     console.log("Scene scale: ", scene.scale);
     await scene.loadTileset(viewerOptions.modelUrl);
+
+    const externalCallbacks = {
+        onAnnotationSaved: viewerOptions.onAnnotationSaved,
+        onAnnotationDeleted: viewerOptions.onAnnotationDeleted
+    }
     
-    new ToolController(scene);
+    new ToolController(scene, externalCallbacks);
 }

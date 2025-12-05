@@ -2,12 +2,16 @@ define([
     'knockout',
     'arches',
     'templates/views/components/workflows/model-addition/model-addition-step.htm',
+    '../../../../services/tile-service',
     'bindings/dropzone'
-], function(ko, arches, template) {
+], function(ko, arches, template, tileServiceModule) {
     return ko.components.register('model-addition-step', {
         viewModel: function(params) {
             const self = this;
 
+            const tileService = tileServiceModule.default || tileServiceModule;
+            //TODO: use tileService where needed
+            
             self.REL_ONTOLOGY_PROPERTY_ID = null;
             self.REL_INVERSE_PROPERTY_ID = null;
             self.NAME_NODE_ID = 'e86d68d2-04f0-4d26-b9a1-ee2d17d18232'
@@ -54,7 +58,7 @@ define([
                 let formData = new FormData();
                 formData.append('data', JSON.stringify(payload));
 
-                const url = '/tile'
+                const url = '/tile';
 
                 return fetch(url, {
                     method: 'POST',

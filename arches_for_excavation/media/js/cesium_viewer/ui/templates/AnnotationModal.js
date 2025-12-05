@@ -1,4 +1,4 @@
-export function createAnnotationModal(parentElement, existingAnnotationData = {}, tool, allowsDelete = false, allowAnnotationsEdits = false) {
+export function createAnnotationModal(parentElement, existingAnnotationData = {}, tool, allowAnnotationsEdits = false) {
     parentElement.classList.add('infoDisplayWithModal');
 
     const modalContent = document.createElement('div');
@@ -16,7 +16,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     modalContent.appendChild(closeButton);
 
     const title = document.createElement('h2');
-    title.textContent = `${allowAnnotationsEdits ? (allowsDelete ? 'Edit' : 'Create') : 'View'} Annotation`;
+    title.textContent = 'Configure Annotation';
     modalContent.appendChild(title);
 
     const annotationNameWrapper = document.createElement('div');
@@ -106,10 +106,9 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     
     if (allowAnnotationsEdits) {
         controlPanel.appendChild(saveButton);
-        if (allowsDelete) {
-            controlPanel.appendChild(deleteButton);
-            controlPanel.classList.add('spaced-between');
-        }
+        controlPanel.appendChild(deleteButton);
+        controlPanel.classList.add('spaced-between');
+        
         modalContent.appendChild(controlPanel);
     }
 

@@ -56,6 +56,8 @@ export default ko.components.register('cesium-viewer', {
                             allowAnnotationsEdits: self.allowAnnotationsEdits,
                             allowObjectPicking: self.allowObjectPicking,
                             modelUrl: modelUrl,
+                            onAnnotationSaved: params.onAnnotationSaved,
+                            onAnnotationDeleted: params.onAnnotationDeleted
                         }
                     );
                     self.initializedViewers.add(viewerId);

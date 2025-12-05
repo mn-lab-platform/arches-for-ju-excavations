@@ -69,7 +69,8 @@ define([
             resourceService.getAll(self.graphId)
                 .then(function(data) {
                     const rows = data.results.hits.hits.map(function(hit) { return hit._source; });
-
+                    console.log(rows);
+                    
                     self.allResources(rows.map(function(r) {
                         return {
                             id: r.resourceinstanceid,

@@ -9,8 +9,6 @@ define([
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('model-addition-workflow', {
     viewModel: function(params) {
-      //var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
-
       this.componentName = 'model-addition-workflow';
       this.quitUrl = (arches && arches.urls && arches.urls.plugin)
         ? arches.urls.plugin('init-workflow')
@@ -27,10 +25,7 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                placeholderText: '— Select which resource —',
                 searchPlaceholder: 'Search resources...',
-                enableSearch: true,
-                resultLimit: 50
               }
             }]
           }]

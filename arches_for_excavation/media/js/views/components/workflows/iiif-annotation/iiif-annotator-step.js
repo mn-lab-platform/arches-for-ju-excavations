@@ -224,4 +224,4 @@ define([
         viewModel: viewModel,
         template: template
     });
-});32
+});

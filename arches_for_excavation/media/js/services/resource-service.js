@@ -1,17 +1,4 @@
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        let cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+import { getCookie } from './service-utils';
 
 const getOne = (resourceId) => {
     console.log("getOne called with resourceId:", resourceId, "type:", typeof resourceId);
@@ -56,9 +43,25 @@ const getAll = (graphId=null) => {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         return resp.json(); 
     });
-}
+};
+
+const deleteOne = (resourceId) => {
+    const url = `/resources/${resourceId}`;
+    return fetch(url, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Accept': 'application/json'
+        }
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    });
+};
 
 export default {
     getOne: getOne,
-    getAll: getAll
+    getAll: getAll,
+    deleteOne: deleteOne
 }
