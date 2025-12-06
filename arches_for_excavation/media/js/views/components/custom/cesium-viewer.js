@@ -10,6 +10,7 @@ export default ko.components.register('cesium-viewer', {
         console.log("Cesium Viewer Params: ", params);
         
         const models = params.models3D() || [];
+        const existingAnnotations = params.existingAnnotations() || [];
         console.log("Cesium Viewer models:", models);
         self.viewerIds = models.map((_, index) => `cesiumViewer-${index}`);
         self.modelLabels = ko.observableArray(models.map(m => m.resource.Name || 'Unnamed Model'));
@@ -17,7 +18,7 @@ export default ko.components.register('cesium-viewer', {
         self.allowObjectPicking = params.allowObjectPicking() || false;
 
         console.log("Received params: ", self.allowAnnotationsEdits, self.allowObjectPicking);
-        
+        console.log("Annotations: ", existingAnnotations);
         self.initializedViewers = new Set();
 
         self.onCesiumViewerRendered = function () {
@@ -56,6 +57,7 @@ export default ko.components.register('cesium-viewer', {
                             allowAnnotationsEdits: self.allowAnnotationsEdits,
                             allowObjectPicking: self.allowObjectPicking,
                             modelUrl: modelUrl,
+                            existingAnnotations: existingAnnotations,
                             onAnnotationSaved: params.onAnnotationSaved,
                             onAnnotationDeleted: params.onAnnotationDeleted
                         }

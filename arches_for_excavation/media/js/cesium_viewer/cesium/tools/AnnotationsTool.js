@@ -75,7 +75,7 @@ export class AnnotationsTool extends Tool {
     saveAnnotation(annotationData) {
         if (this.pendingAnnotation) {
             const color = Color.fromCssColorString(annotationData.color);
-            this.annotation = this.widget.entities.add({
+            const annotation = this.widget.entities.add({
                 id: utils.generateUniqueId(),
                 name: annotationData.name,
                 description: annotationData.description,
@@ -89,7 +89,7 @@ export class AnnotationsTool extends Tool {
             this._clearCollections();
             this.points.length = 0;
             this.pendingAnnotation = null;
-            this._triggerCallback(TOOL_CALLBACKS.ON_ANNOTATION_SAVED, utils.extractAnnotationData(this.annotation));
+            this._triggerCallback(TOOL_CALLBACKS.ON_ANNOTATION_SAVED, utils.extractAnnotationData(annotation));
         }
     }
 

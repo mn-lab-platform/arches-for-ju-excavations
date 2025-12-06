@@ -9,7 +9,7 @@ export async function initializeCesiumViewer(cesiumToken, cesiumContainerId, vie
         georeferenced: viewerOptions.georeferenced || false,
         allowAnnotationsEdits: viewerOptions.allowAnnotationsEdits || false,
         allowObjectPicking: viewerOptions.allowObjectPicking || false,
-        containerId: viewerOptions.containerId || cesiumContainerId
+        existingAnnotations: viewerOptions.existingAnnotations || []
     };
 
     const scene = new Scene(cesiumContainerId, sceneOptions);

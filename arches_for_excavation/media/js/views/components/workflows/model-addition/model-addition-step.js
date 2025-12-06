@@ -18,7 +18,8 @@ define([
             self.CREATED_AT_NODE_ID = '79e9e772-d8cb-41e5-87a3-f4a0cce70f69'
             self.GEOREFERENCED_NODE_ID = '6f57cc4e-3c15-4483-8517-753a999ac448'
             self.URL_NODE_ID = '5c156476-b54c-4e7b-80b2-005667812d4e'
-            self.RELATED_NODE_ID = '19d7fe5b-59ff-46e4-8366-9b2cc77b0a8d'
+            self.RELATED_NODE_ID = '19d7fe5b-59ff-46e4-8366-9b2cc77b0a8d',
+            self.ANNOTATIONS_NODE_ID = '82c68bd5-586a-4a27-984d-b1aa5fd0f54c';
 
             self.loading = ko.observable(false);
             self.errorMessage = ko.observable(null);
@@ -105,6 +106,9 @@ define([
                     })
                     .then(function() {
                         return self._postTile(self.GEOREFERENCED_NODE_ID, georeferencedData, resourceId);
+                    })
+                    .then(function() {
+                        return self._postTile(self.ANNOTATIONS_NODE_ID, "", resourceId);
                     })
                     .catch(function(error) {
                         console.error('Error creating model resource:', error);

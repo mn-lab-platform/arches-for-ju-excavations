@@ -1,12 +1,13 @@
-import { Ion, CesiumWidget, Cesium3DTileset, Color, HeadingPitchRange, Matrix4 } from 'cesium';
+import { Ion, CesiumWidget, Cesium3DTileset, Color, HeadingPitchRange, Matrix4, Cartesian3 } from 'cesium';
 import { SCALE_FACTORS } from '../const/const';
 
 export class Scene {
-    constructor(containerId, {token, georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false} = {}) {
+    constructor(containerId, {token, georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false, existingAnnotations=[]} = {}) {
         Ion.defaultAccessToken = token;
         this.georeferenced = georeferenced;
         this.allowAnnotationsEdits = allowAnnotationsEdits;
         this.allowObjectPicking = allowObjectPicking;
+        this.existingAnnotations = existingAnnotations;
         this.scale = SCALE_FACTORS.METERS;
         this.containerId = containerId;
         console.log("Scene received: ", this.allowAnnotationsEdits, this.allowObjectPicking);
@@ -36,15 +37,38 @@ export class Scene {
 
         containerElement.appendChild(creditAnchor);
 
-        this._configureScene();
+        this._initializeScene();
     }
 
-    _configureScene() {
+    _initializeScene() {
         this.widget.scene.skyBox = undefined;
         this.widget.scene.backgroundColor = new Color(0.85, 0.85, 0.95, 0.5);
         this.widget.scene.moon.show = false;
         this.widget.scene.sun.show = false;
         this.widget.scene.fog.enabled = false;
+
+        if (this.existingAnnotations.length > 0) {
+            this._displayExistingAnnotations();
+        }
+    }
+    //TODO: Centralize annotation display logic - it should be moved to scene, with methods like addAnnotationEntity, removeAnnotationEntity
+    _displayExistingAnnotations() {
+        console.log("Scene received existing annotations object: ", this.existingAnnotations);
+        this.existingAnnotations.forEach(annotation => {
+            const geometry = JSON.parse(annotation.resource.Geometry); 
+            const positions = geometry.map(coord => Cartesian3.fromArray(coord)); 
+            
+            this.widget.entities.add({
+                id: annotation.resourceinstanceid,
+                name: annotation.displayname || 'Unnamed Annotation',
+                description: annotation.displaydescription || '',
+                polygon: {
+                    hierarchy: positions,
+                    perPositionHeight: true,
+                    material: Color.fromCssColorString(annotation.resource.Color).withAlpha(0.6)
+                }
+            });
+        });
     }
 
     async loadTileset(url) {
