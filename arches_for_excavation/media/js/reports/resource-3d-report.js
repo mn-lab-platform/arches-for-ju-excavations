@@ -10,6 +10,7 @@ export default ko.components.register('resource-3d-report', {
         self.models3D = ko.observableArray([]);
         self.allowAnnotationsEdits = ko.observable(false);
         self.allowObjectPicking = ko.observable(false);
+        self.existingAnnotations = ko.observableArray([]);
 
         const myTabs = [
             ko.mapping.fromJS({
@@ -38,6 +39,8 @@ export default ko.components.register('resource-3d-report', {
                 component_params: {
                     models3D: self.models3D,
                     allowAnnotationsEdits: self.allowAnnotationsEdits,
+                    allowObjectPicking: self.allowObjectPicking,
+                    existingAnnotations: self.existingAnnotations
                 }
             }));
             
