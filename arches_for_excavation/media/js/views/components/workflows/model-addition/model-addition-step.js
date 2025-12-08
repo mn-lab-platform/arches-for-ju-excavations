@@ -108,7 +108,7 @@ define([
                         return self._postTile(self.GEOREFERENCED_NODE_ID, georeferencedData, resourceId);
                     })
                     .then(function() {
-                        return self._postTile(self.ANNOTATIONS_NODE_ID, "", resourceId);
+                        return self._postTile(self.ANNOTATIONS_NODE_ID, {}, resourceId);
                     })
                     .catch(function(error) {
                         console.error('Error creating model resource:', error);

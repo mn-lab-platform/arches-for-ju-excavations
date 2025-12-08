@@ -14,7 +14,6 @@ define([
 
         self.REL_ONTOLOGY_PROPERTY_ID = null;
         self.REL_INVERSE_PROPERTY_ID = null;
-        self.ANNOTATIONS_GRAPH_ID = '2880934b-0015-4c5a-8ec1-1ab9bca329fd';
         self.NAME_NODE_ID = 'e202ea9f-e0a9-42a3-85a1-6380bc1115b9';
         self.DESCRIPTION_NODE_ID = 'e4c6d7e5-317d-4d04-9936-e4ad1886ba05';
         self.COLOR_NODE_ID = 'd691d389-6259-4765-b2d3-7f7f98057101';
