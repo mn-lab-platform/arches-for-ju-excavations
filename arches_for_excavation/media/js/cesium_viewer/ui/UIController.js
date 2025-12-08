@@ -151,14 +151,12 @@ export class UIController {
          *   position: [[x1, y1, z1], [x2, y2, z2], ...]  // Array of position arrays
          * }
          */
-        console.log('Annotation created:', annotationData);
         if (this.customCallbacks.onAnnotationSaved) {
             this.customCallbacks.onAnnotationSaved(annotationData);
         }
     }
 
     _onAnnotationDeleted(annotationId) {
-        console.log('Annotation deleted:', annotationId);
         if (this.customCallbacks.onAnnotationDeleted) {
             this.customCallbacks.onAnnotationDeleted(annotationId);
         }

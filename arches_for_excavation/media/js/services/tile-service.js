@@ -17,6 +17,21 @@ const createOne = (tileData) => {
     });
 }
 
+const getAllForResource = (resourceId) => {
+    const url = `/resource/${resourceId}/tiles`;
+    return fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json(); 
+    });
+}
+
 export default {
-    createOne: createOne
+    createOne: createOne,
+    getAllForResource: getAllForResource
 }

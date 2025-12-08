@@ -10,7 +10,6 @@ export class Scene {
         this.existingAnnotations = existingAnnotations;
         this.scale = SCALE_FACTORS.METERS;
         this.containerId = containerId;
-        console.log("Scene received: ", this.allowAnnotationsEdits, this.allowObjectPicking);
         
         this.widget = new CesiumWidget(containerId, {
             globe: georeferenced ? undefined : false,
@@ -33,7 +32,6 @@ export class Scene {
     }
     //TODO: Centralize annotation display logic - it should be moved to scene, with methods like addAnnotationEntity, removeAnnotationEntity
     _displayExistingAnnotations() {
-        console.log("Scene received existing annotations object: ", this.existingAnnotations);
         this.existingAnnotations.forEach(annotation => {
             const geometry = JSON.parse(annotation.resource.Geometry); 
             const positions = geometry.map(coord => Cartesian3.fromArray(coord)); 

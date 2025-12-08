@@ -90,15 +90,7 @@ define([
                 data: data
             };
 
-            return tileService.createOne(payload).then(result => {
-                if (isParentList) {
-                    const returnedTileId = result?.tileid || result?.data?.tileid;
-                    if (returnedTileId) {
-                        self.parentAnnotationsTileId(returnedTileId);
-                    }
-                }
-                return result;
-            });
+            return tileService.createOne(payload);
         }
 
         self.onAnnotationDeleted = function(annotationId) {
@@ -114,24 +106,22 @@ define([
             return resourceService.deleteOne(resourceId);
         };
 
-        self._fetchExistingAnnotationsData = function() {
-            return resourceService.getOne(self.parentResourceId())
-                .then(resourceData => {
-                    const tiles = resourceData.tiles || resourceData._tiles || [];
-                    const parentTile = Array.isArray(tiles)
-                        ? tiles.find(t => t.nodegroup_id === self.PARENT_ANNOTATIONS_NODE_ID)
-                        : null;
-                    if (parentTile?.tileid) {
-                        self.parentAnnotationsTileId(parentTile.tileid);
-                    }
-                    const raw = resourceData.resource.Annotations || '[]';
-                    const ids = JSON.parse(raw);
-                    self.annotationsIds(ids);
-                    return ids.length ? ids.map(id => resourceService.getOne(id)) : [];
-                });
-        };
+        self._fetchExistingAnnotationsData = async function() {
+            const tilesWrapper = await tileService.getAllForResource(self.parentResourceId());
+            const tiles = tilesWrapper.tiles || [];
+            const parentTile = tiles.find(t => (t.nodegroup === self.PARENT_ANNOTATIONS_NODE_ID));
+            if (parentTile.tileid) {
+                console.log("Found parent annotations tile:", parentTile);
+                self.parentAnnotationsTileId(parentTile.tileid);
+            }
 
-        console.log("parent:", self.parentResourceId());
+            const resourceData = await resourceService.getOne(self.parentResourceId());
+            const raw = resourceData.resource.Annotations || '[]';
+            const ids = JSON.parse(raw);
+            self.annotationsIds(ids);
+
+            return ids.length ? ids.map(id => resourceService.getOne(id)) : [];
+        };
 
         (async function() {
             if (self.parentResourceId()) {

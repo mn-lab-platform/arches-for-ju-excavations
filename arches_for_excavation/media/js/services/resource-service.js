@@ -1,9 +1,7 @@
 import { getCookie } from './service-utils';
 
 const getOne = (resourceId) => {
-    console.log("getOne called with resourceId:", resourceId, "type:", typeof resourceId);
     const url = `/resources/${resourceId}`;
-    console.log("Fetching URL:", url);
     
     return fetch(url, {
         method: 'GET',
@@ -13,9 +11,7 @@ const getOne = (resourceId) => {
             'Accept': 'application/json'  
         }
     }).then(resp => {
-        console.log("Response status:", resp.status, "for URL:", url);
         if (!resp.ok) {
-            // Log response body for debugging
             return resp.text().then(text => {
                 console.error("Error response body:", text);
                 throw new Error(`HTTP ${resp.status}: ${text}`);

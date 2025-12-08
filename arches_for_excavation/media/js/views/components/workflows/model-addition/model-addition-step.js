@@ -93,6 +93,9 @@ define([
                     resourceXresourceId: ""
                 }];
 
+                const annotationsData = {};
+                annotationsData[self.ANNOTATIONS_NODE_ID] = "[]";
+
                 console.log("relData", relData);
                 return self._postTile(self.NAME_NODE_ID, nameData, resourceId)
                     .then(function() {
@@ -108,7 +111,7 @@ define([
                         return self._postTile(self.GEOREFERENCED_NODE_ID, georeferencedData, resourceId);
                     })
                     .then(function() {
-                        return self._postTile(self.ANNOTATIONS_NODE_ID, {}, resourceId);
+                        return self._postTile(self.ANNOTATIONS_NODE_ID, annotationsData, resourceId);
                     })
                     .catch(function(error) {
                         console.error('Error creating model resource:', error);
