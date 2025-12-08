@@ -17,26 +17,6 @@ export class Scene {
             creditContainer: document.createElement('div'),
         });
 
-        const containerElement = document.getElementById(containerId);
-        const creditAnchor = document.createElement('a');
-        creditAnchor.href = 'https://cesium.com/';
-        creditAnchor.target = '_blank';
-        creditAnchor.rel = 'noopener noreferrer';
-        creditAnchor.textContent = 'Powered by Cesium';
-        creditAnchor.style.position = 'absolute';
-        creditAnchor.style.right = '10px';
-        creditAnchor.style.bottom = '6px';
-        creditAnchor.style.background = 'rgba(255,255,255,0.85)';
-        creditAnchor.style.padding = '4px 8px';
-        creditAnchor.style.fontSize = '12px';
-        creditAnchor.style.borderRadius = '4px';
-        creditAnchor.style.textDecoration = 'none';
-        creditAnchor.style.color = '#000';
-        creditAnchor.style.zIndex = '1000';
-        creditAnchor.style.pointerEvents = 'auto';
-
-        containerElement.appendChild(creditAnchor);
-
         this._initializeScene();
     }
 

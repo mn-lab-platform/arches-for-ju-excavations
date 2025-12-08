@@ -254,3 +254,21 @@
   background-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
+
+.cesium-credit {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #000;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.invisible {
+  display: none;
+}

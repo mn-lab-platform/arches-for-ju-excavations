@@ -16,7 +16,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     modalContent.appendChild(closeButton);
 
     const title = document.createElement('h2');
-    title.textContent = 'Configure Annotation';
+    title.textContent = `${allowAnnotationsEdits ? 'Configure' : 'View'} Annotation`;
     modalContent.appendChild(title);
 
     const annotationNameWrapper = document.createElement('div');

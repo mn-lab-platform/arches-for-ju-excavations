@@ -4,7 +4,7 @@ import { PickerTool } from '../cesium/tools/PickerTool.js';
 import { TOOL_CALLBACKS, TOOL_NAMES } from '../const/const.js';
 import { createAnnotationModal } from './templates/AnnotationModal.js';
 
-export class ToolController {
+export class UIController {
     constructor(scene, externalCallbacks = {}) {
         this.allowAnnotationsEdits = scene.allowAnnotationsEdits;
         this.allowObjectPicking = scene.allowObjectPicking;
@@ -16,16 +16,34 @@ export class ToolController {
                 [TOOL_CALLBACKS.ON_DISTANCE_UPDATE]: (distance) => this._updateDistanceDisplay(distance)
             }),
             new AnnotationsTool(scene, TOOL_NAMES.ANNOTATIONS, {
-                [TOOL_CALLBACKS.ON_POLYGON_COMPLETE]: () => this._showAnnotationToolModal(),
+                [TOOL_CALLBACKS.ON_POLYGON_COMPLETE]: () => this._showAnnotationModalForTool(TOOL_NAMES.ANNOTATIONS),
                 [TOOL_CALLBACKS.ON_ANNOTATION_SAVED]: (annotationData) => this._onAnnotationSaved(annotationData)
             }),
             new PickerTool(scene, TOOL_NAMES.PICKER, {
-                [TOOL_CALLBACKS.ON_ANNOTATION_PICKED]: (annotationData) => this._showPickerToolModal(annotationData),
+                [TOOL_CALLBACKS.ON_ANNOTATION_PICKED]: (annotationData) => this._showAnnotationModalForTool(TOOL_NAMES.PICKER, annotationData),
                 [TOOL_CALLBACKS.ON_ANNOTATION_SAVED]: (annotationData) => this._onAnnotationSaved(annotationData),
                 [TOOL_CALLBACKS.ON_ANNOTATION_DELETED]: (annotationId) => this._onAnnotationDeleted(annotationId)
             })
         ];
+        this.annotationClicked = false;
+        this._addCreditAnchor();
         this._setupTools();
+    }
+
+    _addCreditAnchor() {
+        const container = document.getElementById(this.parentContainerId);
+        if (!container) return;
+
+        if (container.querySelector('.cesium-credit')) return;
+
+        const creditAnchor = document.createElement('a');
+        creditAnchor.classList.add('cesium-credit');
+        creditAnchor.href = 'https://cesium.com/';
+        creditAnchor.target = '_blank';
+        creditAnchor.rel = 'noopener noreferrer';
+        creditAnchor.textContent = 'Powered by Cesium';
+
+        container.appendChild(creditAnchor);
     }
 
     _setupTools() {
@@ -104,14 +122,23 @@ export class ToolController {
         }
     }
 
-    _showAnnotationToolModal() {
-        const display = this.toolDisplays.get(TOOL_NAMES.ANNOTATIONS);
-        createAnnotationModal(display, {}, this.tools.find(tool => tool.name === TOOL_NAMES.ANNOTATIONS), this.allowAnnotationsEdits);
+    _updateCreditVisibility() {
+        const container = document.getElementById(this.parentContainerId);
+        if (!container) return;
+        const creditAnchor = container.querySelector('.cesium-credit');
+        if (!creditAnchor) return;
+        if (this.annotationClicked) {
+            creditAnchor.classList.add('invisible');
+        } else {
+            creditAnchor.classList.remove('invisible');
+        }
     }
-
-    _showPickerToolModal(annotationData) {
-        const display = this.toolDisplays.get(TOOL_NAMES.PICKER);
-        createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === TOOL_NAMES.PICKER), this.allowAnnotationsEdits);
+    
+    _showAnnotationModalForTool(toolName, annotationData = {}) {
+        const display = this.toolDisplays.get(toolName);
+        createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === toolName), this.allowAnnotationsEdits);
+        this.annotationClicked = true;
+        this._updateCreditVisibility();
     }
 
     _onAnnotationSaved(annotationData) {

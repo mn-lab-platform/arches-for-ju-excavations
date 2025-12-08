@@ -1,5 +1,5 @@
 import { Scene } from './cesium/Scene.js';
-import { ToolController } from './ui/ToolController.js';
+import { UIController } from './ui/UIController.js';
 import '../../css/components/cesium_viewer/index.css';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
@@ -21,5 +21,5 @@ export async function initializeCesiumViewer(cesiumToken, cesiumContainerId, vie
         onAnnotationDeleted: viewerOptions.onAnnotationDeleted
     }
     
-    new ToolController(scene, externalCallbacks);
+    new UIController(scene, externalCallbacks);
 }
