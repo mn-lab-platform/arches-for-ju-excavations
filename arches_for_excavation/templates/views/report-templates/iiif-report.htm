@@ -80,6 +80,11 @@
             <span class="err" data-bind="text: ' | ' + metaError()"></span>
           <!-- /ko -->
       </div>
+
+      <!-- ✅ NEW: Show annotation count -->
+      <div class="rp-meta">
+          <span><b>Annotations:</b> <span data-bind="text: existingAnnotations().length"></span></span>
+      </div>
   </div>
 
   <div class="rp-status">
@@ -94,7 +99,7 @@
           serviceUrl: iiifUrl(),
           globalid: globalid(),
           metaUrl: metaUrl(),
-          existingAnnotations: ko.observableArray([]),
+          existingAnnotations: existingAnnotations,
           onMapReady: onMapReadyCallback
       "></iiif-map-viewer>
     </div>

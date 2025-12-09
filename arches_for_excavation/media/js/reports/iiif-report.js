@@ -58,6 +58,9 @@ export default ko.components.register('iiif-report', {
         self.globalid = ko.observable(resourceId || null);
         self.metaUrl = ko.observable(null);
 
+        // ✅ NEW: Existing annotations from manifest
+        self.existingAnnotations = ko.observableArray([]);
+
         // ---------- UI state ----------
         self.meta = ko.observable(null);
         self.metaError = ko.observable('');
@@ -347,6 +350,61 @@ export default ko.components.register('iiif-report', {
                 }
             });
         });
+
+        // ✅ NEW: Load annotations from manifest
+        function loadAnnotations(resourceId) {
+            if (!resourceId) return;
+            
+            const manifestUrl = baseRoot() + 'manifest/' + resourceId;
+            console.log('[IIIF REPORT] Loading manifest from:', manifestUrl);
+            
+            $.getJSON(manifestUrl)
+                .done(function(manifest) {
+                    console.log('[IIIF REPORT] Manifest loaded:', manifest);
+                    
+                    try {
+                        // Extract annotation list URL
+                        const canvas = manifest.sequences?.[0]?.canvases?.[0];
+                        if (!canvas || !canvas.otherContent) {
+                            console.log('[IIIF REPORT] No annotations found in manifest');
+                            return;
+                        }
+                        
+                        const listEntry = canvas.otherContent.find(oc => 
+                            oc['@type'] === 'sc:AnnotationList'
+                        );
+                        
+                        if (!listEntry || !listEntry['@id']) {
+                            console.log('[IIIF REPORT] No annotation list URL in manifest');
+                            return;
+                        }
+                        
+                        const listUrl = listEntry['@id'];
+                        console.log('[IIIF REPORT] Loading annotations from:', listUrl);
+                        
+                        // Load annotation list
+                        $.getJSON(listUrl)
+                            .done(function(annoList) {
+                                const annos = annoList.resources || [];
+                                console.log('[IIIF REPORT] Loaded', annos.length, 'annotations');
+                                self.existingAnnotations(annos);
+                            })
+                            .fail(function(err) {
+                                console.warn('[IIIF REPORT] Failed to load annotation list:', err);
+                            });
+                    } catch (e) {
+                        console.warn('[IIIF REPORT] Error parsing manifest annotations:', e);
+                    }
+                })
+                .fail(function(err) {
+                    console.warn('[IIIF REPORT] Failed to load manifest:', err);
+                });
+        }
+
+        // ✅ Load annotations when component initializes
+        if (resourceId) {
+            loadAnnotations(resourceId);
+        }
     },
     template: iiifMapReportTemplate
 });

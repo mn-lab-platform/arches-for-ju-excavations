@@ -284,7 +284,13 @@ define([
                     var chars = anno && anno.resource && anno.resource.chars ? anno.resource.chars : '';
                     var parsed = parseAnnotationChars(chars);
 
-                    var popupData = { label: parsed.label || label, description: parsed.description, annotationIndex: annotationIndex };
+                    // ✅ Dodaj flagę canDelete
+                    var popupData = { 
+                        label: parsed.label || label, 
+                        description: parsed.description, 
+                        annotationIndex: annotationIndex,
+                        canDelete: !!self.onAnnotationDeleted
+                    };
 
                     var popupNode = document.createElement('div');
                     popupNode.innerHTML = document.getElementById('iiif-annotation-popup-template').innerHTML;
@@ -319,7 +325,13 @@ define([
                     var chars = anno && anno.resource && anno.resource.chars ? anno.resource.chars : '';
                     var parsed = parseAnnotationChars(chars);
 
-                    var popupData = { label: parsed.label || label, description: parsed.description, annotationIndex: annotationIndex };
+                    // ✅ Dodaj flagę canDelete do popupData
+                    var popupData = { 
+                        label: parsed.label || label, 
+                        description: parsed.description, 
+                        annotationIndex: annotationIndex,
+                        canDelete: !!self.onAnnotationDeleted  // tylko jeśli callback istnieje
+                    };
 
                     var popupNode = document.createElement('div');
                     popupNode.innerHTML = document.getElementById('iiif-annotation-popup-template').innerHTML;
