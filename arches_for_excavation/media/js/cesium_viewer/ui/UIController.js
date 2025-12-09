@@ -25,7 +25,6 @@ export class UIController {
                 [TOOL_CALLBACKS.ON_ANNOTATION_DELETED]: (annotationId) => this._onAnnotationDeleted(annotationId)
             })
         ];
-        this.annotationClicked = false;
         this._addCreditAnchor();
         this._setupTools();
     }
@@ -121,36 +120,13 @@ export class UIController {
             display.textContent = distanceString;
         }
     }
-
-    _updateCreditVisibility() {
-        const container = document.getElementById(this.parentContainerId);
-        if (!container) return;
-        const creditAnchor = container.querySelector('.cesium-credit');
-        if (!creditAnchor) return;
-        if (this.annotationClicked) {
-            creditAnchor.classList.add('invisible');
-        } else {
-            creditAnchor.classList.remove('invisible');
-        }
-    }
     
     _showAnnotationModalForTool(toolName, annotationData = {}) {
         const display = this.toolDisplays.get(toolName);
         createAnnotationModal(display, annotationData, this.tools.find(tool => tool.name === toolName), this.allowAnnotationsEdits);
-        this.annotationClicked = true;
-        this._updateCreditVisibility();
     }
 
     _onAnnotationSaved(annotationData) {
-        /**
-         * Expects annotationData to be an object like:
-         * {
-         *   name: 'Annotation Name',
-         *   description: 'Annotation Description',
-         *   color: '#ff0000',
-         *   position: [[x1, y1, z1], [x2, y2, z2], ...]  // Array of position arrays
-         * }
-         */
         if (this.customCallbacks.onAnnotationSaved) {
             this.customCallbacks.onAnnotationSaved(annotationData);
         }

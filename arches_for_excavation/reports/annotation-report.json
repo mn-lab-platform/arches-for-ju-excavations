@@ -1,0 +1,8 @@
+{
+    "name": "Annotation Report",
+    "componentid": "a942ac6f-28cf-4976-a853-5fe173023127",
+    "component": "reports/annotation-report",
+    "componentname": "annotation-report",
+    "description": "Annotation Report",
+    "defaultconfig": {}
+}

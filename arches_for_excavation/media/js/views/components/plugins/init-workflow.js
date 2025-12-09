@@ -17,7 +17,7 @@ define([
                 name: 'Digital Resource 3D Annotation Workflow',
                 slug: 'model-annotation-workflow',
                 icon: 'fa-bookmark',
-                description: 'Manage annotations of existing 3D models',
+                description: 'Manage annotations of 3D models',
                 backgroundColor: '#e3bcf1ff'
             }
         ]);
