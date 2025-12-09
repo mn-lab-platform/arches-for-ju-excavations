@@ -3,14 +3,13 @@ define([
     'arches',
     'templates/views/components/workflows/model-addition/model-addition-step.htm',
     '../../../../services/tile-service',
+    '../../../../services/service-utils',
     'bindings/dropzone'
-], function(ko, arches, template, tileServiceModule) {
+], function(ko, arches, template, tileServiceModule, serviceUtils) {
     return ko.components.register('model-addition-step', {
         viewModel: function(params) {
             const self = this;
-
             const tileService = tileServiceModule.default || tileServiceModule;
-            //TODO: use tileService where needed
             
             self.REL_ONTOLOGY_PROPERTY_ID = null;
             self.REL_INVERSE_PROPERTY_ID = null;
@@ -30,21 +29,6 @@ define([
                 params.parentResourceId || null
             ); 
 
-            self._getCookie = function(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (var i = 0; i < cookies.length; i++) {
-                        var cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            }
-
             self._postTile = function(nodegroupId, data, resourceId) {
                 const payload = {
                     tileid: '',
@@ -56,20 +40,7 @@ define([
                     data: data
                 };
                 
-                let formData = new FormData();
-                formData.append('data', JSON.stringify(payload));
-
-                const url = '/tile';
-
-                return fetch(url, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'X-CSRFToken': self._getCookie('csrftoken') },
-                    body: formData
-                }).then(function(resp) {
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    return resp.json ? resp.json() : {};
-                });
+                return tileService.createOne(payload);
             } 
 
             self._createModelResource = function(name, url, resourceId) {
@@ -132,7 +103,7 @@ define([
                 previewsContainer: '#dropzone-preview',
                 addRemoveLinks: true,
                 headers: {
-                    'X-CSRFToken': self._getCookie('csrftoken')
+                    'X-CSRFToken': serviceUtils.getCookie('csrftoken')
                 },
                 init: function() {
                     var dz = this;
