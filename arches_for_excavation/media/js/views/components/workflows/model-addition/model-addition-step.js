@@ -25,9 +25,14 @@ define([
             self.successMessage = ko.observable(null);
             self.canSubmit = ko.observable(false);
             self.isGeoreferenced = ko.observable(false);
+            self.modelName = ko.observable('');
             self.parentResourceId = ko.observable(
                 params.parentResourceId || null
             ); 
+
+            self._sanitizeFilename = function(name) {
+                return name.replace(/[\/\\:*?"<>|]/g, '_').trim();
+            };
 
             self._postTile = function(nodegroupId, data, resourceId) {
                 const payload = {
@@ -112,6 +117,7 @@ define([
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
                         self.errorMessage('');
+                        self.modelName(file.name.split('.').slice(0, -1).join('.'));
                         
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
@@ -132,6 +138,7 @@ define([
                         self.canSubmit(dz.files.length > 0);
                         self.errorMessage(null);
                         self.successMessage(null);
+                        self.modelName('');
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
@@ -142,8 +149,7 @@ define([
                     dz.on('success', function(file, response) {
                         console.log('Upload successful:', response);
                         const {_, model_id, url} = response;
-                        const nameWithoutExt = file.name.split('.').slice(0, -1).join('.');
-                        self._createModelResource(nameWithoutExt, url, model_id);
+                        self._createModelResource(self._sanitizeFilename(self.modelName()), url, model_id);
                         self.loading(false);
                         self.errorMessage('');
                         self.successMessage('3D model uploaded successfully.');

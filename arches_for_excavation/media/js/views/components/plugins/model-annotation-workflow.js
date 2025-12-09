@@ -7,8 +7,7 @@ define([
   'templates/views/components/plugins/model-annotation-workflow.htm',
   'views/components/workflows/model-annotation/model-annotator-step',
   'views/components/workflows/universal/resource-selection-step'
-], function(ko, $, arches, Workflow, workflowTemplate) {
-  
+], function(ko, $, arches, Workflow, workflowTemplate) {  
   return ko.components.register('model-annotation-workflow', {
     viewModel: function(params) {
         this.componentName = 'model-annotation-workflow';

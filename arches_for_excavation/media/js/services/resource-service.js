@@ -46,6 +46,20 @@ const getAll = (graphId=null) => {
     });
 };
 
+const getAllRelatedTo = (resourceId) => {
+    const url = `/resource/related/${resourceId}`;
+    return fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json(); 
+    });
+};
+
 const deleteOne = (resourceId) => {
     const url = `/resources/${resourceId}`;
     return fetch(url, {
@@ -63,5 +77,6 @@ const deleteOne = (resourceId) => {
 export default {
     getOne: getOne,
     getAll: getAll,
+    getAllRelatedTo: getAllRelatedTo,
     deleteOne: deleteOne
 }

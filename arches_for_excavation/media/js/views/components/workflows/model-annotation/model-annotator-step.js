@@ -7,6 +7,7 @@ define([
     '../../../../services/tile-service',
     'views/components/custom/cesium-viewer'
 ], function(ko, $, arches, template, resourceServiceModule, tileServiceModule) {
+    //TODO: /resource/related/<resourceid>/ to get related annotations instead of using the ugly card with ids
     function viewModel(params) {
         const self = this;
         const resourceService = resourceServiceModule.default || resourceServiceModule;

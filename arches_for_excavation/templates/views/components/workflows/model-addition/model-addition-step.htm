@@ -118,6 +118,24 @@ section {
     border-color: #adb5bd;
 }
 
+.settings-container {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+
+    margin-bottom: 5rem;
+}
+
+.setting {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.setting-label {
+    font-weight: 600;
+}
+
 </style>
 <section class="workflow-step">
     <h3>Upload 3D Tiles ZIP File</h3>
@@ -139,9 +157,16 @@ section {
             </button>
         </div>
     </div>
-    <label>
-        <input id="georeferenced-checkbox" type="checkbox" data-bind="checked: isGeoreferenced"> Georeferenced
-    </label>
+    <div class="settings-container">
+        <div class="setting">
+            <span class="setting-label">Model name:</span>
+            <input id="model-name-input" type="text" data-bind="value: modelName">
+        </div>
+        <div class="setting">
+            <span class="setting-label">Georeferenced</span>
+            <input id="georeferenced-checkbox" type="checkbox" data-bind="checked: isGeoreferenced">
+        </div>
+    </div>
     <button id="submit-button"
             type="button" 
             class="btn btn-primary" 
