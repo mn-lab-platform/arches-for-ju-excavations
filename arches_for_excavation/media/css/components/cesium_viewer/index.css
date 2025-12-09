@@ -1,3 +1,6 @@
+.viewer-wrapper {
+  padding: 1rem;
+}
 .cesium-viewer-container {
   position: relative;
   width: 100%;
