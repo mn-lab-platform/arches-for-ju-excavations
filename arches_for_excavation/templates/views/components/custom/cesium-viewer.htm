@@ -1,8 +1,6 @@
 <div data-bind="template: { afterRender: onCesiumViewerRendered }">
     <!-- ko foreach: { data: viewerIds, as: 'viewerId', afterRender: $parent.onCesiumViewerRendered } -->
-    <!-- ko if: $parent.modelLabels().length > 1 -->
-    <h2 data-bind="text: ($index() + 1) + '. ' + $parent.modelLabels()[$index()]"></h2>
-    <!-- /ko -->
+    <h2 data-bind="text: $parent.modelLabels().length > 1 ? ($index() + 1) + '. ' + $parent.modelLabels()[$index()] : $parent.modelLabels()[$index()]"></h2>
     <div class="cesium-viewer-container">
         <div data-bind="attr: { id: viewerId }" style="height: 600px; width: 100%;">
             <div class="toolsContainer"></div>

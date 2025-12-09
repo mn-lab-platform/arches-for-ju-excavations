@@ -29,15 +29,25 @@ define([
         self.allowObjectPicking = ko.observable(true);
         self.existingAnnotations = ko.observableArray([]);
         self.parentResourceId = ko.observable(params.parentResourceId || null);
-        self.annotationsIds = ko.observableArray([]);
-        self.parentAnnotationsTileId = ko.observable(null);
+        
+        let annotationsIds = [];
+        let parentAnnotationsTileId = null;
 
         self.onAnnotationSaved = function(annotationData) {
             console.log('[Workflow] Annotation saved:', annotationData);
-            return self._saveAnnotationResource(annotationData);
+            if (self._savedAnnotationAlreadyExists(annotationData.id)) {
+                console.log("Annotation already exists.");
+                return self.updateExistingAnnotation(annotationData);
+            }
+            return self._saveNewAnnotation(annotationData);
         };
 
-        self._saveAnnotationResource = function(annotationData) {
+        self.onAnnotationDeleted = function(annotationId) {
+            self._deleteAnnotation(annotationId);
+            console.log('[Workflow] Annotation deleted:', annotationId);
+        };
+
+        self._saveNewAnnotation = function(annotationData) {
             const annotationId = annotationData.id;
             
             const nameData = {};
@@ -60,9 +70,7 @@ define([
                 resourceXresourceId: ""
             }];
 
-            const parentAnnotationsData = {};
-            self.annotationsIds([...self.annotationsIds(), annotationId]);
-            parentAnnotationsData[self.PARENT_ANNOTATIONS_NODE_ID] = JSON.stringify(self.annotationsIds());
+            annotationsIds = [...annotationsIds, annotationId];
 
             return self._postTile(self.NAME_NODE_ID, nameData, annotationId)
                 .then(() => 
@@ -74,14 +82,53 @@ define([
                 ).then(() =>
                     self._postTile(self.RELATED_NODE_ID, relData, annotationId)
                 ).then(() =>
-                    self._postTile(self.PARENT_ANNOTATIONS_NODE_ID, parentAnnotationsData, self.parentResourceId())
+                    self.updateParentModelAnnotationsTile(annotationsIds)
                 );
         };
 
-        self._postTile = function(nodegroupId, data, resourceId) {
-            const isParentList = nodegroupId === self.PARENT_ANNOTATIONS_NODE_ID;
+        self.updateExistingAnnotation = function(annotationData) {
+            const annotationId = annotationData.id;
+
+            tileService.getAllForResource(annotationId)
+                .then(tilesWrapper => {
+                    const tiles = tilesWrapper.tiles || [];
+                    const nameTile = tiles.find(t => (t.nodegroup === self.NAME_NODE_ID));
+                    const descriptionTile = tiles.find(t => (t.nodegroup === self.DESCRIPTION_NODE_ID));
+                    const colorTile = tiles.find(t => (t.nodegroup === self.COLOR_NODE_ID));
+
+                    const nameData = {};
+                    nameData[self.NAME_NODE_ID] = annotationData.name || 'Unnamed Annotation';
+
+                    const descriptionData = {};
+                    descriptionData[self.DESCRIPTION_NODE_ID] = annotationData.description || '';
+
+                    const colorData = {};
+                    colorData[self.COLOR_NODE_ID] = annotationData.color || '#ffffff';
+
+                    return self._postTile(self.NAME_NODE_ID, nameData, annotationId, nameTile.tileid)
+                        .then(() => 
+                            self._postTile(self.DESCRIPTION_NODE_ID, descriptionData, annotationId, descriptionTile.tileid)
+                        ).then(() => 
+                            self._postTile(self.COLOR_NODE_ID, colorData, annotationId, colorTile.tileid)
+                        );
+                });
+        };
+
+        self._deleteAnnotation = function(resourceId) {
+            annotationsIds = annotationsIds.filter(id => id !== resourceId);
+            self.updateParentModelAnnotationsTile(annotationsIds);
+            return resourceService.deleteOne(resourceId);
+        };
+
+        self.updateParentModelAnnotationsTile = function(newAnnotationsIds) {
+            const parentAnnotationsData = {};
+            parentAnnotationsData[self.PARENT_ANNOTATIONS_NODE_ID] = JSON.stringify(newAnnotationsIds);
+            return self._postTile(self.PARENT_ANNOTATIONS_NODE_ID, parentAnnotationsData, self.parentResourceId(), parentAnnotationsTileId);
+        };
+
+        self._postTile = function(nodegroupId, data, resourceId, tileId='') {
             const payload = {
-                tileid: isParentList && self.parentAnnotationsTileId() ? self.parentAnnotationsTileId() : '',
+                tileid: tileId,
                 nodegroup_id: nodegroupId,
                 parenttile_id: null,
                 resourceinstance_id: resourceId,
@@ -90,35 +137,30 @@ define([
                 data: data
             };
 
-            return tileService.createOne(payload);
-        }
+            if (payload.tileid) {
+                return tileService.updateOne(payload);
+            }
 
-        self.onAnnotationDeleted = function(annotationId) {
-            self._deleteAnnotationResource(annotationId);
-            console.log('[Workflow] Annotation deleted:', annotationId);
+            return tileService.createOne(payload);
         };
 
-        self._deleteAnnotationResource = function(resourceId) {
-            const parentAnnotationsData = {};
-            self.annotationsIds(self.annotationsIds().filter(id => id !== resourceId));
-            parentAnnotationsData[self.PARENT_ANNOTATIONS_NODE_ID] = JSON.stringify(self.annotationsIds());
-            self._postTile(self.PARENT_ANNOTATIONS_NODE_ID, parentAnnotationsData, self.parentResourceId());
-            return resourceService.deleteOne(resourceId);
+        self._savedAnnotationAlreadyExists = function(annotationIdResourceId) {
+            return annotationsIds.includes(annotationIdResourceId);
         };
 
         self._fetchExistingAnnotationsData = async function() {
             const tilesWrapper = await tileService.getAllForResource(self.parentResourceId());
             const tiles = tilesWrapper.tiles || [];
             const parentTile = tiles.find(t => (t.nodegroup === self.PARENT_ANNOTATIONS_NODE_ID));
-            if (parentTile.tileid) {
+            if (parentTile?.tileid) {
                 console.log("Found parent annotations tile:", parentTile);
-                self.parentAnnotationsTileId(parentTile.tileid);
+                parentAnnotationsTileId = parentTile.tileid;
             }
 
             const resourceData = await resourceService.getOne(self.parentResourceId());
             const raw = resourceData.resource.Annotations || '[]';
             const ids = JSON.parse(raw);
-            self.annotationsIds(ids);
+            annotationsIds = ids;
 
             return ids.length ? ids.map(id => resourceService.getOne(id)) : [];
         };
