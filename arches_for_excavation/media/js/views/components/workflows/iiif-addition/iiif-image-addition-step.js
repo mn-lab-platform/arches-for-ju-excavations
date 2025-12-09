@@ -4,24 +4,22 @@ define([
     'templates/views/components/workflows/iiif-addition/iiif-image-addition-step.htm',
     'bindings/dropzone'
 ], function(ko, arches, template) {
+    'use strict';
 
     console.log('[WF LOG][image-select] Module loaded');
 
     // ==== KONSTANTY Z GRAFU "iiif-digital" ====
-    // UWAGA: to są ID NODEGROUPÓW, nie grafu
-    var IIIF_DIGITAL_GRAPH_ID = 'd948ccf4-bfb7-4dd6-b691-4050e3e0a19d'   
-    // JEDEN nodegroup – ta pierwsza linijka z grafu
+    var IIIF_DIGITAL_GRAPH_ID = 'd948ccf4-bfb7-4dd6-b691-4050e3e0a19d';
     var DIGITAL_RES_NODEGROUP_ID = '04271267-d0a3-4930-8be3-0e8a2a34a735';
 
-    // Trzy NODE_ID – te z wierszy: relation / iiif-url / _label
     var DIGITAL_RES_LABEL_NODE_ID = '78422c09-4994-4eff-b764-60f21f3290cd';
     var DIGITAL_RES_URL_NODE_ID   = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
     var DIGITAL_RES_REL_NODE_ID   = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
 
-    var REL_ONTOLOGY_PROPERTY_ID  = null;
-    var REL_INVERSE_PROPERTY_ID   = null;
-    // ====== HELPERS ======
+    var REL_ONTOLOGY_PROPERTY_ID = null;
+    var REL_INVERSE_PROPERTY_ID  = null;
 
+    // ====== HELPERS ======
     function uuidv4() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0;
@@ -92,42 +90,23 @@ define([
 
         console.log('[WF LOG][image-select] ========== INIT ==========');
         console.log('[WF LOG][image-select] params:', params);
-        console.log('[WF LOG][image-select] params.hostResourceId:', params.hostResourceId);
-        console.log('[WF LOG][image-select] params.form:', params.form);
-        console.log('[WF LOG][image-select] params.form.resourceid:', params.form && params.form.resourceid);
 
         // ===== host resource z kroku 1 =====
         self.targetResourceId = ko.observable(null);
-        
         var hostParam = params.hostResourceId;
-        console.log('[WF LOG][image-select] hostParam type:', typeof hostParam);
-        console.log('[WF LOG][image-select] hostParam value:', hostParam);
-        
+
         if (typeof hostParam === 'function') {
-            // workflow turned the string path into a ko.computed/observable
-            var unwrapped = ko.unwrap(hostParam);
-            console.log('[WF LOG][image-select] hostParam is function, unwrapped value:', unwrapped);
-            self.targetResourceId(unwrapped || null);
-            
-            // Subscribe to changes
+            self.targetResourceId(ko.unwrap(hostParam) || null);
             ko.computed(function() {
-                var val = ko.unwrap(hostParam);
-                console.log('[WF LOG][image-select] hostResourceId changed to:', val);
-                self.targetResourceId(val || null);
+                self.targetResourceId(ko.unwrap(hostParam) || null);
             });
         } else if (hostParam) {
-            // literal value
-            console.log('[WF LOG][image-select] hostParam is literal value:', hostParam);
             self.targetResourceId(hostParam);
         } else if (params.form && params.form.resourceid) {
-            // fallback jeśli trzymasz to też w formie
-            console.log('[WF LOG][image-select] Using params.form.resourceid:', params.form.resourceid);
             self.targetResourceId(params.form.resourceid);
         }
-        
-        console.log('[WF LOG][image-select] Final targetResourceId:', self.targetResourceId());
 
-        // ===== stan UI =====
+        // ===== UI state =====
         self.manifestUrl        = ko.observable('');
         self.imageServiceUrl    = ko.observable('');
         self.selectedImageIndex = ko.observable(null);
@@ -142,17 +121,13 @@ define([
         self.digitalResourceId = ko.observable(null);
         self.formData = new window.FormData();
         self.dropzone = null;
-
         self.lastManifestGlobalId = null;
 
         var csrftoken = getCookie('csrftoken');
         var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-        var manifestManagerUrl = (arches && arches.urls && arches.urls.manifest_manager)
-            ? arches.urls.manifest_manager
-            : baseUrl + 'image-service-manager';
-
-        console.log('[WF LOG][image-select] Using baseUrl:', baseUrl,
-                    'manifestManagerUrl:', manifestManagerUrl);
+        
+        // NOWY ENDPOINT - Python view który przetwarza i tworzy manifest
+        var geotiffProcessUrl = baseUrl + 'api/iiif/geotiff-reencode-test';
 
         // ===================== CREATE digital resource: iiif =====================
         function postTile(nodegroupId, data, resourceId) {
@@ -169,7 +144,6 @@ define([
             var formData = new window.FormData();
             formData.append('data', JSON.stringify(payload));
 
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
             var url = (arches.urls && typeof arches.urls.api_tile === 'string')
                 ? arches.urls.api_tile
                 : baseUrl + 'tile';
@@ -186,7 +160,6 @@ define([
         }
 
         self.createDigitalResource = function(serviceUrl, labelText, manifestGlobalId) {
-            // ✅ Użyj globalid z manifestu jako ID zasobu, jeśli jest dostępny
             var resourceId = manifestGlobalId || uuidv4();
             var label = labelText || serviceUrl || ('digital resource: iiif ' + new Date().toISOString());
 
@@ -196,7 +169,6 @@ define([
             labelData[DIGITAL_RES_LABEL_NODE_ID] = makeLangValue(label);
 
             var urlData = {};
-            // jeśli datatype=string
             urlData[DIGITAL_RES_URL_NODE_ID] = makeLangValue(serviceUrl);
             
             var relData = {};
@@ -204,9 +176,9 @@ define([
                 resourceId: self.targetResourceId(),
                 ontologyProperty: REL_ONTOLOGY_PROPERTY_ID || "",
                 inverseOntologyProperty: REL_INVERSE_PROPERTY_ID || "",
-                resourceXresourceId: ""   // MUSI być, nawet pusty
+                resourceXresourceId: ""
             }];
-            console.log("relData", relData);
+            
             return postTile(DIGITAL_RES_LABEL_NODE_ID, labelData, resourceId)
                 .then(function() {
                     return postTile(DIGITAL_RES_URL_NODE_ID, urlData, resourceId);
@@ -221,17 +193,15 @@ define([
                         digitalResourceId: resourceId,
                         targetResourceId: self.targetResourceId()
                     });
-                    console.log('[WF LOG][image-select] Digital resource created with manifest-matched ID:', resourceId);
+                    console.log('[WF LOG][image-select] Digital resource created:', resourceId);
                     return resourceId;
                 });
         }
 
-
-        // ========== SOURCE A: manifest / info.json ==========
-
+        // ========== SOURCE A: manifest / info.json (bez zmian) ==========
         self.manifestUrl.subscribe(function(url) {
             self.errorMessage('');
-            if (!url) { return; }
+            if (!url) return;
             self.loadManifest(url.trim());
         });
 
@@ -243,35 +213,34 @@ define([
             params.value(undefined);
             self.digitalResourceId(null);
 
-            if (/\/full\/.+\/default\.jpg(?:$|\?)/i.test(url)) {
+            if (/\/full\/.+\/default\.(jpg|png)(?:$|\?)/i.test(url)) {
                 url = serviceFromTile(url).replace(/\/$/, '') + '/info.json';
             }
 
-            fetch(url, {credentials: 'include'})
+            fetch(url, { credentials: 'include' })
                 .then(function(resp) {
-                    console.log('[WF LOG][image-select] manifest response status:', resp.status);
-                    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
                     return resp.json();
                 })
                 .then(function(data) {
-                    console.log('[WF LOG][image-select] manifest payload:', data);
-
                     if (data['@type'] === 'sc:Manifest' && Array.isArray(data.sequences)) {
                         var images = [];
                         (data.sequences || []).forEach(function(seq) {
                             images = images.concat(imagesFromCanvases(seq.canvases || []));
                         });
-                        if (!images.length) { throw new Error('No canvases with IIIF Image services found.'); }
+                        if (!images.length) throw new Error('No canvases with IIIF Image services found.');
+
                         self.availableImages(images);
                         self.loading(false);
                         return;
                     }
 
+                    // info.json (Image API)
                     if ((data['@context'] && String(data['@context']).indexOf('iiif.io/api/image') !== -1) ||
-                        (data['protocol']  && String(data['protocol']).indexOf('iiif.io/api/image') !== -1)) {
+                        (data['protocol'] && String(data['protocol']).indexOf('iiif.io/api/image') !== -1)) {
 
                         var svcId = normalizeHost(data['@id'] || data['id']);
-                        if (!svcId) { throw new Error('Missing service @id/id in info.json'); }
+                        if (!svcId) throw new Error('Missing service @id/id in info.json');
 
                         self.availableImages([{
                             label: data['@id'] || data['id'] || 'Image',
@@ -285,19 +254,18 @@ define([
                     throw new Error('Unsupported IIIF payload (not Manifest or Image API info.json).');
                 })
                 .catch(function(err) {
-                    console.log('[WF LOG][image-select] Failed to load IIIF resource:', err);
                     self.errorMessage('Failed to load IIIF resource: ' + err.message);
                     self.loading(false);
                 });
         };
 
-        // ========== SOURCE B: upload -> manifest -> loadManifest ==========
-
+        // ========== SOURCE B: upload -> Python przetwarza i tworzy manifest ==========
         self.dropzoneOptionsCreate = {
             url: baseUrl,
             dictDefaultMessage: '',
+            maxFilesize: 4096,  // 4 GB
             autoProcessQueue: false,
-            uploadMultiple: true,
+            uploadMultiple: false,  // pojedynczo dla prostoty
             autoQueue: false,
             clickable: '.fileinput-create-button',
             previewsContainer: '#hidden-dz-create-previews',
@@ -305,8 +273,7 @@ define([
                 var dz = this;
                 self.dropzone = dz;
                 dz.on('addedfiles', function(files) {
-                    console.log('[WF LOG][image-select] dropzone addedfiles:', files.length);
-                    self.createManifestFromFiles(files);
+                    self.uploadAndProcessFile(files[0]);
                 });
                 dz.on('error', function(file, error) {
                     console.log('[WF LOG][image-select] dropzone error:', error);
@@ -315,8 +282,8 @@ define([
             }
         };
 
-        self.createManifestFromFiles = function(fileList) {
-            if (!fileList || !fileList.length) { return; }
+        self.uploadAndProcessFile = function(file) {
+            if (!file) return;
 
             self.errorMessage('');
             self.loading(true);
@@ -324,22 +291,19 @@ define([
             self.imageServiceUrl('');
             params.value(undefined);
             self.digitalResourceId(null);
+            self.lastManifestGlobalId = null;
 
             self.formData = new window.FormData();
-            Array.from(fileList).forEach(function(file) {
-                self.formData.append('files', file, file.name);
-            });
+            self.formData.append('files', file, file.name);
 
             var title = 'Workflow upload ' + new Date().toISOString();
-
             self.formData.append('manifest_title', title);
-            self.formData.append('manifest_description', 'Uploaded via IIIF image workflow');
-            self.formData.append('operation', 'create');
+            self.formData.append('manifest_description', 'Processed via geotiff workflow');
             self.formData.append('transaction_id', params.form && params.form.workflowId || 'iiif-image-workflow');
 
-            console.log('[WF LOG][image-select] POSTing to manifest_manager', manifestManagerUrl);
+            console.log('[WF LOG][image-select] Uploading to Python processor:', geotiffProcessUrl);
 
-            fetch(manifestManagerUrl, {
+            fetch(geotiffProcessUrl, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -349,28 +313,33 @@ define([
                 body: self.formData
             })
                 .then(function(resp) {
-                    console.log('[WF LOG][image-select] manifest_manager status:', resp.status);
-                    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+                    console.log('[WF LOG][image-select] Python processor status:', resp.status);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
                     return resp.json();
                 })
                 .then(function(response) {
-                    console.log('[WF LOG][image-select] manifest_manager response:', response);
+                    console.log('[WF LOG][image-select] Python response:', response);
                     
-                    // ✅ Zapisz globalid przed loadManifest
-                    if (response && response.globalid) {
+                    if (!response.ok) {
+                        throw new Error(response.error || 'Processing failed');
+                    }
+                    
+                    // Python zwraca gotowy manifest URL i globalid
+                    if (response.globalid) {
                         self.lastManifestGlobalId = response.globalid;
                         console.log('[WF LOG][image-select] Stored manifest globalid:', self.lastManifestGlobalId);
                     }
                     
-                    if (response && response.url) {
-                        self.loadManifest(response.url);
+                    if (response.manifest_url) {
+                        // Załaduj manifest (który już istnieje dzięki Python)
+                        self.loadManifest(response.manifest_url);
                     } else {
                         throw new Error('Server did not return manifest URL');
                     }
                 })
                 .catch(function(err) {
-                    console.log('[WF LOG][image-select] createManifestFromFiles error:', err);
-                    self.errorMessage('Failed to create manifest: ' + err.message);
+                    console.log('[WF LOG][image-select] Upload/process error:', err);
+                    self.errorMessage('Failed to process file: ' + err.message);
                     self.loading(false);
                 })
                 .finally(function() {
@@ -381,51 +350,31 @@ define([
         };
 
         // ========== WYBÓR OBRAZU ==========
-
-        self.imageServiceUrl.subscribe(function(val) {
-            console.log('[WF LOG][image-select] imageServiceUrl ->', val);
-        });
-
         self.selectImage = function(image, index) {
-            console.log('[WF LOG][image-select] selectImage ->', image, index);
             self.selectedImageIndex(index);
             self.imageServiceUrl(image.serviceUrl);
-
             self.digitalResourceId(null);
 
-            // ✅ Wyciągnij globalid z manifestu (jeśli jest)
             var manifestGlobalId = self.lastManifestGlobalId || null;
-
             self.createDigitalResource(image.serviceUrl, image.label, manifestGlobalId)
-                .then(function(resourceId) {
-                    console.log('[WF LOG][image-select] digital resource: iiif created with id', resourceId);
-                })
                 .catch(function(err) {
                     console.error('[WF LOG][image-select] digital resource creation failed', err);
+                    self.errorMessage('Failed to create digital resource: ' + err.message);
                 });
         };
 
         // ========== GATING ==========
-
         params.form.complete(ko.pureComputed(function() {
-            var ok = !!self.imageServiceUrl();
-            console.log('[WF LOG][image-select] complete?', ok);
-            return ok;
+            return !!self.imageServiceUrl();
         }));
 
         var _origSave = params.form.save;
         params.form.save = function() {
-            console.log('[WF LOG][image-select] save() value =', params.value(),
-                        'imageServiceUrl =', self.imageServiceUrl(),
-                        'digitalResourceId =', self.digitalResourceId(),
-                        'targetResourceId =', self.targetResourceId());
             if (!self.imageServiceUrl()) {
                 self.errorMessage('Please select an image before proceeding.');
                 return Promise.resolve(false);
             }
-            if (_origSave) {
-                return _origSave.apply(params.form, arguments);
-            }
+            if (_origSave) return _origSave.apply(params.form, arguments);
             return Promise.resolve(true);
         };
 

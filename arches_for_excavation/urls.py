@@ -4,12 +4,17 @@ from django.conf.urls.i18n import i18n_patterns
 from django.urls import include, path
 from .views.model_3d import Model3DView
 from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif_annotation
+from .views.geotiif_handler import geotiff_reencode_test, geotiff_meta
 
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
     path('api/manifest/update_db', save_iiif_annotation_db, name='save_iiif_annotation_db'),
     path('api/manifest/delete_annotation', delete_iiif_annotation, name='delete_iiif_annotation'),
+    path("api/iiif/geotiff-reencode-test", geotiff_reencode_test, name="geotiff_reencode"),
+    path("api/iiif/geotiff-meta/<str:globalid>", geotiff_meta, name="geotiff_meta"),
+    
+
 ]
 
 
