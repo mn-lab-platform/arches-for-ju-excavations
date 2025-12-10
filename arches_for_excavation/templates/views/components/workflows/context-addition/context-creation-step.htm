@@ -1,0 +1,42 @@
+<div class="context-creation-step-container" style="padding: 20px;">
+  
+  <!-- Loading State -->
+  <!-- ko if: loading() -->
+  <div class="alert alert-info">
+    <i class="fa fa-spinner fa-spin"></i> Loading creator...
+  </div>
+  <!-- /ko -->
+
+  <!-- Error State -->
+  <!-- ko if: error() -->
+  <div class="alert alert-danger" data-bind="text: error"></div>
+  <!-- /ko -->
+
+  <!-- Creator Panel -->
+  <!-- ko if: !loading() && !error() && newResourceInstance() && creatorParams() -->
+  <div class="resource-creator-panel">
+    <div class="creation-instructions" style="margin-bottom: 20px;">
+      <h4>Create New <span data-bind="text: graphName"></span></h4>
+      <p>Fill in the cards below. The resource will be saved when you proceed to the next step.</p>
+    </div>
+    
+    <!-- Related Instance Creator Component -->
+    <div data-bind="with: newResourceInstance">
+      <!-- ko component: {
+          name: 'related-instance-creator',
+          params: $parent.creatorParams()
+      } --><!-- /ko -->
+    </div>
+  </div>
+  <!-- /ko -->
+
+  <!-- Success Message (shown after save) -->
+  <!-- ko if: createdResourceId() -->
+  <div class="alert alert-success" style="margin-top: 20px;">
+    <i class="fa fa-check-circle"></i>
+    <strong>Success!</strong> Resource created with ID: 
+    <code data-bind="text: createdResourceId"></code>
+  </div>
+  <!-- /ko -->
+
+</div>

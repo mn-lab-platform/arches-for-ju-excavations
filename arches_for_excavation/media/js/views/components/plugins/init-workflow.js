@@ -19,6 +19,13 @@ define([
                 icon: 'fa-bookmark',
                 description: 'Manage annotations of 3D models',
                 backgroundColor: '#e3bcf1ff'
+            },
+            {
+                name: 'Context Addition Workflow',
+                slug: 'context-addition-workflow',
+                icon: 'fa-digg',
+                description: 'Create a context resource',
+                backgroundColor: '#f9d5b3ff'
             }
         ]);
 
