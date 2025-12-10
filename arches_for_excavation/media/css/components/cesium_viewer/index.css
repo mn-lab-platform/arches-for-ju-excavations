@@ -103,9 +103,8 @@
     z-index: 1000;
 }
 
-/* Hide credit when modal is visible */
 .viewer-wrapper:has(.infoDisplayWithModal) .cesium-credit {
-    display: none !important;
+    display: none;
 }
 
 #pickerInfoDisplay:not(:empty) {
