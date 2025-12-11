@@ -36,9 +36,20 @@
 </script>
 
 <style>
-    /* Poprawki CSS dla Leaflet Draw wewnątrz Archesa.
-       Czasami ikonki edycji są przesłaniane przez style Archesa.
-    */
+    /* ✅ DODAJ: Poprawka dla ikon Leaflet */
+    .leaflet-default-icon-path {
+        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
+    }
+    
+    .leaflet-container .leaflet-marker-icon.leaflet-interactive {
+        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
+    }
+    
+    .leaflet-container .leaflet-marker-shadow {
+        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png);
+    }
+
+    /* Poprawki CSS dla Leaflet Draw wewnątrz Archesa */
     .leaflet-draw-toolbar a {
         background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/images/spritesheet.png') !important;
         background-repeat: no-repeat;

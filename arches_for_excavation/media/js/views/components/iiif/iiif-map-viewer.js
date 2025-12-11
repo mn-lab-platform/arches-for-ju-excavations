@@ -13,22 +13,44 @@ define([
         var self = this;
         var L = Leaflet || window.L;
         self.onMapReady = params.onMapReady || null;
+        self.onMapClick = params.onMapClick || null;   
 
-        // --- Parametry wejściowe ---
-        self.serviceUrl = params.serviceUrl;
+        // ✅ CHANGED: Support both single URL (legacy) and array
+        var serviceUrlParam = params.serviceUrl || params.serviceUrls;
+        
+        if (typeof serviceUrlParam === 'function') {
+            var unwrapped = ko.unwrap(serviceUrlParam);
+            if (Array.isArray(unwrapped)) {
+                self.serviceUrls = serviceUrlParam;
+            } else {
+                // Single URL -> wrap in array
+                self.serviceUrls = ko.computed(function() {
+                    var val = ko.unwrap(serviceUrlParam);
+                    return val ? [val] : [];
+                });
+            }
+        } else if (Array.isArray(serviceUrlParam)) {
+            self.serviceUrls = ko.observableArray(serviceUrlParam);
+        } else if (serviceUrlParam) {
+            self.serviceUrls = ko.observableArray([serviceUrlParam]);
+        } else {
+            self.serviceUrls = ko.observableArray([]);
+        }
 
-        // ✅ NEW: globalid/meta url (podawaj z workflow!)
-        // obsługujemy kilka nazw, bo pewnie będziesz to przekazywać różnie
         self.globalid = params.globalid || params.geotiffGlobalId || params.manifestGlobalId || null;
         self.metaUrl = params.metaUrl || null;
 
         self.existingAnnotations = params.existingAnnotations || ko.observableArray([]);
         self.onAnnotationCreated = params.onAnnotationCreated;
         self.onAnnotationDeleted = params.onAnnotationDeleted;
+        self.onMetadataChanged = params.onMetadataChanged || null; // ✅ NEW
+        
+        // ✅ NEW: Accept mapping from service URL to globalid
+        self.serviceUrlToGlobalidMap = params.serviceUrlToGlobalidMap || {};
 
         // --- Stan Mapy ---
         self.map = null;
-        self.iiifLayer = null;
+        self.iiifLayers = []; // ✅ Array of layers
         self.drawnItems = new L.FeatureGroup();
         self.existingItems = new L.FeatureGroup();
         self._mapInitialized = false;
@@ -36,33 +58,38 @@ define([
 
         self._existingLayerMap = {};
 
-        // ✅ NEW: GeoTIFF meta state
+        // ✅ Layer control for toggling
+        self.layerControl = null;
+
+        // ✅ NEW: Track metadata for each layer
+        self.layerMetadata = {}; // { globalid: metaObject }
+        self.activeLayerGlobalid = ko.observable(null);
+
         self.geotiffMeta = ko.observable(null);
         self.geotiffMetaLoaded = ko.observable(false);
         self.geotiffMetaError = ko.observable('');
+
         console.log('[IIIF MAP] Component initialized with:', {
             globalid: ko.unwrap(self.globalid),
             metaUrl: ko.unwrap(self.metaUrl),
-            serviceUrl: ko.unwrap(self.serviceUrl)
+            serviceUrls: ko.unwrap(self.serviceUrls)
         });
+
         function baseRoot() {
-            // arches.urls.root zwykle ma trailing slash
             var root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
             return root.replace(/\/+$/, '') + '/';
         }
 
         // =============================================================
-        // URL normalizacja (testserver / cantaloupe hosty)
+        // URL normalizacja
         // =============================================================
         function normalizeToCurrentHost(url) {
             if (!url) return url;
 
-            // szybkie replace na znane hosty kontenerowe
             url = url
                 .replace('cantaloupe_arches_slocal:8182', window.location.host)
                 .replace('cantaloupe_arches_slocal', window.location.hostname);
 
-            // testserver -> aktualny host (bo browser tego nie rozwiąże)
             try {
                 var u = new URL(url, window.location.origin);
                 if (u.hostname === 'testserver') {
@@ -71,9 +98,7 @@ define([
                     u.port = window.location.port || '';
                     return u.toString();
                 }
-            } catch (e) {
-                // jeśli to nie jest pełny URL, zostaw
-            }
+            } catch (e) {}
             return url;
         }
 
@@ -83,25 +108,27 @@ define([
         }
 
         // =============================================================
-        // ✅ GeoTIFF meta load
+        // GeoTIFF meta load
         // =============================================================
-        self.loadGeotiffMeta = function() {
-            self.geotiffMetaLoaded(false);
-            self.geotiffMetaError('');
-
-            var gid = self.globalid ? ko.unwrap(self.globalid) : null;
-            var explicitMetaUrl = self.metaUrl ? ko.unwrap(self.metaUrl) : null;
-
-            var url = null;
-            if (explicitMetaUrl) {
-                url = explicitMetaUrl;
-            } else if (gid) {
-                url = baseRoot() + 'api/iiif/geotiff-meta/' + gid;
-            } else {
+        self.loadGeotiffMeta = function(globalidToLoad) {
+            if (!globalidToLoad) {
                 self.geotiffMeta(null);
                 self.geotiffMetaLoaded(false);
                 return;
             }
+
+            // Check if already loaded
+            if (self.layerMetadata[globalidToLoad]) {
+                self.geotiffMeta(self.layerMetadata[globalidToLoad]);
+                self.geotiffMetaLoaded(true);
+                console.log('[IIIF MAP] Using cached metadata for:', globalidToLoad);
+                return;
+            }
+
+            self.geotiffMetaLoaded(false);
+            self.geotiffMetaError('');
+
+            var url = baseRoot() + 'api/iiif/geotiff-meta/' + globalidToLoad;
 
             fetch(url, { credentials: 'include' })
                 .then(function(resp) {
@@ -115,65 +142,44 @@ define([
                     if (!payload || !payload.ok || !payload.meta) {
                         throw new Error('Invalid geotiff-meta payload');
                     }
+                    // Cache the metadata
+                    self.layerMetadata[globalidToLoad] = payload.meta;
                     self.geotiffMeta(payload.meta);
                     self.geotiffMetaLoaded(true);
-                    console.log('[IIIF MAP] geotiff-meta loaded:', payload.meta);
-                    
-                    // ✅ TUTAJ wywołaj, gdy meta załadowana pomyślnie
-                    if (self.map && payload.meta) {
-                        applyDistanceFromGeoMeta(self.map, payload.meta);
-                    }
+                    console.log('[IIIF MAP] Loaded and cached metadata for:', globalidToLoad);
                 })
                 .catch(function(err) {
                     self.geotiffMeta(null);
                     self.geotiffMetaLoaded(true);
                     self.geotiffMetaError(String(err.message || err));
-                    console.warn('[IIIF MAP] geotiff-meta load failed:', err);
+                    console.warn('[IIIF MAP] geotiff-meta load failed for', globalidToLoad, ':', err);
                 });
         };
 
-        // automatycznie pobierz meta, gdy globalid/metaUrl się zmienia
+        // ✅ CHANGED: React to active layer changes and notify parent
         ko.computed(function() {
-            var _gid = self.globalid ? ko.unwrap(self.globalid) : null;
-            var _mu = self.metaUrl ? ko.unwrap(self.metaUrl) : null;
-            // trigger
-            self.loadGeotiffMeta();
-        });
-        function metersPerPixelFromMeta(meta) {
-            if (!meta || !meta.res || meta.res.length < 2) return null;
-
-            var xRes = Number(meta.res[0]);
-            var yRes = Number(meta.res[1]);
-            if (!isFinite(xRes) || !isFinite(yRes) || xRes <= 0 || yRes <= 0) return null;
-
-            var crs = (meta.crs || '').toUpperCase();
-
-            // Jeśli GeoTIFF ma CRS w metrach (większość EPSG:2180 / UTM / itp.)
-            // res jest wtedy w [m/pixel]. Wystarczy.
-            if (crs.includes('EPSG:2180') || crs.includes('EPSG:3857') || crs.includes('UTM') || crs.includes('EPSG:326') || crs.includes('EPSG:327')) {
-                return { x: xRes, y: yRes, unit: 'm' };
-            }
-
-            // Jeśli to EPSG:4326 (stopnie/piksel) -> przybliżenie na szerokości środka obrazu
-            if (crs.includes('EPSG:4326')) {
-                var lat0 = 0;
-                if (meta.bounds_wgs84 && isFinite(meta.bounds_wgs84.top) && isFinite(meta.bounds_wgs84.bottom)) {
-                    lat0 = (Number(meta.bounds_wgs84.top) + Number(meta.bounds_wgs84.bottom)) / 2;
+            var activeGid = self.activeLayerGlobalid();
+            if (activeGid) {
+                self.loadGeotiffMeta(activeGid);
+                
+                // Notify parent component when metadata is loaded
+                if (self.onMetadataChanged && self.geotiffMeta()) {
+                    self.onMetadataChanged(self.geotiffMeta());
                 }
-                var latRad = lat0 * Math.PI / 180;
-                var mPerDegLat = 111320; // przybliżenie
-                var mPerDegLon = 111320 * Math.cos(latRad);
-
-                return { x: xRes * mPerDegLon, y: yRes * mPerDegLat, unit: 'm' };
             }
+        });
 
-            // Nie znamy jednostek — nie zgadujemy
-            return null;
-        }
+        // ✅ Also notify when metadata finishes loading
+        self.geotiffMeta.subscribe(function(newMeta) {
+            if (self.onMetadataChanged && newMeta) {
+                console.log('[IIIF MAP] Notifying parent of metadata change');
+                self.onMetadataChanged(newMeta);
+            }
+        });
 
-        // =====================================================================
-        // LOGIKA GEOMETRII (SVG / XYWH)
-        // =====================================================================
+        // =============================================================
+        // GEOMETRY/SELECTOR logic (unchanged)
+        // =============================================================
         function getIIIFSelectorFromLayer(layer) {
             if (!self.map || !self._imageInfoLoaded) {
                 console.warn('[IIIF MAP] Map not ready for coordinate conversion');
@@ -200,36 +206,7 @@ define([
                         type: 'xywh',
                         value: Math.round(minX) + ',' + Math.round(minY) + ',' + Math.round(w) + ',' + Math.round(h)
                     };
-                } else {
-                    var latlngs = layer.getLatLngs();
-                    if (Array.isArray(latlngs[0]) && Array.isArray(latlngs[0][0])) latlngs = latlngs[0];
-                    else if (Array.isArray(latlngs[0]) && !latlngs[0].lat) latlngs = latlngs.flat();
-
-                    var flatPoints = [];
-                    function extractPoints(arr) {
-                        arr.forEach(function(pt) {
-                            if (pt.lat !== undefined && pt.lng !== undefined) flatPoints.push(pt);
-                            else if (Array.isArray(pt)) extractPoints(pt);
-                        });
-                    }
-                    extractPoints(latlngs);
-
-                    var pathData = flatPoints.map(function(ll, i) {
-                        var p = self.map.project(ll, zoom);
-                        var cmd = (i === 0) ? 'M' : 'L';
-                        return cmd + ' ' + Math.round(p.x) + ' ' + Math.round(p.y);
-                    }).join(' ');
-
-                    if (layer instanceof L.Polygon) {
-                        pathData += ' Z';
-                    }
-
-                    iiifSelector = {
-                        type: 'svg',
-                        value: '<svg xmlns="http://www.w3.org/2000/svg"><path d="' + pathData + '" /></svg>'
-                    };
-                }
-
+                } 
                 return { geometry: dbGeometry, selector: iiifSelector };
             } catch (e) {
                 console.error('[IIIF MAP] Error converting layer to selector:', e);
@@ -284,7 +261,6 @@ define([
                     var chars = anno && anno.resource && anno.resource.chars ? anno.resource.chars : '';
                     var parsed = parseAnnotationChars(chars);
 
-                    // ✅ Dodaj flagę canDelete
                     var popupData = { 
                         label: parsed.label || label, 
                         description: parsed.description, 
@@ -325,12 +301,11 @@ define([
                     var chars = anno && anno.resource && anno.resource.chars ? anno.resource.chars : '';
                     var parsed = parseAnnotationChars(chars);
 
-                    // ✅ Dodaj flagę canDelete do popupData
                     var popupData = { 
                         label: parsed.label || label, 
                         description: parsed.description, 
                         annotationIndex: annotationIndex,
-                        canDelete: !!self.onAnnotationDeleted  // tylko jeśli callback istnieje
+                        canDelete: !!self.onAnnotationDeleted
                     };
 
                     var popupNode = document.createElement('div');
@@ -348,9 +323,9 @@ define([
             return null;
         }
 
-        // =====================================================================
-        // RYSOWANIE ISTNIEJĄCYCH
-        // =====================================================================
+        // =============================================================
+        // Drawing existing annotations
+        // =============================================================
         self.drawExisting = function() {
             if (!self.map || !self._imageInfoLoaded) return;
 
@@ -401,9 +376,9 @@ define([
             }
         };
 
-        // =====================================================================
-        // INICJALIZACJA MAPY
-        // =====================================================================
+        // =============================================================
+        // Map initialization
+        // =============================================================
         function ensureMap(container) {
             if (!L || self._mapInitialized) return;
             if (self.map) self.map.remove();
@@ -419,7 +394,20 @@ define([
 
             self.map.addLayer(self.drawnItems);
             self.map.addLayer(self.existingItems);
+            if (self.onMapClick) {
+                    self.map.on('click', function(e) {
+                        if (!self._imageInfoLoaded) return;
 
+                        var z = self.map.getMaxZoom();
+                        var p = self.map.project(e.latlng, z); // piksele IIIF
+
+                        self.onMapClick({
+                            latlng: e.latlng,
+                            pixel: { x: p.x, y: p.y },
+                            zoom: z
+                        });
+                    });
+                }
             var drawControl = new L.Control.Draw({
                 edit: { featureGroup: self.drawnItems, remove: true },
                 draw: {
@@ -445,6 +433,7 @@ define([
                     });
                 }
             });
+
             if (self.onMapReady) {
                 try {
                     self.onMapReady(self.map);
@@ -456,55 +445,135 @@ define([
             self._mapInitialized = true;
         }
 
-        // =====================================================================
-        // ŁADOWANIE OBRAZU
-        // =====================================================================
+        // =============================================================
+        // ✅ MULTI-LAYER IMAGE LOADING
+        // =============================================================
         ko.computed(function() {
-            var urlRaw = ko.unwrap(self.serviceUrl);
+            var urlsRaw = ko.unwrap(self.serviceUrls);
             var container = document.getElementById('iiif-map-container');
 
-            if (!urlRaw || !container || !L) return;
+            if (!urlsRaw || urlsRaw.length === 0 || !container || !L) {
+                return;
+            }
 
             if (!self.map) ensureMap(container);
 
-            // normalize hosty (testserver/cantaloupe)
-            var url = normalizeToCurrentHost(urlRaw);
+            // Remove existing IIIF layers
+            self.iiifLayers.forEach(function(lyr) {
+                if (lyr) self.map.removeLayer(lyr);
+            });
+            self.iiifLayers = [];
 
-            if (self.iiifLayer) {
-                self.map.removeLayer(self.iiifLayer);
+            // Remove existing layer control
+            if (self.layerControl) {
+                self.map.removeControl(self.layerControl);
+                self.layerControl = null;
             }
 
             self._imageInfoLoaded = false;
 
-            var infoUrl = iiifInfoUrlFromService(url);
-            console.log('[IIIF MAP] Loading info.json:', infoUrl);
+            var urls = urlsRaw.map(normalizeToCurrentHost);
+            
+            console.log('[IIIF MAP] Loading', urls.length, 'IIIF layer(s):', urls);
 
-            $.getJSON(infoUrl)
-                .done(function(info) {
-                    self.iiifLayer = L.tileLayer.iiif(infoUrl).addTo(self.map);
+            // ✅ NEW: Extract globalid from each URL (assumes pattern: /iiif/3/{globalid}/)
+            function extractGlobalidFromUrl(url) {
+                var match = /\/iiif\/[23]\/([a-f0-9-]+)/i.exec(url);
+                return match ? match[1] : null;
+            }
 
-                    setTimeout(function() {
-                        self.map.invalidateSize();
+            console.log('[IIIF MAP] Loading', urls.length, 'IIIF layer(s):', urls);
+                        console.log('[IIIF MAP] serviceUrlToGlobalidMap:', self.serviceUrlToGlobalidMap);
 
-                        if (info.width && info.height) {
-                            try {
-                                var maxZoom = self.map.getMaxZoom();
-                                var southWest = self.map.unproject([0, info.height], maxZoom);
-                                var northEast = self.map.unproject([info.width, 0], maxZoom);
-                                var bounds = new L.LatLngBounds(southWest, northEast);
-                                self.map.fitBounds(bounds);
-                            } catch (err) {
-                                console.warn('[IIIF MAP] FitBounds failed:', err);
-                            }
+                        var loadPromises = urls.map(function(url, idx) {
+                            var infoUrl = iiifInfoUrlFromService(url);
+                            
+                            return $.getJSON(infoUrl).then(function(info) {
+                                var layer = L.tileLayer.iiif(infoUrl, {});
+                                
+                                // ✅ Get globalid from mapping (passed from parent)
+                                var globalid = self.serviceUrlToGlobalidMap[url];
+                                
+                                console.log('[IIIF MAP] Layer', idx + 1, '- URL:', url);
+                                console.log('[IIIF MAP] Layer', idx + 1, '- Mapped globalid:', globalid);
+                                
+                                return {
+                                    layer: layer,
+                                    info: info,
+                                    globalid: globalid,
+                                    label: 'Layer ' + (idx + 1) + ' (' + (info.width || '?') + 'x' + (info.height || '?') + ')'
+                                };
+                            });
+                        });
+
+                        Promise.all(loadPromises).then(function(layerDataArray) {
+                            var baseLayers = {};
+                            
+                            // Add only the first layer to the map initially
+                            layerDataArray.forEach(function(layerData, idx) {
+                                if (idx === 0) {    
+                                    layerData.layer.addTo(self.map);
+                                    // ✅ Set initial active layer
+                                    if (layerData.globalid) {
+                                        console.log('[IIIF MAP] Setting initial active globalid:', layerData.globalid);
+                                        self.activeLayerGlobalid(layerData.globalid);
+                                    }
+                                }
+                                self.iiifLayers.push(layerData.layer);
+                                baseLayers[layerData.label] = layerData.layer;
+                                
+                                // ✅ Store globalid reference on layer
+                                layerData.layer._globalid = layerData.globalid;
+                                
+                                console.log('[IIIF MAP] Layer', idx + 1, 'configured with globalid:', layerData.globalid);
+                            });
+
+                // Create layer control with base layers
+                if (Object.keys(baseLayers).length > 1) {
+                    self.layerControl = L.control.layers(baseLayers, null, {
+                        position: 'topright',
+                        collapsed: false
+                    });
+                    self.layerControl.addTo(self.map);
+
+                    // ✅ NEW: Listen for layer changes
+                    self.map.on('baselayerchange', function(e) {
+                        var newLayer = e.layer;
+                        var newGlobalid = newLayer._globalid;
+                        
+                        console.log('[IIIF MAP] Layer changed to:', e.name, 'globalid:', newGlobalid);
+                        
+                        if (newGlobalid) {
+                            self.activeLayerGlobalid(newGlobalid);
                         }
+                    });
+                }
 
-                        self._imageInfoLoaded = true;
-                        self.drawExisting();
-                    }, 200);
-                })
-                .fail(function(jqxhr, textStatus, error) {
-                    console.error('[IIIF MAP] Failed to load info.json:', error, infoUrl);
-                });
+                setTimeout(function() {
+                    self.map.invalidateSize();
+
+                    // Fit bounds to first layer's dimensions
+                    var firstInfo = layerDataArray[0].info;
+                    if (firstInfo && firstInfo.width && firstInfo.height) {
+                        try {
+                            var maxZoom = self.map.getMaxZoom();
+                            var southWest = self.map.unproject([0, firstInfo.height], maxZoom);
+                            var northEast = self.map.unproject([firstInfo.width, 0], maxZoom);
+                            var bounds = new L.LatLngBounds(southWest, northEast);
+                            self.map.fitBounds(bounds);
+                        } catch (err) {
+                            console.warn('[IIIF MAP] FitBounds failed:', err);
+                        }
+                    }
+
+                    self._imageInfoLoaded = true;
+                    self.drawExisting();
+                }, 200);
+
+                console.log('[IIIF MAP] Successfully loaded', layerDataArray.length, 'layer(s)');
+            }).catch(function(err) {
+                console.error('[IIIF MAP] Failed to load IIIF layer(s):', err);
+            });
         });
     };
 

@@ -91,6 +91,52 @@ define([
         console.log('[WF LOG][image-select] ========== INIT ==========');
         console.log('[WF LOG][image-select] params:', params);
 
+
+        // ===== step configuration =====
+        // assetType: 'iiif' (default) | 'dem' | ...
+        var assetParam = params.assetType || params.asset_type || 'iiif';
+        self.assetType = ko.observable(ko.unwrap(assetParam) || assetParam || 'iiif');
+        if (typeof assetParam === 'function') {
+            ko.computed(function() {
+                self.assetType(ko.unwrap(assetParam) || 'iiif');
+            });
+        }
+
+        // optional step support (e.g. DEM step)
+        var optionalParam = (params.optional !== undefined) ? params.optional : false;
+        self.optional = ko.observable(!!ko.unwrap(optionalParam));
+        if (typeof optionalParam === 'function') {
+            ko.computed(function() {
+                self.optional(!!ko.unwrap(optionalParam));
+            });
+        }
+
+        // UI texts (can be overridden from workflow step parameters)
+        var titleParam = params.stepTitle || params.title;
+        self.stepTitle = ko.pureComputed(function() {
+            var t = ko.unwrap(titleParam);
+            if (t) return t;
+            return (self.assetType() === 'dem') ? 'Add DEM (optional)' : 'Add IIIF image (digital resource: iiif)';
+        });
+
+        var descParam = params.stepDescription || params.description;
+        self.stepDescription = ko.pureComputed(function() {
+            var d = ko.unwrap(descParam);
+            if (d !== undefined && d !== null && String(d).trim() !== '') return d;
+            return (self.assetType() === 'dem')
+                ? 'Upload a DEM-derived visualization (recommended: hillshade / color relief) and link it to the selected resource.'
+                : '';
+        });
+
+        self.manifestDescription = ko.pureComputed(function() {
+            return ko.unwrap(params.manifestDescription) ||
+                ((self.assetType() === 'dem') ? 'DEM uploaded via geotiff workflow' : 'Processed via geotiff workflow');
+        });
+
+        self.labelPrefix = ko.pureComputed(function() {
+            return ko.unwrap(params.labelPrefix) || ((self.assetType() === 'dem') ? 'DEM: ' : '');
+        });
+
         // ===== host resource z kroku 1 =====
         self.targetResourceId = ko.observable(null);
         var hostParam = params.hostResourceId;
@@ -122,6 +168,18 @@ define([
         self.formData = new window.FormData();
         self.dropzone = null;
         self.lastManifestGlobalId = null;
+
+        // ✅ ADD THIS: track related manifest (for DEM -> Ortho)
+        self.relatedManifestGlobalId = ko.observable(null);
+        var relatedParam = params.relatedManifestGlobalId;
+        if (typeof relatedParam === 'function') {
+            self.relatedManifestGlobalId(ko.unwrap(relatedParam) || null);
+            ko.computed(function() {
+                self.relatedManifestGlobalId(ko.unwrap(relatedParam) || null);
+            });
+        } else if (relatedParam) {
+            self.relatedManifestGlobalId(relatedParam);
+        }
 
         var csrftoken = getCookie('csrftoken');
         var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
@@ -161,10 +219,13 @@ define([
 
         self.createDigitalResource = function(serviceUrl, labelText, manifestGlobalId) {
             var resourceId = manifestGlobalId || uuidv4();
-            var label = labelText || serviceUrl || ('digital resource: iiif ' + new Date().toISOString());
+            var label = labelText || serviceUrl || ('digital resource: ' + self.assetType() + ' ' + new Date().toISOString());
+            var _pfx = self.labelPrefix && self.labelPrefix() ? String(self.labelPrefix()) : '';
+            if (_pfx && label.indexOf(_pfx) !== 0) label = _pfx + label;
 
             console.log('[WF LOG][image-select] Creating digital resource with ID:', resourceId);
 
+            // Create resource by posting the first tile with graph metadata
             var labelData = {};
             labelData[DIGITAL_RES_LABEL_NODE_ID] = makeLangValue(label);
 
@@ -191,7 +252,8 @@ define([
                     params.value({
                         imageServiceUrl: serviceUrl,
                         digitalResourceId: resourceId,
-                        targetResourceId: self.targetResourceId()
+                        targetResourceId: self.targetResourceId(),
+                        manifestGlobalId: resourceId
                     });
                     console.log('[WF LOG][image-select] Digital resource created:', resourceId);
                     return resourceId;
@@ -296,10 +358,17 @@ define([
             self.formData = new window.FormData();
             self.formData.append('files', file, file.name);
 
-            var title = 'Workflow upload ' + new Date().toISOString();
+            var title = ((self.assetType() === 'dem') ? 'Workflow DEM upload ' : 'Workflow upload ') + new Date().toISOString();
             self.formData.append('manifest_title', title);
-            self.formData.append('manifest_description', 'Processed via geotiff workflow');
+            self.formData.append('manifest_description', self.manifestDescription());
+            self.formData.append('asset_type', self.assetType());
             self.formData.append('transaction_id', params.form && params.form.workflowId || 'iiif-image-workflow');
+
+            // ✅ ADD THIS: pass related manifest globalid if available (DEM -> Ortho)
+            if (self.relatedManifestGlobalId()) {
+                self.formData.append('related_manifest_id', self.relatedManifestGlobalId());
+                console.log('[WF LOG][image-select] Related manifest globalid:', self.relatedManifestGlobalId());
+            }
 
             console.log('[WF LOG][image-select] Uploading to Python processor:', geotiffProcessUrl);
 
@@ -365,12 +434,16 @@ define([
 
         // ========== GATING ==========
         params.form.complete(ko.pureComputed(function() {
-            return !!self.imageServiceUrl();
+            return self.optional() ? true : !!self.imageServiceUrl();
         }));
 
         var _origSave = params.form.save;
         params.form.save = function() {
             if (!self.imageServiceUrl()) {
+                if (self.optional()) {
+                    if (_origSave) return _origSave.apply(params.form, arguments);
+                    return Promise.resolve(true);
+                }
                 self.errorMessage('Please select an image before proceeding.');
                 return Promise.resolve(false);
             }

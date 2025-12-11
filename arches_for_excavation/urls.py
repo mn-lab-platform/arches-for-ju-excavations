@@ -4,7 +4,7 @@ from django.conf.urls.i18n import i18n_patterns
 from django.urls import include, path
 from .views.model_3d import Model3DView
 from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif_annotation
-from .views.geotiif_handler import geotiff_reencode_test, geotiff_meta
+from .views.geotiif_handler import geotiff_reencode_test, geotiff_meta, dem_file, dem_elevation
 
 urlpatterns = [
     # project-level urls
@@ -13,6 +13,9 @@ urlpatterns = [
     path('api/manifest/delete_annotation', delete_iiif_annotation, name='delete_iiif_annotation'),
     path("api/iiif/geotiff-reencode-test", geotiff_reencode_test, name="geotiff_reencode"),
     path("api/iiif/geotiff-meta/<str:globalid>", geotiff_meta, name="geotiff_meta"),
+    path("files/dem/<uuid:globalid>.tif", dem_file, name="iiif_dem_file"),
+    path("api/iiif/dem-elevation/<str:globalid>", dem_elevation, name="iiif_dem_elevation"),
+
     
 
 ]

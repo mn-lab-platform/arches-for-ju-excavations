@@ -1,0 +1,8 @@
+{
+    "name": "resource-iiif-report",
+    "componentid": "resource-iiif-report-uuid",
+    "component": "reports/resource-iiif-report",
+    "componentname": "resource-iiif-report",
+    "description": "Tabbed report showing all related IIIF Digital Resources",
+    "defaultconfig": {}
+}
