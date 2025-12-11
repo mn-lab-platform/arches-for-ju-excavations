@@ -21,7 +21,7 @@ define([
                 backgroundColor: '#e3bcf1ff'
             },
             {
-                name: 'Context Addition Workflow',
+                name: 'Context Resource Addition Workflow',
                 slug: 'context-addition-workflow',
                 icon: 'fa-digg',
                 description: 'Create a context resource',
