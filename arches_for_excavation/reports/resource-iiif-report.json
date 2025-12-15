@@ -1,6 +1,6 @@
 {
     "name": "resource-iiif-report",
-    "componentid": "resource-iiif-report-uuid",
+    "componentid": "879d69b5-13d8-4edd-b4c9-646981252ae0",
     "component": "reports/resource-iiif-report",
     "componentname": "resource-iiif-report",
     "description": "Tabbed report showing all related IIIF Digital Resources",

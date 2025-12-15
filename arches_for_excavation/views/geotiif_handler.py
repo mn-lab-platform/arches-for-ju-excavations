@@ -75,8 +75,12 @@ def _save_upload(django_file, path: Path):
 def _is_geotiff(path: Path) -> bool:
     try:
         with rasterio.open(path) as src:
-            result = bool(src.crs and src.crs.is_valid)
-            print("[GEOTIFF] _is_geotiff(%s): %s (CRS: %s)", path.name, result, src.crs)
+            has_crs = bool(src.crs)
+            has_transform = bool(src.transform) and src.transform != rasterio.Affine.identity()
+            
+            result = has_crs and has_transform
+            print("[GEOTIFF] _is_geotiff(%s): %s (CRS: %s, has_transform: %s)", 
+                  path.name, result, src.crs, has_transform)
             return result
     except Exception as e:
         print("[GEOTIFF] _is_geotiff(%s) failed: %s", path.name, e)
@@ -286,10 +290,11 @@ def extract_geotiff_meta(tif_path: Path) -> dict:
         print("[GEOTIFF] Basic meta: width=%d, height=%d, count=%d, crs=%s, dtype=%s",
               src.width, src.height, src.count, src.crs, meta["dtype"])
 
-        if src.crs and src.crs.is_valid:
+        # ✅ POPRAWKA: Sprawdź czy ma CRS (nie wymagaj is_valid)
+        if src.crs and src.transform != rasterio.Affine.identity():
             meta["is_geotiff"] = True
             meta["crs"] = src.crs.to_string()
-            print("[GEOTIFF] Valid CRS detected: %s", meta["crs"])
+            print("[GEOTIFF] CRS detected: %s", meta["crs"])
 
             b = src.bounds
             meta["bounds_native"] = {
@@ -306,42 +311,45 @@ def extract_geotiff_meta(tif_path: Path) -> dict:
                 "d": float(t.d), "e": float(t.e), "f": float(t.f),
             }
 
+            # ✅ ZMIENIONE: Tylko próbuj transformować do WGS84 jeśli CRS nie jest LOCAL
             try:
-                print("[GEOTIFF] Transforming bounds to WGS84...")
-                left, bottom, right, top = transform_bounds(
-                    src.crs, "EPSG:4326",
-                    b.left, b.bottom, b.right, b.top,
-                    densify_pts=21
-                )
-                meta["bounds_wgs84"] = {
-                    "left": float(left),
-                    "bottom": float(bottom),
-                    "right": float(right),
-                    "top": float(top),
-                }
-                meta["footprint_wgs84"] = {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Polygon",
-                        "coordinates": [[
-                            [float(left),  float(bottom)],
-                            [float(right), float(bottom)],
-                            [float(right), float(top)],
-                            [float(left),  float(top)],
-                            [float(left),  float(bottom)],
-                        ]]
-                    },
-                    "properties": {}
-                }
-                print("[GEOTIFF] WGS84 bounds: %s", meta["bounds_wgs84"])
+                if "LOCAL_CS" not in str(src.crs):
+                    print("[GEOTIFF] Transforming bounds to WGS84...")
+                    left, bottom, right, top = transform_bounds(
+                        src.crs, "EPSG:4326",
+                        b.left, b.bottom, b.right, b.top,
+                        densify_pts=21
+                    )
+                    meta["bounds_wgs84"] = {
+                        "left": float(left),
+                        "bottom": float(bottom),
+                        "right": float(right),
+                        "top": float(top),
+                    }
+                    meta["footprint_wgs84"] = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [[
+                                [float(left),  float(bottom)],
+                                [float(right), float(bottom)],
+                                [float(right), float(top)],
+                                [float(left),  float(top)],
+                                [float(left),  float(bottom)],
+                            ]]
+                        },
+                        "properties": {}
+                    }
+                    print("[GEOTIFF] WGS84 bounds: %s", meta["bounds_wgs84"])
+                else:
+                    print("[GEOTIFF] LOCAL_CS detected, skipping WGS84 transform")
             except Exception as e:
-                logger.exception("[GEOTIFF] transform_bounds failed for %s: %s", tif_path, e)
+                print("[GEOTIFF] Failed to transform bounds to WGS84: %s", e)
         else:
-            print("[GEOTIFF] No valid CRS - treating as regular image")
+            print("[GEOTIFF] No valid CRS or identity transform - treating as regular image")
 
     print("[GEOTIFF] Metadata extraction complete")
     return meta
-
 
 def save_geotiff_meta(globalid: str, meta: dict, overwrite: bool = True) -> Path:
     out = META_DIR / f"{globalid}.json"

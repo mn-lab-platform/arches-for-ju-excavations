@@ -160,7 +160,9 @@ export default ko.components.register('iiif-report', {
         crs.includes('EPSG:3857') ||
         crs.includes('UTM') ||
         crs.includes('EPSG:326') ||
-        crs.includes('EPSG:327')
+        crs.includes('EPSG:327')||
+        (crs.includes('LOCAL_CS') && crs.includes('UNIT["METRE"')) ||
+        (crs.includes('LOCAL_CS') && crs.includes('UNIT["M"'))        
       );
     }
 
@@ -199,6 +201,10 @@ export default ko.components.register('iiif-report', {
       const crs = meta && meta.crs;
 
       if (isMetersCRS(crs)) {
+        return Math.sqrt(dn.dX * dn.dX + dn.dY * dn.dY);
+      }
+      if ((crs || '').includes('LOCAL_CS')) {
+        console.log('[MEASUREMENT] LOCAL_CS detected, assuming meter units');
         return Math.sqrt(dn.dX * dn.dX + dn.dY * dn.dY);
       }
 
@@ -245,7 +251,10 @@ export default ko.components.register('iiif-report', {
       if (pts.length < 3) return null;
 
       const crs = meta && meta.crs;
-      if (!isMetersCRS(crs)) return null; // nie liczymy "m²" ze stopni
+      if (!isMetersCRS(crs) && !(crs || '').includes('LOCAL_CS')) {
+        console.warn('[MEASUREMENT] Cannot calculate area - CRS not in meters:', crs);
+        return null;
+      }
 
       const z = map.getMaxZoom();
       const px = pts.map(ll => map.project(ll, z));
@@ -336,7 +345,12 @@ export default ko.components.register('iiif-report', {
 
       let msg = 'No geo units (missing/unknown CRS units)';
       if (!meta) msg = 'No GeoTIFF meta available';
-
+      if (meta && meta.crs) {
+        console.log('[MEASUREMENT] CRS:', meta.crs);
+        console.log('[MEASUREMENT] Is meters CRS:', isMetersCRS(meta.crs));
+        console.log('[MEASUREMENT] Transform:', meta.transform);
+        console.log('[MEASUREMENT] Resolution:', meta.res);
+      }
       // ======================
       // 1) DŁUGOŚĆ / POWIERZCHNIA
       // ======================
