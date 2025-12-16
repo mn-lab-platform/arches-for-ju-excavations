@@ -7,6 +7,13 @@ define([
         viewModel: function(params) {
             const self = this;
 
+            if (typeof params.value !== 'function') {
+                params.value = ko.observable('');
+            }
+            self.value = params.value;
+
+            self.form = params.form || null;
+
             self.coordinatesText = ko.observable('');
             self.coordinatesHtml = ko.observable('');
             self.coordinatesValid = ko.observable(false);
@@ -35,7 +42,7 @@ define([
                 debounceTimeout = setTimeout(function() {
                     self._coordinatesTextIsValid();
                 }, 300);
-            }
+            };
 
             self.updateDisplay = function() {
                 let cursorIndex = -1;
@@ -84,6 +91,22 @@ define([
 
             self._coordinatesTextIsValid = function() {
                 const text = self.coordinatesText();
+                if (text.trim().length === 0) {
+                    self.errorLines([]);
+                    self.updateDisplay();
+                    self.coordinatesValid(false);
+                    self.successMessage('');
+                    self.errorMessage('Please enter coordinates to proceed.');
+                    self.value(null);
+                    if (self.form) {
+                        if (ko.isObservable(self.form.complete)) {
+                            self.form.complete(false);
+                        } else {
+                            self.form.complete = false;
+                        }
+                    }
+                    return false;
+                }
                 const allLines = text.split('\n');
                 const coordinateLineRegex = /^([a-zA-Z0-9_-]+)\s+(-?\d+[.,]\d+)\s+(-?\d+[.,]\d+)\s+(-?\d+[.,]\d+)$/;
 
@@ -92,17 +115,11 @@ define([
 
                 allLines.forEach((line, index) => {
                     const trimmedLine = line.trim();
-                    if (trimmedLine.length === 0) {
-                        return;
-                    }
-                    
+                    if (trimmedLine.length === 0) return;
                     const match = trimmedLine.match(coordinateLineRegex);
                     if (!match) {
                         allValid = false;
                         errorLineIndices.push(index);
-                    } else {
-                        const [, pointId, x, y, z] = match;
-                        console.log(`Line ${index + 1}: Point ${pointId}, X: ${x}, Y: ${y}, Z: ${z}`);
                     }
                 });
 
@@ -113,10 +130,20 @@ define([
                     self.coordinatesValid(true);
                     self.errorMessage('');
                     self.successMessage('Coordinates are valid you may proceed further.');
+                    self.value(self.coordinatesText());
                 } else {
                     self.coordinatesValid(false);
                     self.successMessage('');
                     self.errorMessage('Some lines contain invalid format. Please correct them to proceed.');
+                    self.value(null);
+                }
+
+                if (self.form) {
+                    if (ko.isObservable(self.form.complete)) {
+                        self.form.complete(self.coordinatesValid());
+                    } else {
+                        self.form.complete = self.coordinatesValid();
+                    }
                 }
 
                 return allValid;
@@ -136,6 +163,18 @@ define([
                 self.coordinatesText(reordered.join('\n'));
                 self._coordinatesTextIsValid();
             };
+
+            if (self.form) {
+                self.form.value = self.value;
+            }
+
+            (function initFromSaved() {
+                const initial = typeof self.value === 'function' ? self.value() : self.value;
+                const text = initial || '';
+                self.coordinatesText(text);
+                self.delimiter(self.detectDelimiter(text));
+                self._coordinatesTextIsValid();
+            })();
         },
         template: template
     });
