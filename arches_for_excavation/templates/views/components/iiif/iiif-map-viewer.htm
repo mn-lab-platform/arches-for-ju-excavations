@@ -8,6 +8,7 @@
         <i class="fa fa-picture-o" style="font-size: 40px; margin-bottom: 10px;"></i>
         <p>Waiting for IIIF Image...</p>
     </div>
+
 </div>
 
 <!-- ✅ Popup Template -->
@@ -21,6 +22,8 @@
         <div style="margin-bottom: 12px; color: #6c757d; font-size: 13px; line-height: 1.5;" data-bind="text: description"></div>
         <!-- /ko -->
         
+        <!-- ✅ Tylko pokaż przycisk Delete jeśli canDelete === true -->
+        <!-- ko if: canDelete -->
         <div style="border-top: 1px solid #dee2e6; padding-top: 10px; margin-top: 10px;">
             <button class="btn btn-sm btn-danger" 
                     style="width: 100%;" 
@@ -28,13 +31,25 @@
                 <i class="fa fa-trash"></i> Delete Annotation
             </button>
         </div>
+        <!-- /ko -->
     </div>
 </script>
 
 <style>
-    /* Poprawki CSS dla Leaflet Draw wewnątrz Archesa.
-       Czasami ikonki edycji są przesłaniane przez style Archesa.
-    */
+    /* ✅ DODAJ: Poprawka dla ikon Leaflet */
+    .leaflet-default-icon-path {
+        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
+    }
+    
+    .leaflet-container .leaflet-marker-icon.leaflet-interactive {
+        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
+    }
+    
+    .leaflet-container .leaflet-marker-shadow {
+        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png);
+    }
+
+    /* Poprawki CSS dla Leaflet Draw wewnątrz Archesa */
     .leaflet-draw-toolbar a {
         background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/images/spritesheet.png') !important;
         background-repeat: no-repeat;

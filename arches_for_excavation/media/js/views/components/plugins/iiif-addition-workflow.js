@@ -7,9 +7,9 @@ define([
   'views/components/workflows/iiif-addition/iiif-image-addition-step',
   'views/components/workflows/universal/resource-selection-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
+
   return ko.components.register('iiif-addition-workflow', {
     viewModel: function(params) {
-      //var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
 
       this.componentName = 'iiif-addition-workflow';
       this.quitUrl = (arches && arches.urls && arches.urls.plugin)
@@ -39,6 +39,7 @@ define([
             }]
           }]
         },
+
         {
           title: 'Add IIIF Image',
           name: 'iiif-image-selection',
@@ -53,14 +54,42 @@ define([
               uniqueInstanceName: 'iiif-image-addition-instance',
               tilesManaged: 'none',
               parameters: {
-                hostResourceId: "['resource-selection']['resource-selection-instance']['value']"
+                hostResourceId: "['resource-selection']['resource-selection-instance']['value']",
+                assetType: 'iiif',
+                optional: false
+              }
+            }]
+          }]
+        },
+
+        {
+          title: 'Add DEM (optional)',
+          name: 'dem-addition',
+          required: false,
+          informationboxdata: {
+            heading: 'Add DEM (optional)',
+            text: 'Upload/select a DEM-derived visualization (hillshade/color relief recommended for IIIF) and link it to the same target resource. DEM manifest will get related -> ortho.'
+          },
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'iiif-image-addition-step',
+              uniqueInstanceName: 'dem-addition-instance',
+              tilesManaged: 'none',
+              parameters: {
+                hostResourceId: "['resource-selection']['resource-selection-instance']['value']",
+                assetType: 'dem',
+                optional: true,
+                stepTitle: 'Add DEM (optional)',
+                labelPrefix: 'DEM: ',
+
+                // DEM knows ORTHO globalid from step 2:
+                relatedManifestGlobalId: "['iiif-image-selection']['iiif-image-addition-instance']['value']['manifestGlobalId']"
               }
             }]
           }]
         }
       ];
 
-      // Apply Workflow base
       var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
     },

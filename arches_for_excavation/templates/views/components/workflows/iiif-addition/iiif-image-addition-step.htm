@@ -1,5 +1,6 @@
 <section class="workflow-step">
-    <h3>Add IIIF image (digital resource: iiif)</h3>
+    <h3 data-bind="text: stepTitle"></h3>
+    <p class="text-muted" data-bind="visible: stepDescription, text: stepDescription"></p>
 
     <!-- Info o zasobie z kroku 1 -->
     <div class="alert alert-info" data-bind="visible: targetResourceId">

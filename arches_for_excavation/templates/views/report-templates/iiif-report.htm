@@ -1,41 +1,123 @@
 {% load i18n %}
+
 {% block head %}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-measure@3.1.0/dist/leaflet-measure.css" />
-    <style>
-        .rp-report-section {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .rp-iiif-preview {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .rp-iiif-preview > div {
-            flex: 1;
-            min-height: 0;
-        }
-    </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<style>
+  .rp-report-section {
+      min-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+  }
+  .rp-topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+  }
+  .rp-topbar .btn {
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+  }
+  .rp-topbar .btn:hover { background: #f3f3f3; }
+
+  .rp-map-wrap {
+      flex: 1;
+      min-height: 600px;
+      position: relative;
+  }
+  .rp-meta {
+      font-size: 12px;
+      color: #333;
+  }
+  .rp-meta .err { color: #b00020; }
+  .rp-status {
+      font-size: 12px;
+      color: #444;
+      padding: 6px 10px;
+      border: 1px dashed #ccc;
+      border-radius: 8px;
+      background: #fff;
+  }
+</style>
 {% endblock head %}
 
 {% block body %}
-    <div class="rp-report-section">
-        <h3>IIIF image</h3>
+<div class="rp-report-section">
+  <h3>IIIF Map Viewer (custom measure)</h3>
 
-        <!-- ko if: iiifUrl() -->
-            <div class="rp-iiif-preview">
-                <!-- kontener dla Leaflet -->
-                <div data-bind="attr: { id: viewerId }">
-                </div>
-            </div>
-        <!-- /ko -->
+  <div class="rp-topbar">
+      <label style="display:flex; align-items:center; gap:6px; margin:0;">
+          <input type="checkbox" data-bind="checked: measureEnabled">
+          Measure tool
+      </label>
 
-        <!-- ko ifnot: iiifUrl() -->
-            <p>No IIIF URL stored for this resource.</p>
-        <!-- /ko -->
+      <button class="btn" type="button" data-bind="click: clearMeasurements">
+          Clear measurements
+      </button>
+
+      <div class="rp-meta">
+          <!-- ko if: metaLoaded -->
+            <!-- ko if: meta -->
+              <span><b>CRS:</b> <span data-bind="text: meta().crs || '—'"></span></span>
+              <span style="margin-left:10px;"><b>res:</b> <span data-bind="text: meta().res ? JSON.stringify(meta().res) : '—'"></span></span>
+            <!-- /ko -->
+            <!-- ko ifnot: meta -->
+              <span class="err">No geotiff-meta (units will be unknown)</span>
+            <!-- /ko -->
+          <!-- /ko -->
+          <!-- ko ifnot: metaLoaded -->
+            <span>Loading geotiff-meta…</span>
+          <!-- /ko -->
+          <!-- ko if: metaError -->
+            <span class="err" data-bind="text: ' | ' + metaError()"></span>
+          <!-- /ko -->
+      </div>
+
+      <div class="rp-meta">
+          <span><b>Annotations:</b> <span data-bind="text: existingAnnotations().length"></span></span>
+      </div>
+
+      <div class="rp-meta">
+          <span><b>Layers:</b> <span data-bind="text: iiifServiceUrls().length"></span></span>
+      </div>
+  </div>
+
+  <div class="rp-status">
+      <b>Last elevation:</b>
+      <span data-bind="text: elevationStatus() || '—'"></span>
+      <span style="opacity:0.7;">(use the point tool to measure elevation)</span>
+  </div>      
+
+  <div class="rp-status">
+      <b>Last measurement:</b>
+      <span data-bind="text: measureStatus() || '—'"></span>
+      <span style="opacity:0.7;">(draw a polyline or polygon)</span>
+  </div>
+
+  <!-- ko if: iiifServiceUrls().length > 0 -->
+    <div class="rp-map-wrap">
+      <iiif-map-viewer params="
+          serviceUrls: iiifServiceUrls,
+          serviceUrlToGlobalidMap: _serviceUrlToGlobalidMap,
+          globalid: globalid(),
+          metaUrl: metaUrl(),
+          existingAnnotations: existingAnnotations,
+          onMapReady: onMapReadyCallback,
+          onMetadataChanged: onLayerMetadataChanged
+      "></iiif-map-viewer>
     </div>
+  <!-- /ko -->
+
+  <!-- ko if: iiifServiceUrls().length === 0 -->
+    <p>No IIIF URL stored for this resource.</p>
+  <!-- /ko -->
+</div>
 {% endblock body %}
-{% block scripts %}
-    <script src="https://unpkg.com/leaflet-measure@3.1.0/dist/leaflet-measure.js"></script>
-{% endblock scripts %}

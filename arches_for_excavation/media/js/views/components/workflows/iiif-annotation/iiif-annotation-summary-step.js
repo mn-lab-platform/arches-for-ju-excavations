@@ -129,6 +129,9 @@ define([
         function rebuildRiVm(graphid) {
             const gid = (graphid || '').trim();
 
+            console.log('[WF LOG][summary] === REBUILDING RIS VM ===');
+            console.log('[WF LOG][summary] Graph ID for RIS:', gid);
+
             self.riVm(null);
             self.riVmReady(false);
             self.error('');
@@ -136,8 +139,7 @@ define([
             if (!gid) return;
 
             try {
-                console.log('[WF LOG][summary] Creating RIS for graphid:', gid);
-                console.log('[WF LOG][summary] Available RIS constructor:', RIS);
+                console.log('[WF LOG][summary] Creating new RIS instance...');
                 
                 const newVm = new RIS({
                     renderContext: 'workflow',
@@ -164,11 +166,12 @@ define([
                     self.riVmReady(true);
                 }, 50);
 
+                // Fetch card info for creator
                 fetchCreatorCardId(gid);
 
             } catch (err) {
-                console.error('[WF LOG][summary] Error creating RIS:', err);
-                self.error('Failed to initialize resource selector: ' + (err.message || err));
+                console.error('[WF LOG][summary] ❌ Error creating RIS:', err);
+                self.error('Failed to initialize resource selector: ' + err.message);
             }
         }
 
@@ -182,12 +185,19 @@ define([
 
         // Rebuild when graph changes
         self.targetGraphId.subscribe(function(newGid) {
+            console.log('[WF LOG][summary] === TARGET GRAPH CHANGED ===');
+            console.log('[WF LOG][summary] Old graph cleared, new graph:', newGid);
+            console.log('[WF LOG][summary] Clearing riValue and rebuilding RIS');
+            
             self.riValue(null);
             rebuildRiVm(newGid);
         });
 
         // Clear when mode changes away
         self.mode.subscribe(function(v) {
+            console.log('[WF LOG][summary] === MODE CHANGED ===');
+            console.log('[WF LOG][summary] New mode:', v);
+            
             if (v !== 'annotation-and-resource') {
                 self.riValue(null);
                 self.targetGraphId('');
@@ -311,6 +321,7 @@ define([
         // ===================== CREATE ANNOTATION RESOURCE =====================
         
         self.createAnnotationResource = function(anno, hostResourceId) {
+            // Zawsze używaj domyślnego grafu adnotacji
             var ANNOTATION_GRAPH_ID = '96e396f9-3fb8-47bf-b14c-189e9c1dee97'; 
             var NODE_ID_LABEL = 'f51dfa50-b888-4ea7-93e8-d5263fbeaf87';
             var NODE_ID_DESCRIPTION = '05c7457d-69ba-4856-b898-88e9451a1aa5';
@@ -318,7 +329,7 @@ define([
             var NODE_ID_HOST_LINK = '4318dc2f-d592-46f3-883a-91a0f95bedcd';
 
             var resourceId = uuidv4();
-            console.log('[WF LOG][summary] Creating annotation resource:', resourceId, 'for geometry:', anno.geometry);
+            console.log('[WF LOG][summary] Creating annotation resource:', resourceId);
 
             var labelData = {};
             if (self.annotationLabel()) {
@@ -341,88 +352,337 @@ define([
                 resourceXresourceId: ""
             }];
 
-            // Chain tile creation
             var promise = Promise.resolve();
 
             if (self.annotationLabel()) {
-                promise = promise.then(function() {
-                    return postTile(NODE_ID_LABEL, labelData, resourceId);
-                });
+                promise = promise.then(() => postTile(NODE_ID_LABEL, labelData, resourceId));
             }
 
             if (self.annotationNote()) {
-                promise = promise.then(function() {
-                    return postTile(NODE_ID_DESCRIPTION, descData, resourceId);
-                });
+                promise = promise.then(() => postTile(NODE_ID_DESCRIPTION, descData, resourceId));
             }
 
             return promise
-                .then(function() {
-                    return postTile(NODE_ID_GEOMETRY, geomData, resourceId);
-                })
-                .then(function() {
-                    return postTile(NODE_ID_HOST_LINK, hostLinkData, resourceId);
-                })
-                .then(function() {
-                    console.log('[WF LOG][summary] Annotation resource created successfully:', resourceId);
-                    return resourceId;
+                .then(() => postTile(NODE_ID_GEOMETRY, geomData, resourceId))
+                .then(() => postTile(NODE_ID_HOST_LINK, hostLinkData, resourceId))
+                .then(() => {
+                    console.log('[WF LOG][summary] Annotation resource created:', resourceId);
+                    return resourceId; // Zwróć ID stworzonego resource'a
                 });
         };
 
         // ===================== MANUAL SAVE =====================
         
         self.manualSave = function() {
-            console.log('[WF LOG][summary] manualSave clicked');
-            self.isLoading(true);
-            self.error('');
-            
-            var payload = self.payload() || {};
-            var annotations = payload.annotations || [];
-            var hostResourceId = payload.hostResourceId; // ✅ To jest ID zdjęcia z manifestem
-
-            if (!payload || annotations.length === 0) {
-                self.error('Brak adnotacji do zapisania.');
-                self.isLoading(false);
-                return;
-            }
-
-            if (!hostResourceId) {
-                self.error('Brak ID zasobu hosta (zdjęcia z manifestem).');
-                self.isLoading(false);
-                return;
-            }
-
-            console.log('[WF LOG][summary] Host resource ID:', hostResourceId);
-            console.log('[WF LOG][summary] Creating', annotations.length, 'annotation(s)');
-
-            // ✅ Najpierw wywołaj backend Python dla każdej adnotacji
-            var manifestUpdatePromises = annotations.map(function(anno) {
-                return self.updateManifestOnServer(anno, hostResourceId); // ✅ Używaj hostResourceId
+            console.log('[WF LOG][summary] === MANUAL SAVE STARTED ===');
+            console.log('[WF LOG][summary] Current mode:', self.mode());
+            console.log('[WF LOG][summary] Target graph ID:', self.targetGraphId());
+            console.log('[WF LOG][summary] riValue (selected/created resource):', self.riValue());
+            console.log('[WF LOG][summary] RIS VM state:', {
+                vm: !!self.riVm(),
+                ready: self.riVmReady(),
+                newResourceInstance: self.riVm() && self.riVm().newResourceInstance && self.riVm().newResourceInstance()
             });
 
-            Promise.all(manifestUpdatePromises)
-                .then(function(manifestResults) {
-                    console.log('[WF LOG][summary] Manifests updated:', manifestResults);
-                    
-                    // ✅ Dopiero potem twórz zasoby Annotation
-                    var annoResourcePromises = annotations.map(function(anno) {
-                        return self.createAnnotationResource(anno, hostResourceId);
+            const payload = self.payload();
+            if (!payload || !payload.annotations || payload.annotations.length === 0) {
+                self.error('No annotations to save');
+                return;
+            }
+
+            self.isLoading(true);
+            self.error('');
+
+            console.log('[WF LOG][summary] Starting manual save...');
+
+            // Sprawdź czy mamy wybrany/stworzony target resource
+            const targetResourceId = self.riValue();
+            const mode = self.mode();
+            
+            if (mode === 'annotation-and-resource' && targetResourceId) {
+                console.log('[WF LOG][summary] Checking structure of target resource:', targetResourceId);
+                
+                // Sprawdź strukturę wybranego resource'a
+                checkSelectedResourceStructure(targetResourceId)
+                    .then(function(targetResourceInfo) {
+                        console.log('[WF LOG][summary] Target resource analysis:', targetResourceInfo);
+                        
+                        // Zapisz wszystkie adnotacje
+                        return self.saveAnnotationsWithTargetResource(payload, targetResourceId, targetResourceInfo);
+                    })
+                    .then(function() {
+                        console.log('[WF LOG][summary] All annotations saved with target resource successfully');
+                        self.isLoading(false);
+                    })
+                    .catch(function(err) {
+                        console.error('[WF LOG][summary] Error in save with target resource:', err);
+                        self.error('Failed to save: ' + err.message);
+                        self.isLoading(false);
+                    });
+            } else {
+                // Zwykły tryb - tylko adnotacje
+                self.saveAnnotationsOnly(payload)
+                    .then(function() {
+                        console.log('[WF LOG][summary] All annotations saved successfully');
+                        self.isLoading(false);
+                    })
+                    .catch(function(err) {
+                        console.error('[WF LOG][summary] Error in save:', err);
+                        self.error('Failed to save: ' + err.message);
+                        self.isLoading(false);
+                    });
+            }
+        };
+
+        // Nowa funkcja do zapisu z target resource'em
+        self.saveAnnotationsWithTargetResource = function(payload, targetResourceId, targetResourceInfo) {
+            const annotations = payload.annotations || [];
+            const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
+            
+            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations with target resource');
+            
+            // Zapisz wszystkie adnotacje i zbierz ich ID
+            const annotationPromises = annotations.map(function(anno) {
+                return self.createAnnotationResource(anno, hostResourceId);
+            });
+            
+            return Promise.all(annotationPromises)
+                .then(function(annotationResourceIds) {
+                    console.log('[WF LOG][summary] Created annotation resources:', annotationResourceIds);
+                    console.log('[WF LOG][summary] hasRelatedNode:', targetResourceInfo.hasRelatedNode);
+                    console.log('[WF LOG][summary] canLinkToAnnotations:', targetResourceInfo.canLinkToAnnotations);
+                    // Teraz dodaj relacje do target resource'a
+                    if (targetResourceInfo.hasRelatedNode) {
+                        return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo);
+                    } else {
+                        console.log('[WF LOG][summary] Target resource cannot link to annotations, skipping relation');
+                        return Promise.resolve();
+                    }
+                })
+                .then(function() {
+                    // Na końcu zaktualizuj manifesty
+                    const manifestPromises = annotations.map(function(anno) {
+                        return self.updateManifestOnServer({
+                            label: self.annotationLabel(),
+                            description: self.annotationNote(),
+                            selector: anno.selector,
+                            geometry: anno.geometry
+                        }, hostResourceId);
                     });
                     
-                    return Promise.all(annoResourcePromises);
-                })
-                .then(function(annoResourceIds) {
-                    self.isLoading(false);
-                    self.error('');
-                    console.log('[WF LOG][summary] All done! Annotation IDs:', annoResourceIds);
-                    alert('✅ Adnotacje zapisane w manifeście i jako zasoby!\nIDs: ' + annoResourceIds.join(', '));
-                })
-                .catch(function(err) {
-                    self.isLoading(false);
-                    self.error('Błąd zapisu: ' + (err.message || err));
-                    console.error('[WF LOG][summary] Save failed:', err);
+                    return Promise.all(manifestPromises);
                 });
         };
+
+        // Funkcja do dodawania relacji adnotacji do target resource'a
+        self.addAnnotationsToTargetResource = function(targetResourceId, annotationResourceIds, targetResourceInfo) {
+            console.log('[WF LOG][summary] === ADDING ANNOTATIONS TO TARGET ===');
+            console.log('[WF LOG][summary] 🎯 Target Resource ID:', targetResourceId);
+            console.log('[WF LOG][summary] 🎯 Target Resource Info:', targetResourceInfo);
+            console.log('[WF LOG][summary] 🎯 Annotation IDs to link:', annotationResourceIds);
+            console.log('[WF LOG][summary] 🎯 Cardinality:', targetResourceInfo.cardinality);
+
+            // Przygotuj dane relacji - wszystkie adnotacje jako jedna lista
+            const relData = {};
+            relData[targetResourceInfo.nodeGroupId] = annotationResourceIds.map(function(annotationId) {
+                return {
+                    resourceId: annotationId,
+                    ontologyProperty: "",
+                    inverseOntologyProperty: "",
+                    resourceXresourceId: ""
+                };
+            });
+            console.log('[WF LOG][summary] Relation data to post:', relData);
+            console.log('[WF LOG][summary] Target resource ID:', targetResourceId);
+            console.log('[WF LOG][summary] Target resource nodeGroupId:', targetResourceInfo.nodeGroupId);
+            // Wyślij tile z relacjami do target resource'a
+            return postTile(targetResourceInfo.nodeGroupId, relData, targetResourceId)
+                .then(function() {
+                    console.log('[WF LOG][summary] Successfully added annotation relations to target resource');
+                });
+        };
+
+        // Funkcja do zapisu tylko adnotacji (bez target resource)
+        self.saveAnnotationsOnly = function(payload) {
+            const annotations = payload.annotations || [];
+            const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
+            
+            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations only');
+            
+            const promises = annotations.map(function(anno) {
+                // Utwórz annotation resource
+                return self.createAnnotationResource(anno, hostResourceId)
+                    .then(function(annotationResourceId) {
+                        // Zaktualizuj manifest
+                        return self.updateManifestOnServer({
+                            label: self.annotationLabel(),
+                            description: self.annotationNote(),
+                            selector: anno.selector,
+                            geometry: anno.geometry
+                        }, hostResourceId);
+                    });
+            });
+            
+            return Promise.all(promises);
+        };
+
+        // Dodaj nową funkcję do sprawdzania struktury wybranego/stworzonego resource'a
+        // ✅ POPRAW: Sprawdzaj strukturę grafu bezpośrednio
+        function checkSelectedResourceStructure(resourceId) {
+            console.log('[WF LOG][summary] === CHECKING SELECTED RESOURCE STRUCTURE ===');
+            console.log('[WF LOG][summary] Resource ID to check:', resourceId);
+            
+            if (!resourceId) {
+                console.log('[WF LOG][summary] No resource ID provided, returning false');
+                return Promise.resolve({ hasRelatedNode: false });
+            }
+            
+            // ✅ ZMIANA: Pobierz graphId z Resource Instance Select
+            // Kiedy użytkownik wybiera resource, RIS powinien wiedzieć jaki to graf
+            const selectedGraphId = self.targetGraphId(); // To już mamy!
+            
+            if (!selectedGraphId) {
+                console.error('[WF LOG][summary] No target graph ID available');
+                return Promise.resolve({ 
+                    hasRelatedNode: false, 
+                    error: 'No graph ID available for selected resource' 
+                });
+            }
+            
+            console.log('[WF LOG][summary] Using target graph ID:', selectedGraphId);
+            
+            // Teraz sprawdź strukturę tego grafu bezpośrednio
+            return checkGraphForRelatedResourceNode(selectedGraphId).then(graphInfo => {
+                console.log('[WF LOG][summary] Graph analysis complete:', graphInfo);
+                return {
+                    ...graphInfo,
+                    resourceGraphId: selectedGraphId,
+                    resourceId: resourceId
+                };
+            });
+        }
+
+        function checkGraphForRelatedResourceNode(graphId) {
+            console.log('[WF LOG][summary] === CHECKING GRAPH STRUCTURE ===');
+            console.log('[WF LOG][summary] Graph ID to analyze:', graphId);
+            
+            const baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            const url = `${baseUrl}graphs/${graphId}?cards=true`;
+            
+            console.log('[WF LOG][summary] Fetching graph structure from URL:', url);
+            
+            return fetch(url, { 
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(resp => {
+                console.log('[WF LOG][summary] Graph API response status:', resp.status);
+                console.log('[WF LOG][summary] Response content-type:', resp.headers.get('content-type'));
+                
+                if (!resp.ok) {
+                    throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            })
+            .then(graphData => {
+                console.log('[WF LOG][summary] ✅ Graph structure received');
+                console.log('[WF LOG][summary] Graph data keys:', Object.keys(graphData || {}));
+                console.log('[WF LOG][summary] Cards count:', (graphData.cards || []).length);
+                
+                const cards = graphData.cards || [];
+                let relatedNode = null;
+                let cardIndex = -1;
+                
+                console.log('[WF LOG][summary] 🔍 Searching through cards for related nodes...');
+                
+                for (let i = 0; i < cards.length; i++) {
+                    const card = cards[i];
+                    console.log(`[WF LOG][summary] Checking card ${i}:`, {
+                        cardid: card.cardid,
+                        name: card.name,
+                        nodes_count: (card.nodes || []).length
+                    });
+                    
+                    const nodes = card.nodes || [];
+                    for (let j = 0; j < nodes.length; j++) {
+                        const node = nodes[j];
+                        console.log(`[WF LOG][summary]   Node ${j}:`, {
+                            name: node.name,
+                            datatype: node.datatype,
+                            nodeid: node.nodeid
+                        });
+                
+                        if (node.datatype === 'resource-instance-list' || node.datatype === 'resource-instance') {
+                            console.log(`[WF LOG][summary] 🎯 FOUND RELATED NODE at card ${i}, node ${j}!`);
+                            relatedNode = node;
+                            cardIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    if (relatedNode) break;
+                }
+                
+                if (relatedNode) {
+                    console.log('[WF LOG][summary] ✅ Related node found:', relatedNode);
+                    console.log('[WF LOG][summary] Node config:', relatedNode.config);
+                    
+                    // Sprawdź czy może linkować do adnotacji
+                    const config = relatedNode.config || {};
+                    const allowedGraphs = config.graphs || [];
+                    
+                    console.log('[WF LOG][summary] Allowed graphs for this node:', allowedGraphs);
+                    
+                    const canLinkToAnnotations = allowedGraphs.some(g => {
+                        const canLink = g.name && (
+                            g.name.toLowerCase().includes('annotation') ||
+                            g.name.toLowerCase().includes('iiif') ||
+                            g.graphid === '96e396f9-3fb8-47bf-b14c-189e9c1dee97'
+                        );
+                        
+                        console.log('[WF LOG][summary] Checking graph:', {
+                            name: g.name,
+                            graphid: g.graphid,
+                            canLink: canLink
+                        });
+                        
+                        return canLink;
+                    });
+                    
+                    console.log('[WF LOG][summary] Can link to annotations:', canLinkToAnnotations);
+                    
+                    const result = {
+                        hasRelatedNode: true,
+                        nodeId: relatedNode.nodeid,
+                        nodeGroupId: relatedNode.nodegroup_id,
+                        name: relatedNode.name,
+                        canLinkToAnnotations: canLinkToAnnotations,
+                        allowedGraphs: allowedGraphs
+                    };
+                    
+                    console.log('[WF LOG][summary] ✅ Final result:', result);
+                    return result;
+                }
+                
+                console.log('[WF LOG][summary] ❌ No related resource node found in any card');
+                return { 
+                    hasRelatedNode: false,
+                    canLinkToAnnotations: false
+                };
+            })
+            .catch(err => {
+                console.error('[WF LOG][summary] ❌ Error checking graph structure:', err);
+                console.error('[WF LOG][summary] Error details:', {
+                    message: err.message,
+                    stack: err.stack
+                });
+                return { 
+                    hasRelatedNode: false,
+                    canLinkToAnnotations: false,
+                    error: err.message
+                };
+            });
+        }
 
         self.dispose = function() {
             // no custom subscriptions to clean right now

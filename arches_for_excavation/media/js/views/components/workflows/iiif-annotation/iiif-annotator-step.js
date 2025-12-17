@@ -23,7 +23,7 @@ define([
         self.imageServiceUrl = ko.observable('');
         self.existingAnnotations = ko.observableArray([]); // To przekażemy do mapy
         self.newAnnotations = ko.observableArray([]);      // To odbierzemy z mapy
-
+        self.manifestGlobalId = ko.observable(null);
         // --- Finalize Modal ---
         self.showFinalizeModal = ko.observable(false);
         self.outputMode = ko.observable('annotation-only');
@@ -57,8 +57,24 @@ define([
         self.loadExistingAnnotations = function(resourceId) {
             var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
             var manifestUrl = baseUrl + 'manifest/' + resourceId;
+            
+            // ✅ FIX: Extract globalid from resourceId directly (it's already the UUID)
+            self.manifestGlobalId(resourceId);
+            console.log('[WF LOG] Set manifestGlobalId from resourceId:', resourceId);
+            
             $.getJSON(manifestUrl, function(manifest) {
                 try {
+                    var globalid = manifest['@id'] || manifest['id'];
+                    console.log('[WF LOG] Manifest Global ID:', globalid);
+                    
+                    // Verify/update with UUID from manifest if needed
+                    var uuidMatch = globalid.match(/([a-f0-9-]{36})$/i);
+                    if (uuidMatch) {
+                        console.log('[WF LOG] Extracted UUID from manifest:', uuidMatch[1]);
+                        self.manifestGlobalId(uuidMatch[1]); // Update if different
+                    }
+                    
+                    console.log('[WF LOG] Loaded Manifest:', manifest);
                     var canvas = manifest.sequences[0].canvases[0];
                     if (canvas.otherContent && canvas.otherContent.length > 0) {
                         var listUrl = canvas.otherContent[0]['@id'];
