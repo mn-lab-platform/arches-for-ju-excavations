@@ -51,7 +51,7 @@ FILENAME_GENERATOR = "arches.app.utils.storage_filename_generator.generate_filen
 UPLOADED_FILES_DIR = "uploadedfiles"
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1a3xf0j!^%fvtg$)_su0_1u*c7jkm$9abo9=t)#me#w!p!6ing'
+SECRET_KEY = 'django-insecure-hg1q2ur(8e*iq1yp8)$^v9e6%58b^=e&gfcsnf0n0%w#28@@+$'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -188,13 +188,14 @@ TEMPLATES = build_templates_config(
     app_root=APP_ROOT,
 )
 
-ALLOWED_HOSTS = [ 'tap.mn.cenagis.edu.pl', ] 
-CSRF_TRUSTED_ORIGINS = [ 'https://tap.mn.cenagis.edu.pl', ] 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
-USE_TLS = True 
+ALLOWED_HOSTS = ['https://tap.mn.cenagis.edu.pl']
+CSRF_TRUSTED_ORIGINS = ["https://tap.mn.cenagis.edu.pl"]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_TLS = True
 SECURE_SSL_REDIRECT = False 
-SESSION_COOKIE_SECURE = True 
+SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
 
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(APP_ROOT, 'system_settings', 'System_Settings.json')
 WSGI_APPLICATION = 'arches_slocal.wsgi.application'
