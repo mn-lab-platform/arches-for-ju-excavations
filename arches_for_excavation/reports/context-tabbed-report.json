@@ -1,0 +1,8 @@
+{
+    "name": "Context Tabbed Report",
+    "componentid": "43baed94-1911-4319-a437-42565ec96454",
+    "component": "reports/context-tabbed-report",
+    "componentname": "context-tabbed-report",
+    "description": "Combined report showing 3D models and IIIF resources",
+    "defaultconfig": {}
+}

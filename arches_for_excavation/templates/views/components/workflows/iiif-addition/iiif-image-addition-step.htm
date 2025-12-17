@@ -1,0 +1,52 @@
+<section class="workflow-step">
+    <h3 data-bind="text: stepTitle"></h3>
+    <p class="text-muted" data-bind="visible: stepDescription, text: stepDescription"></p>
+
+    <!-- Info o zasobie z kroku 1 -->
+    <div class="alert alert-info" data-bind="visible: targetResourceId">
+        Target resource ID:
+        <code data-bind="text: targetResourceId"></code>
+    </div>
+    <div class="alert alert-danger" data-bind="visible: !targetResourceId()">
+        WARNING: Step 1 did not set a target resource ID –
+        the workflow will fail when trying to create the relation.
+    </div>
+
+
+    <div class="text-center">upload images to create a manifest:</div>
+
+    <div class="panel panel-default" style="margin-top:10px;">
+        <div class="panel-body"
+             style="border:1px dashed #999; padding:20px; text-align:center;"
+             data-bind="dropzone: dropzoneOptionsCreate">
+            <button type="button" class="btn btn-default fileinput-create-button">
+                Choose files…
+            </button>
+            <div id="hidden-dz-create-previews" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div data-bind="visible: loading" class="text-center">
+        <span class="glyphicon glyphicon-refresh spinning"></span> Loading IIIF data…
+    </div>
+
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+
+    <h4 data-bind="visible: availableImages().length">2. Select image</h4>
+
+    <div class="row" data-bind="foreach: availableImages">
+        <div class="col-sm-4" style="margin-bottom:10px;">
+            <div class="thumbnail"
+                 data-bind="css: { 'selected': $parent.selectedImageIndex() === $index() },
+                            click: function(){ $parent.selectImage($data, $index()); }">
+                <img data-bind="attr: { src: thumbnail, alt: label }">
+                <div class="caption">
+                    <strong data-bind="text: label"></strong>
+                    <div class="small" data-bind="text: serviceUrl"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

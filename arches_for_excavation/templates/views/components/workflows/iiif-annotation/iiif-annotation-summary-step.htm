@@ -1,0 +1,147 @@
+<div class="workflow-step">
+  <h3>Finalize</h3>
+
+
+  <!-- ko if: !payload() -->
+  <div class="alert alert-danger">
+    Missing payload from previous step.
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: payload() -->
+
+  <div class="panel panel-default">
+    <div class="panel-heading">Annotation metadata</div>
+    <div class="panel-body">
+      <div style="margin-bottom:10px;">
+        <label>Label </label>
+        <input class="form-control"
+               data-bind="textInput: annotationLabel"
+               placeholder="e.g. 'Crack on the north wall'">
+      </div>
+
+      <div>
+        <label>Description </label>
+        <textarea class="form-control"
+                  rows="3"
+                  data-bind="textInput: annotationNote"
+                  placeholder="Any extra context…"></textarea>
+      </div>
+
+      <button class="btn btn-primary" data-bind="click: manualSave, enable: canContinue()">Zapisz adnotacje</button>
+      <span data-bind="visible: isLoading()" style="margin-left:10px;">
+        <i class="fa fa-spinner fa-spin"></i> Zapisuję...
+      </span>
+      <span data-bind="visible: error()" class="text-danger" style="margin-left:10px;" data-bind="text: error"></span>
+    </div>
+  </div>
+
+  <!-- ko if: mode() === 'annotation-and-resource' -->
+  <div class="panel panel-default">
+    <div class="panel-heading">Link / create target resource</div>
+    <div class="panel-body">
+
+      <div class="form-group">
+        <label>Select resource type</label>
+        <select class="form-control"
+                data-bind="options: availableOutputGraphs,
+                           optionsText: 'name',
+                           optionsValue: 'graphid',
+                           value: targetGraphId,
+                           optionsCaption: '— choose resource type —'">
+        </select>
+      </div>
+
+      <div data-bind="visible: targetGraphId() && !riVmReady()" style="padding:10px; color:#666;">
+        <i class="fa fa-spinner fa-spin"></i> Loading resource selector...
+      </div>
+
+      <!-- ko if: targetGraphId() && riVmReady() && riVm() -->
+      <div class="form-group">
+        <label>Target resource</label>
+
+        <!-- ko if: riVm().select2Config -->
+        <select style="width:100%;"
+                data-bind="select2Query: { select2Config: riVm().select2Config }"></select>
+        <!-- /ko -->
+
+        <!-- ko ifnot: riVm().select2Config -->
+        <div class="alert alert-info">
+          <p>Resource selector not available. Enter resource ID manually:</p>
+          <input type="text" class="form-control"
+                 data-bind="textInput: riValue"
+                 placeholder="Enter resource UUID...">
+        </div>
+        <!-- /ko -->
+      </div>
+      <!-- /ko -->
+
+      <div data-bind="visible: !targetGraphId()" style="color:#666; margin-top:10px;">
+        Select a resource type first.
+      </div>
+
+      <!-- ko if: riValue() -->
+      <div class="alert alert-success" style="margin-top:12px;">
+        <strong>Selected/Created resource ID:</strong>
+        <code data-bind="text: riValue"></code>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko if: error() -->
+      <div class="alert alert-danger" data-bind="text: error"></div>
+      <!-- /ko -->
+
+      <hr/>
+
+      <!-- Resource creator panel (required by ResourceInstanceSelectViewModel) -->
+      <div id="resource-creator-panel" class="resource-creator-panel">
+
+        <!-- If RIS switched into "create new instance" mode, but cardid is still loading -->
+        <!-- ko if: riVm() && riVm().newResourceInstance && riVm().newResourceInstance() && !creatorParams() -->
+        <div class="alert alert-info">
+          <i class="fa fa-spinner fa-spin"></i> Loading creator UI...
+        </div>
+        <!-- /ko -->
+
+        <!-- Render creator only when we have the full params (incl. cardid) -->
+        <!-- ko if: creatorParams() -->
+          <!-- ko component: { name: 'related-instance-creator', params: creatorParams() } --><!-- /ko -->
+        <!-- /ko -->
+
+      </div>
+
+    </div>
+  </div>
+  <!-- /ko -->
+
+  <!-- /ko -->
+</div>
+<style>
+    /* Zwiększamy wysokość i dodajemy relative, żeby pozycjonowanie działało poprawnie */
+    .resource-creator-panel {
+        position: relative;
+        min-height: 400px; /* Dajemy miejsce na formularz */
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-top: 15px;
+    }
+
+    /* Kluczowa poprawka: Wymuszamy, aby panel przycisków był widoczny w przepływie */
+    .resource-creator-panel .install-buttons {
+        position: static !important; /* Wyłącza absolute positioning */
+        display: flex !important;
+        justify-content: flex-end; /* Przesuwa przyciski do prawej */
+        padding: 10px 0;
+        margin-top: 20px;
+        background: transparent !important;
+        width: 100%;
+        border-top: 1px solid #eee;
+    }
+
+    /* Opcjonalnie: poprawki dla samej karty, żeby nie próbowała być na 100% wysokości ekranu */
+    .resource-creator-panel .card-component {
+        height: auto !important;
+        min-height: unset !important;
+    }
+</style>

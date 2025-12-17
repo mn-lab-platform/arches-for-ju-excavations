@@ -1,0 +1,62 @@
+<div class="workflow-step-container">
+  <h4>IIIF Annotator</h4>
+
+  <div data-bind="visible: !imageServiceUrl()" class="alert alert-warning">
+    <p>Loading image or no IIIF URL found...</p>
+  </div>
+
+  <div data-bind="visible: imageServiceUrl">
+    <p>Image Service URL: <code data-bind="text: imageServiceUrl"></code></p>
+
+    <div style="height:600px; width:100%; margin-bottom:15px;">
+        <iiif-map-viewer params="
+            serviceUrl: imageServiceUrl,
+            globalid: manifestGlobalId,
+            existingAnnotations: existingAnnotations,
+            onAnnotationCreated: handleNewAnnotation,
+            onAnnotationDeleted: handleAnnotationDeleted
+        "></iiif-map-viewer>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn btn-primary"
+              data-bind="click: openFinalizeModal, enable: newAnnotations().length > 0">
+        Finalize output
+      </button>
+
+      <span class="text-muted" data-bind="visible: newAnnotations().length === 0">
+        Draw at least one new annotation to enable finalize.
+      </span>
+      
+      <span class="text-info" data-bind="visible: newAnnotations().length > 0">
+        New annotations pending: <strong data-bind="text: newAnnotations().length"></strong>
+      </span>
+    </div>
+  </div>
+
+  <div class="wf-modal-backdrop" data-bind="visible: showFinalizeModal, click: cancelFinalizeModal"></div>
+  <div class="wf-modal" data-bind="visible: showFinalizeModal">
+    <div class="wf-modal-card">
+      <div class="wf-modal-header"><h4>Finalize output</h4></div>
+      <div class="wf-modal-body">
+        <div class="form-group">
+            <label>Save Mode</label>
+            <select class="form-control" data-bind="value: outputMode">
+                <option value="annotation-only">Annotation Only</option>
+                <option value="annotation-and-resource">Create New Resource</option>
+            </select>
+        </div>
+      </div>
+      <div class="wf-modal-footer">
+        <button class="btn btn-default" data-bind="click: cancelFinalizeModal">Cancel</button>
+        <button class="btn btn-success" data-bind="click: confirmFinalizeModal">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.wf-modal-backdrop { position: fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; }
+.wf-modal { position: fixed; inset:0; display:flex; justify-content:center; align-items:center; z-index:9001; }
+.wf-modal-card { background:white; width: 500px; padding: 20px; border-radius: 5px; }
+</style>

@@ -1,0 +1,31 @@
+<style>
+    .model-annotation-container {
+        width: 100%;
+        padding: 10px;
+    }
+</style>
+<div class="workflow-step-container">
+  <h4>Manage 3D Model Annotations</h4>
+
+  <div data-bind="visible: isLoading()" class="alert alert-info">
+    <p>Loading 3D models...</p>
+  </div>
+
+  <div data-bind="visible: error()" class="alert alert-danger">
+    <p data-bind="text: error()"></p>
+  </div>
+
+  <!-- ko if: !isLoading() && models3D().length > 0 -->
+  <div class="model-annotation-container">
+        <!-- ko component: { name: 'cesium-viewer', params: { 
+                models3D: models3D, 
+                allowAnnotationsEdits: allowAnnotationsEdits, 
+                allowObjectPicking: allowObjectPicking,
+                existingAnnotations: existingAnnotations,
+                onAnnotationSaved: onAnnotationSaved,
+                onAnnotationDeleted: onAnnotationDeleted
+            } } -->
+        <!-- /ko -->
+  </div>
+  <!-- /ko -->
+</div>
