@@ -6,7 +6,8 @@ define([
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/context-footprint-addition/coordinates-addition-step',
-  'views/components/workflows/context-footprint-addition/coordinates-map-display-step'
+  'views/components/workflows/context-footprint-addition/coordinates-map-display-step',
+  'views/components/workflows/context-footprint-addition/context-footprint-summary-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('context-footprint-addition-workflow', {
     viewModel: function(params) {
@@ -41,9 +42,7 @@ define([
               componentName: 'coordinates-addition-step',
               uniqueInstanceName: 'coordinates-adder',
               tilesManaged: 'none',
-              parameters: {
-                createdResourceId: "['resource-selection']['resource-selector']['value']"
-              }
+              parameters: {}
             }]
           }]
         },
@@ -58,6 +57,22 @@ define([
               tilesManaged: 'none',
               parameters: {
                 coordinatesText: "['coordinates-addition']['coordinates-adder']['value']",
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Summary',
+          name: 'coordinates-summary',
+          required: false,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'context-footprint-summary-step',
+              uniqueInstanceName: 'coordinates-summary',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['resource-selection']['resource-selector']['value']",
+                coordinatesText: "['coordinates-addition']['coordinates-adder']['value']"
               }
             }]
           }]
