@@ -3,7 +3,9 @@ import { SCALE_FACTORS } from '../const/const';
 
 export class Scene {
     constructor(containerId, {token, georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false, existingAnnotations=[]} = {}) {
-        Ion.defaultAccessToken = token;
+        if (token) {
+            Ion.defaultAccessToken = token;
+        }
         this.georeferenced = georeferenced;
         this.allowAnnotationsEdits = allowAnnotationsEdits;
         this.allowObjectPicking = allowObjectPicking;

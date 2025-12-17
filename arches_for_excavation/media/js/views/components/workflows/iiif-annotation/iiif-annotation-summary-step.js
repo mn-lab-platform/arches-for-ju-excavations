@@ -282,51 +282,66 @@ define([
             });
         }    
         self.updateManifestOnServer = function(annotationData, digitalResourceId) {
-                    var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-                    var backendUrl = baseUrl + 'api/manifest/update_db'; 
+            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            var backendUrl = baseUrl + 'api/manifest/update_db'; 
 
-                    // Używamy selektora z annotatora
-                    var selector = annotationData.selector; // {type:..., value:...} (svg/xywh)
-                    
-                    // Preferuj xywh z annotatora, jeśli brakuje
-                    if (!selector && annotationData.geometry) {
-                        // fallback (gdyby coś poszło nie tak, ale getIIIFSelectorFromLayer powinien to załatwić)
-                        var xywhString = getXYWHFromGeoJSON(annotationData.geometry);
-                        selector = { type: 'xywh', value: xywhString };
-                    }
+            // ✅ ADD: Debug logs
+            console.log('[WF LOG][summary] updateManifestOnServer called with:');
+            console.log('[WF LOG][summary] - annotationData:', annotationData);
+            console.log('[WF LOG][summary] - selector:', annotationData.selector);
+            console.log('[WF LOG][summary] - geometry:', annotationData.geometry);
 
-                    var payload = {
-                        digital_resource_id: digitalResourceId,
-                        annotation: {
-                            label: self.annotationLabel() || 'Annotation',
-                            description: self.annotationNote() || '', // <--- DODANO TO POLE
-                            selector: selector,
-                            geometry: annotationData.geometry
-                        }
-                    };
+            // Używamy selektora z annotatora
+            var selector = annotationData.selector; // {type:..., value:...} (svg/xywh)
+            
+            // ✅ ADD: Validate selector
+            if (!selector || !selector.type || !selector.value) {
+                console.error('[WF LOG][summary] ❌ Invalid selector structure:', selector);
+                console.error('[WF LOG][summary] ❌ Full annotationData:', annotationData);
+            }
+            
+            // Preferuj xywh z annotatora, jeśli brakuje
+            if (!selector && annotationData.geometry) {
+                console.warn('[WF LOG][summary] ⚠️ Selector missing, falling back to geometry');
+                // fallback (gdyby coś poszło nie tak, ale getIIIFSelectorFromLayer powinien to załatwić)
+                var xywhString = getXYWHFromGeoJSON(annotationData.geometry);
+                selector = { type: 'xywh', value: xywhString };
+            }
 
-                    console.log('[WF LOG][summary] Sending to backend:', payload);
+            var payload = {
+                digital_resource_id: digitalResourceId,
+                annotation: {
+                    label: self.annotationLabel() || 'Annotation',
+                    description: self.annotationNote() || '',
+                    selector: selector,
+                    geometry: annotationData.geometry
+                }
+            };
 
-                    return $.ajax({
-                        type: "POST",
-                        url: backendUrl,
-                        data: JSON.stringify(payload),
-                        contentType: "application/json",
-                        headers: { 'X-CSRFToken': getCookie('csrftoken') }
-                    }).then(function(res) {
-                        console.log("[WF LOG][summary] Manifest updated:", res);
-                        return res;
-                    });
-                };
+            console.log('[WF LOG][summary] Sending to backend:', payload);
+            console.log('[WF LOG][summary] Selector in payload:', payload.annotation.selector); // ✅ ADD: Specific check
+
+            return $.ajax({
+                type: "POST",
+                url: backendUrl,
+                data: JSON.stringify(payload),
+                contentType: "application/json",
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(function(res) {
+                console.log("[WF LOG][summary] Manifest updated:", res);
+                return res;
+            });
+        };
+
         // ===================== CREATE ANNOTATION RESOURCE =====================
         
         self.createAnnotationResource = function(anno, hostResourceId) {
             // Zawsze używaj domyślnego grafu adnotacji
-            var ANNOTATION_GRAPH_ID = '96e396f9-3fb8-47bf-b14c-189e9c1dee97'; 
-            var NODE_ID_LABEL = 'f51dfa50-b888-4ea7-93e8-d5263fbeaf87';
-            var NODE_ID_DESCRIPTION = '05c7457d-69ba-4856-b898-88e9451a1aa5';
-            var NODE_ID_GEOMETRY = 'b2ad31fe-9cdb-4ab5-a7de-a227ef1c8b0c';
-            var NODE_ID_HOST_LINK = '4318dc2f-d592-46f3-883a-91a0f95bedcd';
+            var ANNOTATION_GRAPH_ID = 'ddd13240-8e2b-414f-a652-abab00a02015'; 
+            var NODE_ID_LABEL = 'e202ea9f-e0a9-42a3-85a1-6380bc1115b9';
+            var NODE_ID_DESCRIPTION = 'e4c6d7e5-317d-4d04-9936-e4ad1886ba05';
+            var NODE_ID_GEOMETRY = '4277f805-09e7-4db1-bf26-49c09132c720';
+            var NODE_ID_HOST_LINK = '5266b89c-72f7-41cf-a7f4-cde1df9efef9';
 
             var resourceId = uuidv4();
             console.log('[WF LOG][summary] Creating annotation resource:', resourceId);
@@ -440,6 +455,7 @@ define([
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
             
             console.log('[WF LOG][summary] Saving', annotations.length, 'annotations with target resource');
+            console.log('[WF LOG][summary] Full annotations data:', annotations); // ✅ ADD: Debug log
             
             // Zapisz wszystkie adnotacje i zbierz ich ID
             const annotationPromises = annotations.map(function(anno) {
@@ -460,13 +476,20 @@ define([
                     }
                 })
                 .then(function() {
-                    // Na końcu zaktualizuj manifesty
+                    // ✅ FIX: Pass the full annotation object with selector and geometry
                     const manifestPromises = annotations.map(function(anno) {
+                        console.log('[WF LOG][summary] Updating manifest with anno:', anno); // ✅ ADD: Debug
+                        
+                        // ✅ ENSURE selector and geometry are present
+                        if (!anno.selector || !anno.geometry) {
+                            console.error('[WF LOG][summary] ❌ Missing selector or geometry:', anno);
+                        }
+                        
                         return self.updateManifestOnServer({
                             label: self.annotationLabel(),
                             description: self.annotationNote(),
-                            selector: anno.selector,
-                            geometry: anno.geometry
+                            selector: anno.selector,      // ✅ This should contain {type: 'svg', value: '...'} or {type: 'xywh', value: '...'}
+                            geometry: anno.geometry       // ✅ This should contain the GeoJSON
                         }, hostResourceId);
                     });
                     

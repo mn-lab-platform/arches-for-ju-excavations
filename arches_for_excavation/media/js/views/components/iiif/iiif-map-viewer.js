@@ -180,6 +180,8 @@ define([
         // =============================================================
         // GEOMETRY/SELECTOR logic (unchanged)
         // =============================================================
+        // ...existing code...
+
         function getIIIFSelectorFromLayer(layer) {
             if (!self.map || !self._imageInfoLoaded) {
                 console.warn('[IIIF MAP] Map not ready for coordinate conversion');
@@ -193,6 +195,7 @@ define([
                 var iiifSelector = {};
 
                 if (layer instanceof L.Rectangle) {
+                    // ✅ Rectangle handling (existing code)
                     var bounds = layer.getBounds();
                     var sw = self.map.project(bounds.getSouthWest(), zoom);
                     var ne = self.map.project(bounds.getNorthEast(), zoom);
@@ -206,13 +209,61 @@ define([
                         type: 'xywh',
                         value: Math.round(minX) + ',' + Math.round(minY) + ',' + Math.round(w) + ',' + Math.round(h)
                     };
-                } 
+                } else if (layer instanceof L.Polygon) {
+                    // ✅ NEW: Polygon handling - generate SVG selector
+                    console.log('[IIIF MAP] Polygon detected, generating SVG selector');
+                    
+                    var latlngs = layer.getLatLngs();
+                    // Flatten nested arrays if needed
+                    var points = latlngs[0] || latlngs;
+                    
+                    // Convert LatLngs to IIIF pixel coordinates
+                    var svgPoints = points.map(function(latlng) {
+                        var pixel = self.map.project(latlng, zoom);
+                        return Math.round(pixel.x) + ',' + Math.round(pixel.y);
+                    }).join(' ');
+                    
+                    // Get bounding box for SVG viewBox
+                    var bounds = layer.getBounds();
+                    var sw = self.map.project(bounds.getSouthWest(), zoom);
+                    var ne = self.map.project(bounds.getNorthEast(), zoom);
+                    var minX = Math.round(Math.min(sw.x, ne.x));
+                    var minY = Math.round(Math.min(sw.y, ne.y));
+                    var maxX = Math.round(Math.max(sw.x, ne.x));
+                    var maxY = Math.round(Math.max(sw.y, ne.y));
+                    var width = maxX - minX;
+                    var height = maxY - minY;
+                    
+                    // Build SVG string
+                    var svgString = '<svg xmlns="http://www.w3.org/2000/svg">' +
+                        '<polygon points="' + svgPoints + '"/>' +
+                        '</svg>';
+                    
+                    console.log('[IIIF MAP] Generated SVG selector:', svgString);
+                    
+                    iiifSelector = {
+                        type: 'svg',
+                        value: svgString
+                    };
+                } else {
+                    // ✅ Fallback for other layer types
+                    console.warn('[IIIF MAP] Unsupported layer type:', layer.constructor.name);
+                    iiifSelector = {
+                        type: 'unknown',
+                        value: ''
+                    };
+                }
+                
+                console.log('[IIIF MAP] Generated selector:', iiifSelector);
                 return { geometry: dbGeometry, selector: iiifSelector };
+                
             } catch (e) {
                 console.error('[IIIF MAP] Error converting layer to selector:', e);
                 return { geometry: null, selector: null };
             }
         }
+
+
 
         function parseAnnotationChars(chars) {
             if (!chars) return { label: '', description: '' };
@@ -233,25 +284,56 @@ define([
             if (!self.map || !self._imageInfoLoaded) return null;
 
             try {
-                var match = /d="([^"]+)"/.exec(svgString);
-                if (!match || !match[1]) return null;
-
-                var commands = match[1].split(/(?=[MLZ])/);
                 var latlngs = [];
                 var zoom = self.map.getMaxZoom();
 
-                commands.forEach(function(cmd) {
-                    var parts = cmd.trim().split(/\s+/);
-                    if (parts.length >= 3) {
-                        var px = parseFloat(parts[1]);
-                        var py = parseFloat(parts[2]);
-                        if (!isNaN(px) && !isNaN(py)) {
-                            latlngs.push(self.map.unproject([px, py], zoom));
+                // ✅ FIX: Check for <polygon points="..."> format first
+                var polygonMatch = /points="([^"]+)"/.exec(svgString);
+                if (polygonMatch && polygonMatch[1]) {
+                    console.log('[IIIF MAP] Parsing SVG polygon format');
+                    
+                    // Split "x1,y1 x2,y2 x3,y3" into coordinate pairs
+                    var pointsStr = polygonMatch[1].trim();
+                    var coords = pointsStr.split(/\s+/);
+                    
+                    coords.forEach(function(coord) {
+                        var parts = coord.split(',');
+                        if (parts.length === 2) {
+                            var px = parseFloat(parts[0]);
+                            var py = parseFloat(parts[1]);
+                            if (!isNaN(px) && !isNaN(py)) {
+                                latlngs.push(self.map.unproject([px, py], zoom));
+                            }
                         }
+                    });
+                    
+                    console.log('[IIIF MAP] Parsed polygon points:', latlngs.length);
+                } else {
+                    // ✅ Fallback: Try path d="..." format
+                    var pathMatch = /d="([^"]+)"/.exec(svgString);
+                    if (!pathMatch || !pathMatch[1]) {
+                        console.warn('[IIIF MAP] No points or d attribute found in SVG:', svgString);
+                        return null;
                     }
-                });
+
+                    console.log('[IIIF MAP] Parsing SVG path format');
+                    var commands = pathMatch[1].split(/(?=[MLZ])/);
+
+                    commands.forEach(function(cmd) {
+                        var parts = cmd.trim().split(/\s+/);
+                        if (parts.length >= 3) {
+                            var px = parseFloat(parts[1]);
+                            var py = parseFloat(parts[2]);
+                            if (!isNaN(px) && !isNaN(py)) {
+                                latlngs.push(self.map.unproject([px, py], zoom));
+                            }
+                        }
+                    });
+                }
 
                 if (latlngs.length > 0) {
+                    console.log('[IIIF MAP] Drawing polygon with', latlngs.length, 'points');
+                    
                     var poly = L.polygon(latlngs, {
                         color: '#3388ff', weight: 2, dashArray: '5, 5', fillOpacity: 0.1
                     });
@@ -276,6 +358,8 @@ define([
 
                     self.existingItems.addLayer(poly);
                     return poly;
+                } else {
+                    console.warn('[IIIF MAP] No valid points parsed from SVG');
                 }
             } catch (e) {
                 console.error('[IIIF MAP] Error drawing SVG annotation:', e);
@@ -343,14 +427,34 @@ define([
                     var annoId = 'anno-index-' + idx;
                     var layer = null;
 
-                    if (anno.on && anno.on.selector && anno.on.selector['@type'] === 'oa:SvgSelector') {
-                        layer = drawSvgOnMap(anno.on.selector.value, label, annoId, idx);
-                    } else if (typeof anno.on === 'string' && anno.on.indexOf('#xywh=') > -1) {
-                        var xywh = anno.on.split('#xywh=')[1].split(',').map(parseFloat);
-                        layer = drawXywhOnMap(xywh, label, annoId, idx);
-                    }
+                    // ✅ FIX: Handle both SVG selector formats
+            
+            // Format 1: SVG with SpecificResource wrapper (standard IIIF)
+            // "on": { "@type": "oa:SpecificResource", "selector": { "@type": "oa:SvgSelector", "value": "..." } }
+            if (anno.on && typeof anno.on === 'object' && anno.on.selector) {
+                if (anno.on.selector['@type'] === 'oa:SvgSelector' && anno.on.selector.value) {
+                    console.log('[IIIF MAP] SVG annotation (SpecificResource format) at index', idx);
+                    layer = drawSvgOnMap(anno.on.selector.value, label, annoId, idx);
+                }
+            }
+            // Format 2: Old format with selector directly on "on"
+            // "on": { "selector": { "@type": "oa:SvgSelector", "value": "..." } }
+            else if (anno.on && anno.on.selector && anno.on.selector['@type'] === 'oa:SvgSelector') {
+                console.log('[IIIF MAP] SVG annotation (direct selector format) at index', idx);
+                layer = drawSvgOnMap(anno.on.selector.value, label, annoId, idx);
+            }
+            // Format 3: XYWH in string
+            // "on": "http://...#xywh=100,200,300,400"
+            else if (typeof anno.on === 'string' && anno.on.indexOf('#xywh=') > -1) {
+                console.log('[IIIF MAP] XYWH annotation at index', idx);
+                var xywh = anno.on.split('#xywh=')[1].split(',').map(parseFloat);
+                layer = drawXywhOnMap(xywh, label, annoId, idx);
+            }
+            else {
+                console.warn('[IIIF MAP] Unsupported annotation format at index', idx, ':', anno);
+            }
 
-                    if (layer) self._existingLayerMap[annoId] = { layer: layer, index: idx };
+            if (layer) self._existingLayerMap[annoId] = { layer: layer, index: idx };
                 } catch (e) {
                     console.error('[IIIF MAP] Error drawing annotation', idx, e);
                 }

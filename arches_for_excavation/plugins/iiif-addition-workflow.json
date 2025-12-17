@@ -4,7 +4,7 @@
   "icon": "fa fa-picture-o",
   "component": "views/components/plugins/iiif-addition-workflow",
   "componentname": "iiif-addition-workflow",
-  "config": { "show": true },
+  "config": { "show": false },
   "slug": "iiif-addition-workflow",
   "sortorder": 0
 }
