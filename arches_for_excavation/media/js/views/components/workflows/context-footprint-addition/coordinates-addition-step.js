@@ -1,7 +1,7 @@
 define([
     'knockout',
     'arches',
-    'templates/views/components/workflows/context-addition/coordinates-addition-step.htm',
+    'templates/views/components/workflows/context-footprint-addition/coordinates-addition-step.htm',
 ], function(ko, arches, template) {
     return ko.components.register('coordinates-addition-step', {
         viewModel: function(params) {
@@ -108,7 +108,7 @@ define([
                     return false;
                 }
                 const allLines = text.split('\n');
-                const coordinateLineRegex = /^([a-zA-Z0-9_-]+)\s+(-?\d+[.,]\d+)\s+(-?\d+[.,]\d+)\s+(-?\d+[.,]\d+)$/;
+                const coordinateLineRegex = /^([a-zA-Z0-9_.-]+)\s+(-?\d+[.,]?\d+)\s+(-?\d+[.,]?\d+)\s+(-?\d+[.,]?\d+)$/;
 
                 const errorLineIndices = [];
                 let allValid = true;

@@ -3,14 +3,14 @@ define([
   'jquery',
   'arches',
   'viewmodels/workflow',
-  'templates/views/components/plugins/context-addition-workflow.htm',
+  'templates/views/components/plugins/context-footprint-addition-workflow.htm',
   'views/components/workflows/universal/resource-selection-step',
-  'views/components/workflows/context-addition/coordinates-addition-step',
-  'views/components/workflows/context-addition/coordinates-map-display-step'
+  'views/components/workflows/context-footprint-addition/coordinates-addition-step',
+  'views/components/workflows/context-footprint-addition/coordinates-map-display-step'
 ], function(ko, $, arches, Workflow, workflowTemplate) {
-  return ko.components.register('context-addition-workflow', {
+  return ko.components.register('context-footprint-addition-workflow', {
     viewModel: function(params) {
-      this.componentName = 'context-addition-workflow';
+      this.componentName = 'context-footprint-addition-workflow';
       this.quitUrl = (arches && arches.urls && arches.urls.plugin)
         ? arches.urls.plugin('init-workflow')
         : '/';

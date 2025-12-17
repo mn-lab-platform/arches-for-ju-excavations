@@ -2,7 +2,7 @@ define([
     'knockout',
     'arches',
     'leaflet',
-    'templates/views/components/workflows/context-addition/coordinates-map-display-step.htm',
+    'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
 ], function(ko, arches, L, template) {
     class Point {
         constructor(label, x, y, z) {
