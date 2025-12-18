@@ -9,7 +9,8 @@ define([
             const self = this;
             
             const tileService = tileServiceModule.default || tileServiceModule;
-            const FOOTPRINT_NODEGROUP_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
+            const FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
+            const INITIAL_GEOJSON_NODE_ID = '8c0da05b-29c4-4167-a4b0-e9374c7be7e8';
 
             self.coordinatesText = params.coordinatesText;
             self.resourceId = params.resourceId;
@@ -61,12 +62,12 @@ define([
                     features: [{
                         id: generateFeatureId(),
                         type: 'Feature',
+                        properties: {
+                            nodeId: FOOTPRINT_NODE_ID
+                        },
                         geometry: {
                             type: 'Polygon',
                             coordinates: [coordinates]
-                        },
-                        properties: {
-                            nodeId: FOOTPRINT_NODEGROUP_ID
                         }
                     }]
                 };
@@ -80,6 +81,22 @@ define([
                 return '';
             });
 
+            self._postTile = function (nodegroup_id, data) {
+                const payload = {
+                    tileid: '',
+                    nodegroup_id: nodegroup_id,
+                    parenttile_id: null,
+                    resourceinstance_id: self.resourceId,
+                    sortorder: 0,
+                    tiles: {},
+                    data: {}
+                };
+
+                payload.data[nodegroup_id] = data;
+
+                return tileService.createOne(payload);
+            }
+
             self.saveFootprint = async function() {
                 self.isLoading(true);
                 self.errorMessage(null);
@@ -90,20 +107,11 @@ define([
                     self.isLoading(false);
                     return;
                 }
-
-                const payload = {
-                    tileid: '',
-                    nodegroup_id: FOOTPRINT_NODEGROUP_ID,
-                    parenttile_id: null,
-                    resourceinstance_id: self.resourceId,
-                    sortorder: 0,
-                    tiles: {},
-                    data: {}
-                };
-                payload.data[FOOTPRINT_NODEGROUP_ID] = geojsonValue;
+                const geojsonStr = self.geojsonString();
 
                 try {
-                    await tileService.createOne(payload);
+                    await self._postTile(FOOTPRINT_NODE_ID, geojsonValue);
+                    await self._postTile(INITIAL_GEOJSON_NODE_ID, geojsonStr);
                     self.successMessage('Footprint data saved successfully.');
                 } catch (e) {
                     console.error('Failed to save footprint tile:', e);
