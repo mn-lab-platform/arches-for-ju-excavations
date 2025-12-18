@@ -18,6 +18,13 @@ define([
             self.successMessage = ko.observable(null);
             console.log("Resource ID in summary step: ", self.resourceId);
 
+            const generateFeatureId = () => {
+                return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            };
+
             self.geojson = ko.computed(() => {
                 const text = self.coordinatesText;
                 if (!text) {
@@ -32,7 +39,8 @@ define([
                     if (parts.length >= 4) {
                         const x = parseFloat(parts[1]);
                         const y = parseFloat(parts[2]);
-                        coordinates.push([x, y]);
+                        const z = parseFloat(parts[3]);
+                        coordinates.push([x, y, z]);
                     }
                 });
 
@@ -43,20 +51,23 @@ define([
                 if (coordinates.length > 0) {
                     const first = coordinates[0];
                     const last = coordinates[coordinates.length - 1];
-                    if (first[0] !== last[0] || first[1] !== last[1]) {
-                        coordinates.push([first[0], first[1]]);
+                    if (first[0] !== last[0] || first[1] !== last[1] || first[2] !== last[2]) {
+                        coordinates.push(first.slice());
                     }
                 }
 
                 return {
                     type: 'FeatureCollection',
                     features: [{
+                        id: generateFeatureId(),
                         type: 'Feature',
                         geometry: {
                             type: 'Polygon',
                             coordinates: [coordinates]
                         },
-                        properties: {}
+                        properties: {
+                            nodeId: FOOTPRINT_NODEGROUP_ID
+                        }
                     }]
                 };
             });
