@@ -24,7 +24,6 @@ define([
             self.delimiter = ko.observable(' ');
 
             let debounceTimeout = null;
-            console.log("Created Resource ID param: ", params.createdResourceId);
             
             self.detectDelimiter = function(text) {
                 return text.includes('\t') ? '\t' : ' ';

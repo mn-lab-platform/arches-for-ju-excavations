@@ -1,0 +1,55 @@
+<style>
+    .workflow-tab-controls {
+        display: none;
+    }
+    .spinning {
+        -webkit-animation: spin 2s linear infinite;
+        -moz-animation: spin 2s linear infinite;
+        -ms-animation: spin 2s linear infinite;
+        -o-animation: spin 2s linear infinite;
+        animation: spin 2s linear infinite;
+    }
+
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .geojson-display {
+        margin-bottom: 4rem;
+    }
+    .geojson-pre {
+        height: 500px;
+        overflow-y: auto;
+        padding: 2rem;
+    }
+</style>
+<section class="workflow-step">
+    <h3>Generated GeoJSON</h3>
+    <div data-bind="visible: isLoading" class="text-center">
+        <span class="glyphicon glyphicon-refresh spinning"></span> 
+        Saving footprint
+    </div>
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+    <div data-bind="visible: successMessage" class="alert alert-success">
+        <span data-bind="text: successMessage"></span>
+    </div>
+    <div class="geojson-display">
+        <pre class="geojson-pre" data-bind="text: geojsonString"></pre>
+    </div>
+    <div class="text-right">
+        <button id="submit-button"
+                type="button" 
+                class="btn btn-success" 
+                data-bind="click: saveFootprint, enable: geojsonString">
+                Save Footprint
+        </button>
+    </div>
+</section>
