@@ -24,6 +24,8 @@ from affine import Affine
 from rasterio.crs import CRS
 from rasterio.warp import transform as warp_transform
 
+from .tasks import process_geotiff_task
+from celery.result import AsyncResult
 # ---- Try to import IIIFManifest model (Arches variants) ----
 try:
     from arches.app.models.models import IIIFManifest
@@ -33,24 +35,18 @@ except Exception:  # pragma: no cover
         from arches.app.models.iiif import IIIFManifest
         print("[GEOTIFF] IIIFManifest imported from arches.app.models.iiif")
     except Exception:
-        IIIFManifest = None
+        IIIFManifest = Nonesafe
         print("[GEOTIFF] Could not import IIIFManifest model!")
 
 
 TMP_DIR = Path("/tmp/arches_iiif_diag").resolve()
 TMP_DIR.mkdir(parents=True, exist_ok=True)
-print("[GEOTIFF] TMP_DIR: %s", TMP_DIR)
-
 # sidecar geo-metadata (configurable)
 META_DIR = Path(getattr(settings, "IIIF_GEOTIFF_META_DIR", "/tmp/arches_iiif_meta")).resolve()
 META_DIR.mkdir(parents=True, exist_ok=True)
-print("[GEOTIFF] META_DIR: %s", META_DIR)
-
 # raw DEM store (downloadable, configurable)
 RAW_DEM_DIR = Path(getattr(settings, "IIIF_RAW_DEM_DIR", "/tmp/arches_iiif_dem_raw")).resolve()
 RAW_DEM_DIR.mkdir(parents=True, exist_ok=True)
-print("[GEOTIFF] RAW_DEM_DIR: %s", RAW_DEM_DIR)
-
 MAX_BYTES = 4 * 1024 * 1024 * 1024  # 4 GB
 
 
@@ -236,28 +232,6 @@ def _process_image(src_path: Path, dst_path: Path):
 # -------------------------
 # Copy to Cantaloupe shared volume (optional / for your setup)
 # -------------------------
-def _copy_to_cantaloupe(src_path: Path, resource_id: str) -> Path:
-    print("[GEOTIFF] Copying to Cantaloupe for resource_id: %s", resource_id)
-    cantaloupe_dir_raw = getattr(settings, "CANTALOUPE_DIR", None)
-    if not cantaloupe_dir_raw:
-        print("[GEOTIFF] CANTALOUPE_DIR not set in Django settings!")
-        raise RuntimeError("CANTALOUPE_DIR is not set in Django settings")
-
-    cantaloupe_dir = Path(cantaloupe_dir_raw)
-    print("[GEOTIFF] CANTALOUPE_DIR: %s", cantaloupe_dir)
-
-    resource_dir = cantaloupe_dir / resource_id
-    resource_dir.mkdir(parents=True, exist_ok=True)
-
-    dest_path = resource_dir / src_path.name
-    print("[GEOTIFF] Copying: %s -> %s", src_path, dest_path)
-    shutil.copy2(src_path, dest_path)
-    print("[GEOTIFF] File copied to Cantaloupe: %s", dest_path)
-
-    relative = Path(resource_id) / src_path.name
-    print("[GEOTIFF] Cantaloupe relative path: %s", relative)
-    return relative
-
 
 # -------------------------
 # GeoTIFF meta extraction + sidecar save/load
@@ -614,133 +588,64 @@ def geotiff_reencode_test(request):
     transaction_id = request.POST.get("transaction_id", "geotiff-workflow")
     resource_id = request.POST.get("resource_id") or str(uuid.uuid4())
     asset_type = (request.POST.get("asset_type") or request.POST.get("assetType") or "iiif").strip().lower()
-
-    # DEM -> Ortho globalid (optional)
     related_manifest_id = (request.POST.get("related_manifest_id") or "").strip()
 
     print("[GEOTIFF] Parameters: title='%s', transaction_id=%s, resource_id=%s, asset_type=%s, related_manifest_id=%s",
           title, transaction_id, resource_id, asset_type, related_manifest_id)
 
+    # Save file temporarily
     batch_id = uuid.uuid4().hex
     out_dir = TMP_DIR / batch_id
     out_dir.mkdir(parents=True, exist_ok=True)
-    print("[GEOTIFF] Created batch dir: %s (batch_id=%s)", out_dir, batch_id)
-
     in_path = out_dir / _safe_name(f.name)
-    out_path = out_dir / (Path(f.name).stem + "_processed.tif")
-    hs_path = out_dir / (Path(f.name).stem + "_hillshade_8bit.tif")
-
-    try:
-        _save_upload(f, in_path)
-
-        file_type = "image"
-        display_path = None
-
-        if _is_geotiff(in_path):
-            print("[GEOTIFF] File is GeoTIFF - processing with rasterio")
-            _process_geotiff(in_path, out_path)
-            file_type = "geotiff"
-
-            # If DEM + float dtype -> generate hillshade display for IIIF
-            if asset_type == "dem":
-                with rasterio.open(out_path) as src:
-                    dtype = (src.dtypes[0] if src.dtypes else "") or ""
-                    is_float = "float" in dtype.lower()
-                    single_band = (src.count == 1)
-
-                if is_float and single_band:
-                    print("[GEOTIFF] DEM appears float single-band -> generating hillshade display for IIIF")
-                    _make_hillshade_8bit(out_path, hs_path)
-                    display_path = hs_path
-                else:
-                    # if user uploaded already hillshade/relief (byte/int), use processed as display
-                    display_path = out_path
-            else:
-                display_path = out_path
-        else:
-            print("[GEOTIFF] File is regular image - processing with pyvips")
-            _process_image(in_path, out_path)
-            file_type = "image"
-            display_path = out_path
-
-        # (optional) copy whatever is used as display to cantaloupe shared vol
-        cantaloupe_relative_path = _copy_to_cantaloupe(display_path, resource_id)
-
-        # create IIIF manifest for display file
-        manifest_data = _create_manifest_internal(request, display_path, title, description, transaction_id)
-        globalid = manifest_data.get("globalid")
-        print("[GEOTIFF] Manifest created with globalid=%s", globalid)
-
-        meta_url = None
-        meta_abs = None
-
-        if globalid:
-            print("[GEOTIFF] Extracting and saving metadata for globalid=%s", globalid)
-
-            meta = extract_geotiff_meta(display_path)
-            meta.update({
-                "resource_id": resource_id,
-                "processed_filename": display_path.name,
-                "cantaloupe_relative_path": str(cantaloupe_relative_path),
-                "transaction_id": transaction_id,
-                "asset_type": asset_type,
-                "manifest_url": manifest_data.get("url"),
-                "related_ortho_globalid": related_manifest_id or None,
-            })
-
-            # build meta URL (serve from Django)
-            meta_url = f"/api/iiif/geotiff-meta/{globalid}"
-            meta_abs = request.build_absolute_uri(meta_url)
-            meta["meta_abs_url"] = meta_abs
-
-            # save sidecar meta
-            save_geotiff_meta(str(globalid), meta, overwrite=True)
-
-            # patch IIIF manifest in DB: add seeAlso to meta
-            patch_manifest_db_add_geotiff_seeAlso(globalid=str(globalid), request=request, meta_abs_url=meta_abs)
-
-            # For DEM: store raw + patch rendering/related
-            if asset_type == "dem":
-                raw_path = RAW_DEM_DIR / f"{globalid}.tif"
-                # store the original uploaded file as "raw" (you can change to out_path if you want reencoded raw)
-                shutil.copy2(in_path, raw_path)
-                raw_url = f"/files/dem/{globalid}.tif"
-                raw_abs = request.build_absolute_uri(raw_url)
-
-                # patch DEM manifest: rendering + related
-                patch_manifest_db_add_rendering_and_related(
-                    globalid=str(globalid),
-                    request=request,
-                    raw_dem_abs_url=raw_abs,
-                    related_ortho_globalid=related_manifest_id,
-                )
-
-                # also record raw link in meta (useful outside IIIF)
-                meta["raw_dem_url"] = raw_abs
-                save_geotiff_meta(str(globalid), meta, overwrite=True)
-        else:
-            print("[GEOTIFF] No globalid returned from manifest creation!")
-
-        response_data = {
-            "ok": True,
-            "batch_id": batch_id,
-            "resource_id": resource_id,
-            "file_type": file_type,
-            "manifest_url": manifest_data.get("url"),
-            "globalid": globalid,
-            "meta_url": meta_url,
-            "meta_abs_url": meta_abs,
-            "processed_filename": (display_path.name if display_path else None),
-            "asset_type": asset_type,
-            "related_manifest_id": related_manifest_id or None,
-        }
-        print("[GEOTIFF] Success! Response: %s", response_data)
-        return JsonResponse(response_data)
-
-    except Exception as e:
-        logger.exception("[GEOTIFF] Processing failed with exception")
-        return JsonResponse({"ok": False, "error": str(e)}, status=500)
     
+    _save_upload(f, in_path)
+    print("[GEOTIFF] File saved to: %s", in_path)
+
+    # Prepare request metadata for Celery task
+    host = request.META.get("HTTP_X_FORWARDED_HOST") or request.get_host()
+    xfp = request.META.get("HTTP_X_FORWARDED_PROTO")
+    secure = (xfp.split(",")[0].strip() == "https") if xfp else request.is_secure()
+    
+    from urllib.parse import splitport
+    server_name, server_port = splitport(host)
+    if not server_port:
+        server_port = "443" if secure else "80"
+    
+    request_meta = {
+        'host': host,
+        'secure': secure,
+        'server_name': server_name,
+        'server_port': server_port,
+        'forwarded_proto': xfp,
+        'forwarded_host': request.META.get("HTTP_X_FORWARDED_HOST"),
+    }
+
+    # Import and dispatch Celery task
+    
+    
+    task = process_geotiff_task.apply_async(
+        args=[
+            str(in_path),
+            title,
+            description,
+            transaction_id,
+            resource_id,
+            asset_type,
+            related_manifest_id,
+            request_meta,
+        ]
+    )
+
+    print("[GEOTIFF] Celery task dispatched: task_id=%s", task.id)
+
+    return JsonResponse({
+        "ok": True,
+        "task_id": task.id,
+        "batch_id": batch_id,
+        "status": "processing",
+        "message": "File uploaded successfully. Processing in background.",
+    })
 
 import time
 def _affine_from_meta(meta):
@@ -952,3 +857,47 @@ def dem_elevation(request, globalid: str):
         "units": "m",
         **extra
     })
+
+
+@require_GET
+def geotiff_task_status(request, task_id: str):
+    """
+    GET /api/iiif/geotiff-task-status/<task_id>
+    Check the status of a GeoTIFF processing task
+    """
+
+    
+    task = AsyncResult(task_id)
+    
+    if task.state == 'PENDING':
+        response = {
+            'ok': True,
+            'state': task.state,
+            'status': 'Task is waiting to be processed...'
+        }
+    elif task.state == 'PROCESSING':
+        response = {
+            'ok': True,
+            'state': task.state,
+            'status': task.info.get('status', 'Processing...'),
+        }
+    elif task.state == 'SUCCESS':
+        response = {
+            'ok': True,
+            'state': task.state,
+            'result': task.result,
+        }
+    elif task.state == 'FAILURE':
+        response = {
+            'ok': False,
+            'state': task.state,
+            'error': str(task.info),
+        }
+    else:
+        response = {
+            'ok': True,
+            'state': task.state,
+            'status': str(task.info),
+        }
+    
+    return JsonResponse(response)
