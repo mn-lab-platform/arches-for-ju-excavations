@@ -10,7 +10,7 @@ define([
             
             const tileService = tileServiceModule.default || tileServiceModule;
             const FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
-            const INITIAL_GEOJSON_NODE_ID = '8c0da05b-29c4-4167-a4b0-e9374c7be7e8';
+            const INITIAL_GEOJSON_NODE_ID = 'bd290f65-b2fe-4de2-a9b6-fa056036facb';
 
             self.coordinatesText = params.coordinatesText;
             self.resourceId = params.resourceId;

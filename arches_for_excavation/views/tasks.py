@@ -68,7 +68,7 @@ def process_geotiff_task(self, file_path, title, description, transaction_id, re
         logger.info(f"File exists: {in_path.exists()}")
         logger.info(f"File size: {in_path.stat().st_size if in_path.exists() else 'N/A'}")
         
-        # ✅ Process directly to Cantaloupe directory
+        # ✅ Get shared Cantaloupe directory
         logger.info("Getting CANTALOUPE_DIR from settings...")
         cantaloupe_dir_raw = getattr(settings, "CANTALOUPE_DIR", None)
         logger.info(f"CANTALOUPE_DIR: {cantaloupe_dir_raw}")
@@ -78,11 +78,17 @@ def process_geotiff_task(self, file_path, title, description, transaction_id, re
             raise RuntimeError("CANTALOUPE_DIR is not set")
         
         cantaloupe_dir = Path(cantaloupe_dir_raw)
-        resource_dir = cantaloupe_dir / resource_id
         
-        logger.info(f"Creating resource directory: {resource_dir}")
-        resource_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"✅ Directory created: {resource_dir}")
+        # ✅ Ensure directory exists
+        cantaloupe_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Cantaloupe directory exists: {cantaloupe_dir.exists()}")
+        
+        # ✅ Use simple filename (flat structure for Cantaloupe)
+        simple_filename = f"{resource_id}_{in_path.stem}_processed.tif"
+        out_path = cantaloupe_dir / simple_filename
+        
+        logger.info(f"Output path: {out_path}")
+        logger.info(f"Output path parent exists: {out_path.parent.exists()}")
         
         file_type = "image"
         display_path = None
@@ -97,10 +103,6 @@ def process_geotiff_task(self, file_path, title, description, transaction_id, re
         if is_geo:
             logger.info(f"Processing as GeoTIFF: {in_path}")
             self.update_state(state='PROCESSING', meta={'status': 'Processing GeoTIFF...'})
-            
-            # ✅ Write directly to Cantaloupe
-            out_path = resource_dir / (in_path.stem + "_processed.tif")
-            logger.info(f"Output path: {out_path}")
             
             logger.info("Calling _process_geotiff...")
             _process_geotiff(in_path, out_path)
@@ -120,7 +122,9 @@ def process_geotiff_task(self, file_path, title, description, transaction_id, re
                 if is_float and single_band:
                     logger.info("Generating hillshade...")
                     self.update_state(state='PROCESSING', meta={'status': 'Generating hillshade...'})
-                    hs_path = resource_dir / (in_path.stem + "_hillshade_8bit.tif")
+                    # ✅ Hillshade also in flat structure
+                    hs_filename = f"{resource_id}_{in_path.stem}_hillshade_8bit.tif"
+                    hs_path = cantaloupe_dir / hs_filename
                     _make_hillshade_8bit(out_path, hs_path)
                     display_path = hs_path
                     logger.info(f"✅ Hillshade created: {hs_path}")
@@ -133,8 +137,6 @@ def process_geotiff_task(self, file_path, title, description, transaction_id, re
         else:
             logger.info(f"Processing as regular image: {in_path}")
             self.update_state(state='PROCESSING', meta={'status': 'Processing image...'})
-            out_path = resource_dir / (in_path.stem + "_processed.tif")
-            logger.info(f"Output path: {out_path}")
             
             _process_image(in_path, out_path)
             logger.info("✅ Image processed")
@@ -142,8 +144,8 @@ def process_geotiff_task(self, file_path, title, description, transaction_id, re
             file_type = "image"
             display_path = out_path
         
-        # ✅ No copy needed - already in Cantaloupe
-        cantaloupe_relative_path = Path(resource_id) / display_path.name
+        # ✅ Cantaloupe path is just the filename (flat structure)
+        cantaloupe_relative_path = display_path.name
         logger.info(f"Cantaloupe relative path: {cantaloupe_relative_path}")
         
         # Step 3: Create IIIF manifest

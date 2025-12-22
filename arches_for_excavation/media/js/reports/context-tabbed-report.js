@@ -25,7 +25,18 @@ export default ko.components.register('context-tabbed-report', {
                 name: 'Info',
                 icon: 'fa-info-circle',
                 main_component: undefined,
-                nodegroup_ids: ['1dc344d6-1f5e-44d3-ae3c-18031de00632']  
+                nodegroup_ids: [
+                    'd655993d-9f52-11eb-96c4-020063fe0012',  // Field - Characterization
+                    'bd290f65-b2fe-4de2-a9b6-fa056036facb',  // Initial Footprint
+                    'ca2e0e26-a38d-11eb-96c4-020063fe0012',  // Harris Matrix
+                    'd6559940-9f52-11eb-96c4-020063fe0012',  // Field - Location PAP2015
+                    'd6559937-9f52-11eb-96c4-020063fe0012',  // Field - Location UTM
+                    'd6559925-9f52-11eb-96c4-020063fe0012',  // Field - Images
+                    'd655992e-9f52-11eb-96c4-020063fe0012',  // Field - Other Information
+                    'd6559931-9f52-11eb-96c4-020063fe0012',  // Footprint
+                    'd655992b-9f52-11eb-96c4-020063fe0012',  // Basic Information
+                    'd6559928-9f52-11eb-96c4-020063fe0012'   // Field - Remains
+                ]
             })
         ];
 
@@ -39,8 +50,11 @@ export default ko.components.register('context-tabbed-report', {
             .map(([_, value]) => value);
 
         console.log("[CONTEXT REPORT] 3D models:", model3DResource);
+            
+        const actualModels = model3DResource[0].loadedRelatedResources();
+        console.log("[CONTEXT REPORT] Actual 3D models:", actualModels);
         
-        if (model3DResource.length > 0) {
+        if (actualModels.length > 0) {
             myTabs.push(ko.mapping.fromJS({
                 name: 'Cesium Viewer',
                 icon: 'fa-cube',
@@ -53,10 +67,7 @@ export default ko.components.register('context-tabbed-report', {
                     existingAnnotations: self.existingAnnotations
                 }
             }));
-            
-            const actualModels = model3DResource[0].loadedRelatedResources();
-            console.log("[CONTEXT REPORT] Actual 3D models:", actualModels);
-        
+
             actualModels.forEach(modelResource => {
                 if (modelResource) {
                     const resourceId = modelResource.link.split('/').pop();

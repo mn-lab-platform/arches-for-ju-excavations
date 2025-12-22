@@ -59,11 +59,12 @@ def save_iiif_annotation_db(request):
         os.makedirs(annotations_dir, exist_ok=True)
         list_path = os.path.join(annotations_dir, list_filename)
         
-        # URL publiczny (dostępny dla przeglądarki/Viewera)
-        # Zakładamy, że serwer stoi na porcie 8004 (z Twoich logów)
-        # W produkcji warto użyć request.build_absolute_uri()
+        # ✅ FIX: Use request.build_absolute_uri() instead of hardcoded localhost
         media_url_base = settings.MEDIA_URL if settings.MEDIA_URL.startswith('/') else f"/{settings.MEDIA_URL}"
-        list_public_url = f"http://localhost:8004{media_url_base}annotations/{list_filename}".replace('//annotations', '/annotations')
+        list_relative_path = f"{media_url_base}annotations/{list_filename}".replace('//annotations', '/annotations')
+        list_public_url = request.build_absolute_uri(list_relative_path)
+        
+        print(f"[IIIF API] Annotation list URL: {list_public_url}")
 
         # ---------------------------------------------------------
         # KROK 3: Wyciągnij Canvas ID z Manifestu
