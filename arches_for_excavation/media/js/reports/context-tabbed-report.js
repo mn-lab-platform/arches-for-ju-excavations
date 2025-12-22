@@ -3,6 +3,7 @@ import tabbedReportTemplate from 'templates/views/report-templates/tabbed.htm';
 import { setupTabbedReport } from '../viewmodels/mixins/tab-report-setup';
 import 'views/components/custom/cesium-viewer';
 import 'views/components/iiif/iiif-map-viewer';
+import 'viewmodels/map-report';
 import resourceService from '../services/resource-service';
 
 export default ko.components.register('context-tabbed-report', {
@@ -24,8 +25,9 @@ export default ko.components.register('context-tabbed-report', {
             ko.mapping.fromJS({
                 name: 'Info',
                 icon: 'fa-info-circle',
-                main_component: undefined,
-                nodegroup_ids: ['1dc344d6-1f5e-44d3-ae3c-18031de00632']  
+                main_component: 'map-report',
+                nodegroup_ids: [],
+                component_params: {}
             })
         ];
 
