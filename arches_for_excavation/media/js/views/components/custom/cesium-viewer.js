@@ -32,6 +32,7 @@ export default ko.components.register('cesium-viewer', {
 
             for (let i = 0; i < models.length; i++) {
                 const model = models[i];
+                const modelResourceId = model.resourceinstanceid || model.resourceId;
                 const modelUrl = `${model.resource.Url}/tileset.json`;
                 const georeferenced = String(model.resource.Georeferenced).toLowerCase() === 'true';
                 const viewerId = `cesiumViewer-${i}`;
@@ -47,6 +48,12 @@ export default ko.components.register('cesium-viewer', {
                     continue;
                 }
 
+                const modelAnnotations = existingAnnotations.filter(anno => 
+                    anno.modelResourceId === modelResourceId
+                );
+                
+                console.log(`Filtered ${modelAnnotations.length} annotations for model ${modelResourceId}`);
+
                 try {
                     console.log(`Initializing viewer ${i} with model:`, model);
                     await initializeCesiumViewer(
@@ -57,7 +64,7 @@ export default ko.components.register('cesium-viewer', {
                             allowAnnotationsEdits: self.allowAnnotationsEdits,
                             allowObjectPicking: self.allowObjectPicking,
                             modelUrl: modelUrl,
-                            existingAnnotations: existingAnnotations,
+                            existingAnnotations: modelAnnotations,
                             onAnnotationSaved: params.onAnnotationSaved,
                             onAnnotationDeleted: params.onAnnotationDeleted
                         }
