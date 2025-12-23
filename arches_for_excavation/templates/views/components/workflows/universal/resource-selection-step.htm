@@ -154,7 +154,7 @@
         background: #e8f5e9;
         border: 1px solid #a5d6a7;
         border-radius: 4px;
-        margin-top: 20px;
+        margin-bottom: 10px;
     }
     
     .selected-resource-info strong {
@@ -164,6 +164,15 @@
 </style>
 
 <div class="workflow-step resource-selection-step">
+
+    <!-- Selected Resource Info -->
+    <div class="selected-resource-info" data-bind="visible: selectedResourceId">
+        <strong><i class="fa fa-check"></i> Selected:</strong>
+        <div style="margin-top: 8px;">
+            <div data-bind="text: selectedResourceName"></div>
+            <code style="font-size: 11px; color: #1b5e20;" data-bind="text: selectedResourceId"></code>
+        </div>
+    </div>
     
     <!-- Search Box -->
     <div class="resource-search-container">
@@ -231,14 +240,4 @@
             No resources available for this type
         </div>
     </div>
-    
-    <!-- Selected Resource Info -->
-    <div class="selected-resource-info" data-bind="visible: selectedResourceId">
-        <strong><i class="fa fa-check"></i> Selected:</strong>
-        <div style="margin-top: 8px;">
-            <div data-bind="text: selectedResourceName"></div>
-            <code style="font-size: 11px; color: #1b5e20;" data-bind="text: selectedResourceId"></code>
-        </div>
-    </div>
-    
 </div>
