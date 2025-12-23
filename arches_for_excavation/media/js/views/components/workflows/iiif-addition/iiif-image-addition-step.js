@@ -364,7 +364,6 @@ define([
             self.formData.append('asset_type', self.assetType());
             self.formData.append('transaction_id', params.form && params.form.workflowId || 'iiif-image-workflow');
 
-            // ✅ ADD THIS: pass related manifest globalid if available (DEM -> Ortho)
             if (self.relatedManifestGlobalId()) {
                 self.formData.append('related_manifest_id', self.relatedManifestGlobalId());
                 console.log('[WF LOG][image-select] Related manifest globalid:', self.relatedManifestGlobalId());
@@ -387,28 +386,22 @@ define([
                     return resp.json();
                 })
                 .then(function(response) {
-                    console.log('[WF LOG][image-select] Python response:', response);
+                    console.log('[WF LOG][image-select] Upload response:', response);
                     
                     if (!response.ok) {
-                        throw new Error(response.error || 'Processing failed');
+                        throw new Error(response.error || 'Upload failed');
                     }
                     
-                    // Python zwraca gotowy manifest URL i globalid
-                    if (response.globalid) {
-                        self.lastManifestGlobalId = response.globalid;
-                        console.log('[WF LOG][image-select] Stored manifest globalid:', self.lastManifestGlobalId);
-                    }
-                    
-                    if (response.manifest_url) {
-                        // Załaduj manifest (który już istnieje dzięki Python)
-                        self.loadManifest(response.manifest_url);
+                    // Start polling for task status
+                    if (response.task_id) {
+                        self.pollTaskStatus(response.task_id);
                     } else {
-                        throw new Error('Server did not return manifest URL');
+                        throw new Error('No task_id returned');
                     }
                 })
                 .catch(function(err) {
-                    console.log('[WF LOG][image-select] Upload/process error:', err);
-                    self.errorMessage('Failed to process file: ' + err.message);
+                    console.log('[WF LOG][image-select] Upload error:', err);
+                    self.errorMessage('Failed to upload file: ' + err.message);
                     self.loading(false);
                 })
                 .finally(function() {
@@ -416,6 +409,66 @@ define([
                         self.dropzone.removeAllFiles(true);
                     }
                 });
+        };
+
+        self.pollTaskStatus = function(taskId) {
+            console.log('[WF LOG][image-select] Polling task status:', taskId);
+            
+            var statusUrl = baseUrl + 'api/iiif/geotiff-task-status/' + taskId;
+            var pollInterval = 10*1000; // 10 seconds
+            var maxAttempts = 100; // 10 minutes max
+            var attempts = 0;
+
+            function checkStatus() {
+                attempts++;
+                
+                fetch(statusUrl, { credentials: 'include' })
+                    .then(function(resp) {
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    })
+                    .then(function(status) {
+                        console.log('[WF LOG][image-select] Task status:', status.state);
+                        
+                        if (status.state === 'SUCCESS') {
+                            // Processing complete
+                            console.log('[WF LOG][image-select] Processing complete:', status.result);
+                            
+                            if (status.result.globalid) {
+                                self.lastManifestGlobalId = status.result.globalid;
+                            }
+                            
+                            if (status.result.manifest_url) {
+                                self.loadManifest(status.result.manifest_url);
+                            } else {
+                                throw new Error('No manifest URL in result');
+                            }
+                        } else if (status.state === 'FAILURE') {
+                            throw new Error(status.error || 'Processing failed');
+                        } else if (status.state === 'PROCESSING' || status.state === 'PENDING') {
+                            // Still processing, continue polling
+                            if (attempts < maxAttempts) {
+                                setTimeout(checkStatus, pollInterval);
+                            } else {
+                                throw new Error('Processing timeout');
+                            }
+                        } else {
+                            // Unknown state
+                            if (attempts < maxAttempts) {
+                                setTimeout(checkStatus, pollInterval);
+                            } else {
+                                throw new Error('Processing timeout');
+                            }
+                        }
+                    })
+                    .catch(function(err) {
+                        console.log('[WF LOG][image-select] Status check error:', err);
+                        self.errorMessage('Failed to check processing status: ' + err.message);
+                        self.loading(false);
+                    });
+            }
+            
+            checkStatus();
         };
 
         // ========== WYBÓR OBRAZU ==========

@@ -32,14 +32,14 @@ define([
                 slug: 'iiif-addition-workflow',
                 icon: 'fa fa-picture-o',
                 description: 'Add an iiif resources to a resource',
-                backgroundColor: '#00ff4cff'
+                backgroundColor: '#e6fae6'
             },               
             {
                 name: 'IIIF annotation workflow',
                 slug: 'iiif-annotation-workflow',
                 icon: 'fa fa-asterisk',
                 description: 'Add annotation to iiif resources',
-                backgroundColor: '#f87a04ff'
+                backgroundColor: '#fae6e6'
             },    
 
         ]);

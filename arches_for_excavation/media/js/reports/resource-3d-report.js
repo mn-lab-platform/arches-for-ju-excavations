@@ -60,7 +60,6 @@ export default ko.components.register('resource-3d-report', {
                 }
             });
         }
-        //IIIIIIIIIIIIIIIIIIIIIFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         
         setupTabbedReport(self, params, myTabs);
     },

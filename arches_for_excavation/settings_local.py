@@ -84,7 +84,18 @@ CELERY_BROKER_URL = "redis://@arches_redis:6379/0"
 # CELERY_BROKER_URL = ""
 
 CANTALOUPE_HTTP_ENDPOINT = "http://{}:{}".format(get_env_variable("CANTALOUPE_HOST"), get_env_variable("CANTALOUPE_PORT"))
-CANTALOUPE_DIR = "/imageroot/uploadedfiles"
+
+# ✅ FIXED: Path from Arches container's perspective (not Cantaloupe's)
+# This is the shared volume that both containers can access
+CANTALOUPE_DIR = os.path.join(
+    get_env_variable("APP_COMP_FOLDER"),  # /arches_app/arches_slocal/arches_slocal
+    'uploadedfiles',
+    'imageroot'
+)
+
+# ✅ Ensure the directory exists at startup
+os.makedirs(CANTALOUPE_DIR, exist_ok=True)
+
 ELASTICSEARCH_HTTP_PORT = get_env_variable("ESPORT")
 ELASTICSEARCH_HOSTS = [
     {

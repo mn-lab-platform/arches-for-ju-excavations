@@ -104,6 +104,7 @@ define([
                 maxFiles: 1,
                 acceptedFiles: '.zip',
                 autoProcessQueue: false,
+                maxFilesize: 10240,
                 clickable: '#dropzone-button',
                 previewsContainer: '#dropzone-preview',
                 addRemoveLinks: true,
