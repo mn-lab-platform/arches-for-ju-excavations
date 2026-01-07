@@ -133,6 +133,7 @@ INSTALLED_APPS = (
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
     "django.contrib.gis",
     "django_hosts",
@@ -160,6 +161,7 @@ INSTALLED_APPS += (
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     #'arches.app.utils.middleware.TokenMiddleware',
     "django.middleware.locale.LocaleMiddleware",
@@ -189,14 +191,6 @@ TEMPLATES = build_templates_config(
     debug=DEBUG,
     app_root=APP_ROOT,
 )
-
-ALLOWED_HOSTS = [ 'tap.mn.cenagis.edu.pl', ] 
-CSRF_TRUSTED_ORIGINS = [ 'https://tap.mn.cenagis.edu.pl', ] 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
-USE_TLS = True 
-SECURE_SSL_REDIRECT = False 
-SESSION_COOKIE_SECURE = True 
-CSRF_COOKIE_SECURE = True
 
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(APP_ROOT, 'system_settings', 'System_Settings.json')
 WSGI_APPLICATION = 'arches_slocal.wsgi.application'
