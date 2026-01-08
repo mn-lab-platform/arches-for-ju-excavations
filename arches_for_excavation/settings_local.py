@@ -44,13 +44,6 @@ if not DEBUG:
         "http://127.0.0.1",
     ]
 
-    STORAGES = {
-        # ...existing code...
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-        },
-    }
-
 # Set the APP_NAME here too, it may be useful for making the URLs
 # work correctly when running gunicorn.
 APP_NAME = get_env_variable("ARCHES_PROJECT")

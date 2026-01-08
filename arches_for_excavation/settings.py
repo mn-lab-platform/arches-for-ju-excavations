@@ -133,7 +133,6 @@ INSTALLED_APPS = (
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
     "django.contrib.gis",
     "django_hosts",
@@ -161,7 +160,6 @@ INSTALLED_APPS += (
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     #'arches.app.utils.middleware.TokenMiddleware',
     "django.middleware.locale.LocaleMiddleware",
