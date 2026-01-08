@@ -2,10 +2,7 @@ import { Ion, CesiumWidget, Cesium3DTileset, Color, HeadingPitchRange, Matrix4, 
 import { SCALE_FACTORS } from '../const/const';
 
 export class Scene {
-    constructor(containerId, {token, georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false, existingAnnotations=[]} = {}) {
-        if (token) {
-            Ion.defaultAccessToken = token;
-        }
+    constructor(containerId, {georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false, existingAnnotations=[]} = {}) {
         this.georeferenced = georeferenced;
         this.allowAnnotationsEdits = allowAnnotationsEdits;
         this.allowObjectPicking = allowObjectPicking;
