@@ -42,13 +42,14 @@ except Exception:  # pragma: no cover
 TMP_DIR = Path("/tmp/arches_iiif_diag").resolve()
 TMP_DIR.mkdir(parents=True, exist_ok=True)
 # sidecar geo-metadata (configurable)
-META_DIR = Path(getattr(settings, "IIIF_GEOTIFF_META_DIR", "/tmp/arches_iiif_meta")).resolve()
+META_DIR = Path(getattr(settings, "IIIF_GEOTIFF_META_DIR")).resolve()
+print("[GEOTIFF] META_DIR =", META_DIR)
 META_DIR.mkdir(parents=True, exist_ok=True)
 # raw DEM store (downloadable, configurable)
 RAW_DEM_DIR = Path(getattr(settings, "IIIF_RAW_DEM_DIR", "/tmp/arches_iiif_dem_raw")).resolve()
 RAW_DEM_DIR.mkdir(parents=True, exist_ok=True)
 MAX_BYTES = 4 * 1024 * 1024 * 1024  # 4 GB
-
+print("[GEOTIFF] TMP_DIR =", META_DIR)   
 
 # -------------------------
 # Helpers
