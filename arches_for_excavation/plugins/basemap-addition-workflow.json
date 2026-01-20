@@ -1,0 +1,10 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k8",
+  "name": "Basemap Addition",
+  "icon": "fa fa-map",
+  "component": "views/components/plugins/basemap-addition-workflow",
+  "componentname": "basemap-addition-workflow",
+  "config": { "show": false },
+  "slug": "basemap-addition-workflow",
+  "sortorder": 0
+}
