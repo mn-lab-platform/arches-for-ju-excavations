@@ -24,7 +24,7 @@ from affine import Affine
 from rasterio.crs import CRS
 from rasterio.warp import transform as warp_transform
 
-from .tasks import process_geotiff_task
+from ..celery_tasks.iiif_tasks import process_geotiff_task
 from celery.result import AsyncResult
 # ---- Try to import IIIFManifest model (Arches variants) ----
 try:
