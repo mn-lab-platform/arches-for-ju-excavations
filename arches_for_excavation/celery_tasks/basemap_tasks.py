@@ -15,7 +15,9 @@ def convert_geotiff_to_cog(src_path, dst_path):
             blocksize=512
         )
         print("Conversion Complete.")
-        os.path.remove(src_path) # Clean up source file
     except Exception as e:
         print(f"Error during conversion: {e}")
         raise
+    finally:
+        if os.path.exists(src_path):
+            os.remove(src_path)
