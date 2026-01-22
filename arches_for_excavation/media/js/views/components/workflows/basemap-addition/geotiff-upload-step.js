@@ -73,6 +73,8 @@ define([
                         self.errorMessage(null);
                         self.successMessage(null);
                         self.basemapName('');
+                        self.legend('');
+                        self.sortOrder(0);
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
@@ -128,7 +130,7 @@ define([
                         self.errorMessage('Processing was cancelled (Revoked).');
                     } else {
                         self.infoMessage(`Basemap processing status: ${state}. Please wait...`);
-                        setTimeout(() => self.pollTask(taskId), 3000);
+                        setTimeout(() => self.pollTask(taskId), 2000);
                     }
                 }).catch(err => {
                     self.infoMessage('');
