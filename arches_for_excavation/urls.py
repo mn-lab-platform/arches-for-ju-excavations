@@ -17,7 +17,7 @@ from .views.geotiif_handler import (
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
-    path('api/basemap/upload/', BasemapView.as_view(), name='basemaps'),
+    path('api/basemap/upload', BasemapView.as_view(), name='basemaps'),
     path('api/celery/task-status/<str:task_id>', get_celery_task_status, name='celery_task_status'),
     path('api/manifest/update_db', save_iiif_annotation_db, name='save_iiif_annotation_db'),
     path('api/manifest/delete_annotation', delete_iiif_annotation, name='delete_iiif_annotation'),
