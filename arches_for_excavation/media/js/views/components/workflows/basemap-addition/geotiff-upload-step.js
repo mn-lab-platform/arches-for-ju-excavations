@@ -2,14 +2,21 @@ define([
     'knockout',
     'arches',
     'templates/views/components/workflows/basemap-addition/geotiff-upload-step.htm',
-    '../../../../services/tile-service',
+    '../../../../services/basemap-service',
     '../../../../services/service-utils',
     'bindings/dropzone'
-], function(ko, arches, template, tileServiceModule, serviceUtils) {
+], function(ko, arches, template, basemapServiceModule, serviceUtils) {
     return ko.components.register('geotiff-upload-step', {
         viewModel: function(params) {
+            const CELERY_STATES = {
+                pending: 'PENDING',
+                started: 'STARTED',
+                success: 'SUCCESS',
+                failure: 'FAILURE',
+                revoked: 'REVOKED',
+            }
             const self = this;
-            const tileService = tileServiceModule.default || tileServiceModule;
+            const basemapService = basemapServiceModule.default || basemapServiceModule;
 
             self.basemapName = ko.observable('');
             self.legend = ko.observable('');
@@ -21,13 +28,13 @@ define([
             self.searchOnly = ko.observable(false);
             self.isPublic = ko.observable(true);
 
-            self.loading = ko.observable(false);
             self.errorMessage = ko.observable(null);
+            self.infoMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
             self.canSubmit = ko.observable(false);
 
             self.dropzoneOptionsZip = {
-                url: '/api/basemap/upload/',
+                url: '/api/basemap/upload',
                 paramName: 'basemap_geotiff',
                 maxFiles: 1,
                 acceptedFiles: '.tiff, .tif',
@@ -36,6 +43,9 @@ define([
                 clickable: '#dropzone-button',
                 previewsContainer: '#dropzone-preview',
                 addRemoveLinks: true,
+                headers: {
+                    'X-CSRFToken': serviceUtils.getCookie('csrftoken')
+                },
                 init: function() {
                     var dz = this;
                     self.dropzone = dz;
@@ -43,7 +53,6 @@ define([
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
                         self.errorMessage('');
-                        
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
                             thumbnailElement.style.display = 'none';
@@ -67,25 +76,28 @@ define([
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
-                        self.loading(true);
                         formData.append('basemap_name', self.basemapName());
+                        self.infoMessage('Uploading basemap GEOTIFF file...  0%');
+                    });
+
+                    dz.on('uploadprogress', function(file, progress, bytesSent) {
+                        self.infoMessage(`Uploading basemap GEOTIFF file...  ${Math.round(progress)}%`);
                     });
 
                     dz.on('success', function(file, response) {
                         console.log('Upload successful:', response);
-                        self.loading(false);
+                        self.infoMessage('Basemap upload initiated. Processing your file in the background...');
                         self.errorMessage('');
-                        self.successMessage('Basemap uploaded successfully.');
+                        self.successMessage('');
                         self.canSubmit(false);
+
+                        const taskId = response.task_id;
+                        self.pollTask(taskId);
                     });
 
                     dz.on('error', function(file, errorMessage) {
                         console.error('Upload failed:', errorMessage);
                         self.errorMessage(typeof errorMessage === 'string' ? errorMessage : 'Upload failed');
-                    });
-
-                    dz.on('complete', function() {
-                        self.loading(false);
                     });
 
                     dz.on('dragover', function() {
@@ -101,6 +113,29 @@ define([
                     });
                 }
             };
+
+            self.pollTask = function(taskId) {
+                basemapService.getCeleryTaskStatus(taskId).then(response => {
+                    const { _, state, info } = response;
+                    if (state === CELERY_STATES.success) {
+                        self.infoMessage('');
+                        self.successMessage('Basemap uploaded and processed successfully.');
+                    } else if (state === CELERY_STATES.failure) {
+                        self.infoMessage('');
+                        self.errorMessage(`Basemap processing failed: ${info}`);
+                    } else if (state === CELERY_STATES.revoked) {
+                        self.infoMessage('');
+                        self.errorMessage('Processing was cancelled (Revoked).');
+                    } else {
+                        self.infoMessage(`Basemap processing status: ${state}. Please wait...`);
+                        setTimeout(() => self.pollTask(taskId), 3000);
+                    }
+                }).catch(err => {
+                    self.infoMessage('');
+                    self.successMessage('');
+                    self.errorMessage(`Error checking task status: ${err.message}`);
+                });
+            }
 
             self.submitUpload = function() {
                 if (self.dropzone.files.length > 0) {
