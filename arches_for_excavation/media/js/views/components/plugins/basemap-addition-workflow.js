@@ -4,7 +4,7 @@ define([
   'arches',
   'viewmodels/workflow',
   'templates/views/components/plugins/basemap-addition-workflow.htm',
-  'views/components/workflows/basemap-addition/basemap-addition-step',
+  'views/components/workflows/basemap-addition/geotiff-upload-step',
   'views/components/workflows/universal/resource-selection-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('basemap-addition-workflow', {

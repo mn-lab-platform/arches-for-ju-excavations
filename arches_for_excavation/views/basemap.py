@@ -2,29 +2,13 @@ from django.views import View
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.conf import settings
 from django.utils.text import get_valid_filename
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 import os
 from uuid import uuid4
 import tempfile
 from ..celery_tasks.basemap_tasks import convert_geotiff_to_cog
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class BasemapView(View):
-    def get(self, request):
-        return HttpResponse("""
-            <h1>Test Uploadu GeoTIFF</h1>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <input type="text" name="basemap_name" value="test_mapa">
-                <br><br>
-                <input type="file" name="basemap_geotiff">
-                <br><br>
-                <button type="submit">Wyślij</button>
-            </form>
-        """)
-    
     def post(self, request):
         source_geotiff = request.FILES.get('basemap_geotiff')
         if not source_geotiff:
@@ -56,6 +40,10 @@ class BasemapView(View):
                 'status': 'error', 
                 'message': str(e)
             }, status=500)
+
+    def _geotiff_is_valid(self, geotiff):
+        #TODO: check if provided tiff is geo?
+        pass
 
     def _create_path_for_geotiff(self, geotiff):
         shared_tmp_dir = os.path.join(

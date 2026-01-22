@@ -40,7 +40,14 @@ define([
                 icon: 'fa fa-asterisk',
                 description: 'Add annotation to iiif resources',
                 backgroundColor: '#fae6e6'
-            },    
+            }, 
+            {
+                name: 'Basemap Addition Workflow',
+                slug: 'basemap-addition-workflow',
+                icon: 'fa-map',
+                description: 'Upload GeoTIFF basemaps to existing resources',
+                backgroundColor: '#d9f2f2ff'
+            }   
 
         ]);
 
