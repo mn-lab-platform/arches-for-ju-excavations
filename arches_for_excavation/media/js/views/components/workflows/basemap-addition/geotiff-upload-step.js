@@ -22,8 +22,6 @@ define([
             self.legend = ko.observable('');
             self.sortOrder = ko.observable(0);
 
-            self.isOverlay = ko.observable(false);
-            self.isActivated = ko.observable(true);
             self.addToMap = ko.observable(false);
             self.searchOnly = ko.observable(false);
             self.isPublic = ko.observable(true);
@@ -33,6 +31,9 @@ define([
             self.successMessage = ko.observable(null);
             self.canSubmit = ko.observable(false);
 
+            self.sourceConfig = {};
+            self.layerConfig = {};
+            
             self.dropzoneOptionsZip = {
                 url: '/api/basemap/upload',
                 paramName: 'basemap_geotiff',
@@ -78,7 +79,12 @@ define([
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
-                        formData.append('basemap_name', self.basemapName());
+                        formData.append('basemap_name', self._sanitizeFilename(self.basemapName()));
+                        formData.append('basemap_legend', self.legend());
+                        formData.append('basemap_sortorder', self.sortOrder());
+                        formData.append('basemap_addto_map', self.addToMap());
+                        formData.append('basemap_searchonly', self.searchOnly());
+                        formData.append('basemap_ispublic', self.isPublic());
                         self.infoMessage('Uploading basemap GEOTIFF file...  0%');
                     });
 
@@ -93,8 +99,8 @@ define([
                         self.successMessage('');
                         self.canSubmit(false);
 
-                        const taskId = response.task_id;
-                        self.pollTask(taskId);
+                        self.pollTask(response.task_id);
+                        self._populateBasemapConfigs(response.basemap_metadata);
                     });
 
                     dz.on('error', function(file, errorMessage) {
@@ -121,7 +127,17 @@ define([
                     const { _, state, info } = response;
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
-                        self.successMessage('Basemap uploaded and processed successfully.');
+                        self.infoMessage('Basemap processing completed successfully. Adding basemap to Arches...');
+                        basemapService.addSource(self.sourceConfig
+                        ).then(() => 
+                            basemapService.addLayer(self.layerConfig)
+                        ).then(() => {
+                            self.infoMessage('');
+                            self.successMessage('Basemap added successfully.');
+                        }).catch(err => {
+                            self.infoMessage('');
+                            self.errorMessage(`Error adding basemap to Arches: ${err.message}`);
+                        });
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
                         self.errorMessage(`Basemap processing failed: ${info}`);
@@ -137,6 +153,40 @@ define([
                     self.successMessage('');
                     self.errorMessage(`Error checking task status: ${err.message}`);
                 });
+            }
+
+            self._sanitizeFilename = function(name) {
+                return name.replace(/[\/\\:*?"<>|]/g, '_').trim();
+            };
+
+            self._populateBasemapConfigs = function(basemapMetadata) {
+                self.sourceConfig = {
+                    name: basemapMetadata.id,
+                    source: JSON.stringify({
+                        type: 'raster',
+                        tiles: [`http://localhost:8001/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/${basemapMetadata.name}/${basemapMetadata.id}.tif`],
+                        tileSize: 512,
+                        bounds: basemapMetadata.bounds
+                    })
+                }
+                
+                self.layerConfig = {
+                    mapLayerId: basemapMetadata.id,
+                    name: basemapMetadata.name,
+                    layerDefinitions: JSON.stringify([{
+                        id: basemapMetadata.id,
+                        type: 'raster',
+                        source: basemapMetadata.id,
+                    }]),
+                    activated: true,
+                    addToMap: basemapMetadata.add_to_map,
+                    icon: 'fa fa-binoculars',
+                    sortOrder: basemapMetadata.sort_order,
+                    isPublic: basemapMetadata.is_public,
+                    centerX: basemapMetadata.center_coordinates ? basemapMetadata.center_coordinates[0] : 0,
+                    centerY: basemapMetadata.center_coordinates ? basemapMetadata.center_coordinates[1] : 0,
+                    searchOnly: basemapMetadata.search_only
+                }
             }
 
             self.submitUpload = function() {
