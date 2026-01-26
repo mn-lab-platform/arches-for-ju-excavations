@@ -19,9 +19,7 @@ define([
             const basemapService = basemapServiceModule.default || basemapServiceModule;
 
             self.basemapName = ko.observable('');
-            self.legend = ko.observable('');
             self.sortOrder = ko.observable(0);
-
             self.addToMap = ko.observable(false);
             self.isOverlay = ko.observable(false);
             self.searchOnly = ko.observable(false);
@@ -75,13 +73,11 @@ define([
                         self.errorMessage(null);
                         self.successMessage(null);
                         self.basemapName('');
-                        self.legend('');
                         self.sortOrder(0);
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
                         formData.append('basemap_name', self._sanitizeFilename(self.basemapName()));
-                        formData.append('basemap_legend', self.legend());
                         formData.append('basemap_sortorder', self.sortOrder());
                         formData.append('basemap_addto_map', self.addToMap());
                         formData.append('basemap_searchonly', self.searchOnly());
