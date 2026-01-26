@@ -20,7 +20,7 @@ define([
 
             self.basemapName = ko.observable('');
             self.sortOrder = ko.observable(0);
-            self.addToMap = ko.observable(false);
+            self.addToMap = ko.observable(true);
             self.isOverlay = ko.observable(false);
             self.searchOnly = ko.observable(false);
             self.isPublic = ko.observable(true);
