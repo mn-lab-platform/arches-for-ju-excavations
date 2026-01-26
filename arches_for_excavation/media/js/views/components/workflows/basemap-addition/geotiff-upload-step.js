@@ -162,7 +162,7 @@ define([
                     name: basemapMetadata.id,
                     source: JSON.stringify({
                         type: 'raster',
-                        tiles: [`http://localhost:8001/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/${basemapMetadata.name}/${basemapMetadata.id}.tif`],
+                        tiles: [`/api/titiler/tiles/${basemapMetadata.id}/{z}/{x}/{y}`],
                         tileSize: 512,
                         bounds: basemapMetadata.bounds
                     })

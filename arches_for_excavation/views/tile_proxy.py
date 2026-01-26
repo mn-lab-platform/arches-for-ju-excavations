@@ -1,6 +1,5 @@
 from django.core.cache import cache
 from django.http import HttpResponse, StreamingHttpResponse, HttpResponseForbidden, HttpResponseNotFound
-from django.conf import settings
 import requests
 from arches.app.models.models import MapLayer
 
@@ -36,9 +35,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             user = request.user
             print(f"Checking permissions for user {user.username} (id={user.id})")
             print(f"User groups: {[group.name for group in user.groups.all()]}")
-            if user.is_superuser or user.is_staff:
-                can_view = True
-            elif user.groups.filter(name__in=['Graph Editor', 'RDM Administrator', 'Resource Editor', 'Resource Exporter', 'Resource Reviewer']).exists():
+            required_groups = ['Resource Editor', 'Resource Exporter', 'Resource Reviewer']
+            if user.groups.filter(name__in=required_groups).count() == 3: #allow only if user in green group
                 can_view = True
             else:
                 can_view = False
@@ -56,7 +54,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
              return HttpResponse(status=upstream_req.status_code)
         
         response = StreamingHttpResponse(
-            upstream_req.iter_content(chunk_size=8192),
+            upstream_req.iter_content(chunk_size=65536),
             content_type=upstream_req.headers.get('Content-Type', 'image/png'),
             status=upstream_req.status_code
         )
