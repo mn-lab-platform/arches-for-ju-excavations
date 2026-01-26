@@ -23,6 +23,7 @@ class BasemapView(View):
         basemap_addto_map = request.POST.get('basemap_addto_map', 'false').lower() == 'true'
         basemap_searchonly = request.POST.get('basemap_searchonly', 'false').lower() == 'true'
         basemap_ispublic = request.POST.get('basemap_ispublic', 'true').lower() == 'true'
+        basemap_isoverlay = request.POST.get('basemap_isoverlay', 'false').lower() == 'true'
         basemap_id = str(uuid4())
 
         COG_STORAGE = os.path.join(settings.MEDIA_ROOT, settings.UPLOADED_FILES_DIR, 'basemaps')
@@ -48,7 +49,8 @@ class BasemapView(View):
                     'activated': basemap_activated,
                     'add_to_map': basemap_addto_map,
                     'search_only': basemap_searchonly,
-                    'is_public': basemap_ispublic
+                    'is_public': basemap_ispublic,
+                    'is_overlay': basemap_isoverlay
                 }
             })
         except Exception as e:

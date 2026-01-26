@@ -23,6 +23,7 @@ define([
             self.sortOrder = ko.observable(0);
 
             self.addToMap = ko.observable(false);
+            self.isOverlay = ko.observable(false);
             self.searchOnly = ko.observable(false);
             self.isPublic = ko.observable(true);
 
@@ -85,6 +86,7 @@ define([
                         formData.append('basemap_addto_map', self.addToMap());
                         formData.append('basemap_searchonly', self.searchOnly());
                         formData.append('basemap_ispublic', self.isPublic());
+                        formData.append('basemap_isoverlay', self.isOverlay());
                         self.infoMessage('Uploading basemap GEOTIFF file...  0%');
                     });
 
@@ -185,7 +187,8 @@ define([
                     isPublic: basemapMetadata.is_public,
                     centerX: basemapMetadata.center_coordinates ? basemapMetadata.center_coordinates[0] : 0,
                     centerY: basemapMetadata.center_coordinates ? basemapMetadata.center_coordinates[1] : 0,
-                    searchOnly: basemapMetadata.search_only
+                    searchOnly: basemapMetadata.search_only,
+                    isOverlay: basemapMetadata.is_overlay
                 }
             }
 

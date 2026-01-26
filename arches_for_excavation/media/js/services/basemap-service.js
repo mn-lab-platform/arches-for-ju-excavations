@@ -46,6 +46,7 @@ const addLayer = (config) => {
     formData.append('centerx', config.centerX);
     formData.append('centery', config.centerY);
     formData.append('searchonly', config.searchOnly);
+    formData.append('isoverlay', config.isOverlay);
     formData.append('_save', 'Save');
 
     return fetch(url, {
