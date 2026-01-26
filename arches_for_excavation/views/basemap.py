@@ -1,5 +1,5 @@
 from django.views import View
-from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.conf import settings
 from django.utils.text import get_valid_filename
 import os
@@ -9,7 +9,6 @@ from pyproj import Transformer
 
 from ..celery_tasks.basemap_tasks import convert_geotiff_to_cog
 
-
 class BasemapView(View):
     def post(self, request):
         input_geotiff = request.FILES.get('basemap_geotiff')
@@ -17,7 +16,6 @@ class BasemapView(View):
             return HttpResponseBadRequest("File upload failed, no file provided.")
         
         basemap_name = get_valid_filename(request.POST.get('basemap_name', 'unnamed_basemap'))
-        basemap_legend = request.POST.get('basemap_legend', '')
         basemap_sortorder = request.POST.get('basemap_sortorder', '0')
         basemap_activated = request.POST.get('basemap_activated', 'true').lower() == 'true'
         basemap_addto_map = request.POST.get('basemap_addto_map', 'false').lower() == 'true'
@@ -44,7 +42,6 @@ class BasemapView(View):
                     'name': basemap_name,
                     'center_coordinates': raster_data['center'],
                     'bounds': raster_data['bounds'],
-                    'legend': basemap_legend,
                     'sort_order': int(basemap_sortorder),
                     'activated': basemap_activated,
                     'add_to_map': basemap_addto_map,
