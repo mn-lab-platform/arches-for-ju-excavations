@@ -7,6 +7,7 @@ TITILER_INTERNAL_URL = "http://titiler:8000"
 #TODO: no matter if layer is public or private only users with certain group membership can view tiles
 
 def titiler_tile_proxy(request, basemap_id, z, x, y):
+    user = request.user
     layer_cache_key = f"layer_info:{basemap_id}"
     layer_info = cache.get(layer_cache_key)
 
@@ -26,17 +27,16 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
     
     is_public = layer_info['is_public']
     if not is_public:
-        if not request.user.is_authenticated:
+        if not user.is_authenticated:
             return HttpResponseForbidden("Secure Layer: Login Required")
         
-        user_perm_key = f"user_perm:{request.user.id}:can_view_private_tiles"
+        user_perm_key = f"user_perm:{user.id}:{basemap_id}:can_view"
         can_view = cache.get(user_perm_key)
 
         if can_view is None:
-            user = request.user
             print(f"Checking permissions for user {user.username} (id={user.id})")
             print(f"User groups: {[group.name for group in user.groups.all()]}")
-            if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded group with basemap viewing rights
+            if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded
                 can_view = True
             else:
                 can_view = False

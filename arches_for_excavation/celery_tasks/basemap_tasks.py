@@ -28,6 +28,7 @@ def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
 
 def register_basemap_in_db(basemap_metadata):
     is_public = basemap_metadata['ispublic']
+    print(f"Is basemap public? {is_public}")
 
     source = MapSource(
         name=basemap_metadata['id'],
@@ -59,7 +60,9 @@ def register_basemap_in_db(basemap_metadata):
     )
     layer.save()
 
+    print(f"After register basemap in db: is_public={is_public}")
     if not is_public:
+        print(f"Assigning read_maplayer permission to group '{basemap_metadata['authorized_group']}' for layer {layer.maplayerid}")
         group_name = basemap_metadata['authorized_group']
         try:
             group = Group.objects.get(name=group_name)
