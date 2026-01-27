@@ -4,6 +4,7 @@ import requests
 from arches.app.models.models import MapLayer
 
 TITILER_INTERNAL_URL = "http://titiler:8000"
+#TODO: no matter if layer is public or private only users with certain group membership can view tiles
 
 def titiler_tile_proxy(request, basemap_id, z, x, y):
     layer_cache_key = f"layer_info:{basemap_id}"
@@ -35,8 +36,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             user = request.user
             print(f"Checking permissions for user {user.username} (id={user.id})")
             print(f"User groups: {[group.name for group in user.groups.all()]}")
-            required_groups = ['Resource Editor', 'Resource Exporter', 'Resource Reviewer']
-            if user.groups.filter(name__in=required_groups).count() == 3: #allow only if user in green group
+            if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded group with basemap viewing rights
                 can_view = True
             else:
                 can_view = False
