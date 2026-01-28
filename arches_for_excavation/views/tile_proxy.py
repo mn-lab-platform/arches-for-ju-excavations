@@ -30,19 +30,20 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
         if not user.is_authenticated:
             return HttpResponseForbidden("Secure Layer: Login Required")
         
-        user_perm_key = f"user_perm:{user.id}:{basemap_id}:can_view"
-        can_view = cache.get(user_perm_key)
+        if not (user.is_staff or user.is_superuser):
+            user_perm_key = f"user_perm:{user.id}:{basemap_id}:can_view"
+            can_view = cache.get(user_perm_key)
 
-        if can_view is None:
-            print(f"Checking permissions for user {user.username} (id={user.id})")
-            print(f"User groups: {[group.name for group in user.groups.all()]}")
-            if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded
-                can_view = True
-            else:
-                can_view = False
-            cache.set(user_perm_key, can_view, 300)
-        if not can_view:
-            return HttpResponseForbidden("Access Denied: Insufficient Permissions")
+            if can_view is None:
+                print(f"Checking permissions for user {user.username} (id={user.id})")
+                print(f"User groups: {[group.name for group in user.groups.all()]}")
+                if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded
+                    can_view = True
+                else:
+                    can_view = False
+                cache.set(user_perm_key, can_view, 300)
+            if not can_view:
+                return HttpResponseForbidden("Access Denied: Insufficient Permissions")
     
     try:
         titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{layer_info['name']}/{basemap_id}.tif"

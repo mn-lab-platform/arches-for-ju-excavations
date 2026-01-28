@@ -119,7 +119,7 @@ define([
                     const { _, state, info } = response;
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
-                        self.infoMessage('Basemap processing completed successfully. Adding basemap to Arches...');
+                        self.successMessage('Basemap processing completed successfully.');
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
                         self.errorMessage(`Basemap processing failed: ${info}`);
