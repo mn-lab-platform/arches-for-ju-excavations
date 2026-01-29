@@ -20,7 +20,7 @@ export class Scene {
 
     _initializeScene() {
         this.widget.scene.skyBox = undefined;
-        this.widget.scene.backgroundColor = Color.fromCssColorString('#303030');
+        this.widget.scene.backgroundColor = Color.fromCssColorString('#3e3d3d');
         this.widget.scene.moon.show = false;
         this.widget.scene.sun.show = false;
         this.widget.scene.fog.enabled = false;
