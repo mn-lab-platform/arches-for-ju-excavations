@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import os
 from django.core.exceptions import ImproperlyConfigured
 import ast
@@ -138,3 +139,34 @@ LANGUAGES = [
 SHOW_LANGUAGE_SWITCH = False
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SAVED_SEARCHES = []
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' #<-- Only need to uncomment this for testing without an actual email server
+# EMAIL_USE_TLS = True
+# EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = "xxxx@xxx.com"
+# EMAIL_HOST_PASSWORD = 'xxxxxxx'
+# EMAIL_PORT = 587
+
+try:
+    from .settings import EXTRA_EMAIL_CONTEXT as _BASE_EXTRA
+except Exception:
+    _BASE_EXTRA = {}
+
+_EXTRA = {
+    "arches_project_name": "Thelpousa Agora Project",
+    "header_logo_alt": "Mare Nostrum Lab",
+    "greeting": """
+        Thanks for signing up to the <strong><a href="https://www.archesproject.org/" style="color:#0070d2; text-decoration:underline;">Arches</a></strong> instance created as part of the 
+        <strong><a href="https://mare.id.uj.edu.pl/pl" style="color:#0070d2; text-decoration:underline;">Mare Nostrum Lab</a></strong>, a project of the 
+        <strong>Institute of Archaeology at Jagiellonian University</strong>. 
+        All you need to do is confirm your email address by clicking the button below and we are good to go. 🏛️
+    """,
+    "button_text": "Confirm",
+    "domain_url": f"https://{get_env_variable('DEPLOY_HOST')}",
+    "footer_logo_alt": "Jagiellonian University",
+    "footer_strong_text": "Institute of Archaeology &bull; Jagiellonian University",
+    "footer_additional_text": "Gołębia 11 &middot; 31-007 Kraków &middot; Poland"
+}
+
+_BASE_EXTRA.update(_EXTRA)
+EXTRA_EMAIL_CONTEXT = _BASE_EXTRA
