@@ -4,6 +4,7 @@ define([
   'arches',
   'viewmodels/workflow',
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
+  'views/components/workflows/context-footprint-addition/process-selection-step',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/context-footprint-addition/coordinates-addition-step',
   'views/components/workflows/context-footprint-addition/coordinates-map-display-step',
@@ -18,6 +19,21 @@ define([
 
       this.stepConfig = [
         {
+          title: 'Select Process',
+          name: 'process-selection',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'process-selection-step',
+              uniqueInstanceName: 'process-selector',
+              tilesManaged: 'none',
+              parameters: {
+                
+              }
+            }]
+          }]
+        },
+        {
           title: 'Select Context Resource',
           name: 'resource-selection',
           required: true,
@@ -27,7 +43,7 @@ define([
               uniqueInstanceName: 'resource-selector',
               tilesManaged: 'none',
               parameters: {
-                graphId: 'd6559924-9f52-11eb-96c4-020063fe0012',
+                graphId: "['process-selection']['process-selector']['value']",
                 searchPlaceHolder: 'Search for a Context resource...'
               }
             }]

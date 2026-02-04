@@ -11,7 +11,7 @@ define([
         const resourceService = resourceServiceModule.default || resourceServiceModule;
         
         // ===== Configuration =====
-        self.graphId = params.graphid || params.graphId || null;
+        self.graphId = params.graphId || null;
         self.searchPlaceholder = params.searchPlaceholder || 'Search resources...';
         self.resultLimit = params.resultLimit || 100;
 
@@ -72,6 +72,8 @@ define([
                     console.log(rows);
                     
                     self.allResources(rows.map(function(r) {
+                        console.log("Row: ", r);
+                        
                         return {
                             id: r.resourceinstanceid,
                             name: r.displayname,
