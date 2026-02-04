@@ -22,6 +22,7 @@ define([
             self.errorLines = ko.observableArray([]);
             self.editorElement = null;
             self.delimiter = ko.observable(' ');
+            self.ignoreLastLine = ko.observable(false);
 
             let debounceTimeout = null;
             
@@ -40,7 +41,7 @@ define([
                 }
                 debounceTimeout = setTimeout(function() {
                     self._coordinatesTextIsValid();
-                }, 300);
+                }, 500);
             };
 
             self.updateDisplay = function() {
@@ -58,7 +59,23 @@ define([
                 const lines = text.split('\n');
                 const errorLineIndices = self.errorLines();
 
+                const lastNonEmptyIndex = (() => {
+                    for (let i = lines.length - 1; i >= 0; i--) {
+                        if (lines[i].trim().length > 0) return i;
+                    }
+                    return -1;
+                })();
+
                 const htmlLines = lines.map((line, index) => {
+                    const isEmpty = line.trim().length === 0;
+                    if (isEmpty) {
+                        return line; 
+                    }
+
+                    if (self.ignoreLastLine() && index === lastNonEmptyIndex) {
+                        return line + '<span title="Line is ignored" class="ignore-line-indicator visible"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#3b82f6"/></svg></span>';
+                    }
+                    
                     const hasError = errorLineIndices.includes(index);
                     const indicator = hasError 
                         ? '<span title="Line contains error" class="error-indicator visible"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="red"/></svg></span>' 
@@ -113,6 +130,9 @@ define([
                 let allValid = true;
 
                 allLines.forEach((line, index) => {
+                    if (self.ignoreLastLine() && index === allLines.length - 1) {
+                        return;
+                    }
                     const trimmedLine = line.trim();
                     if (trimmedLine.length === 0) return;
                     const match = trimmedLine.match(coordinateLineRegex);
@@ -162,6 +182,11 @@ define([
                 self.coordinatesText(reordered.join('\n'));
                 self._coordinatesTextIsValid();
             };
+
+            self.toggleIgnoreLastLine = function() {
+                self.ignoreLastLine(!self.ignoreLastLine());
+                self._coordinatesTextIsValid();
+            }
 
             if (self.form) {
                 self.form.value = self.value;
