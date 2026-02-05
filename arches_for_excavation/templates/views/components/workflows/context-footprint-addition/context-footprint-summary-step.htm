@@ -29,27 +29,19 @@
         padding: 2rem;
     }
 </style>
+
 <section class="workflow-step">
-    <h3>Generated GeoJSON</h3>
-    <div data-bind="visible: isLoading" class="text-center">
-        <span class="glyphicon glyphicon-refresh spinning"></span> 
-        Saving footprint
-    </div>
+    <h3>Summary</h3>
     <div data-bind="visible: errorMessage" class="alert alert-danger">
         <span data-bind="text: errorMessage"></span>
     </div>
     <div data-bind="visible: successMessage" class="alert alert-success">
         <span data-bind="text: successMessage"></span>
     </div>
+    <div class="resource-info">
+
+    </div>
     <div class="geojson-display">
         <pre class="geojson-pre" data-bind="text: geojsonString"></pre>
-    </div>
-    <div class="text-right">
-        <button id="submit-button"
-                type="button" 
-                class="btn btn-success" 
-                data-bind="click: saveFootprint, enable: geojsonString">
-                Save Footprint
-        </button>
     </div>
 </section>

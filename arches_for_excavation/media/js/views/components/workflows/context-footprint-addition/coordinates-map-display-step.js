@@ -23,8 +23,28 @@ define([
     return ko.components.register('coordinates-map-display-step', {
         viewModel: function(params) {
             const self = this;
-            self.coordinatesText = params.coordinatesText;
+            
+            if (params.value) {
+                params.value({
+                    verified: true
+                });
+            }
+            
+            const inputData = ko.unwrap(params.coordinatesData);
+            
+            let rawText = '';
+            let rawIgnore = false;
 
+            if (inputData && typeof inputData === 'object') {
+                rawText = inputData.text || '';
+                rawIgnore = inputData.ignoreLastLine || false;
+            }
+
+            self.coordinatesText = ko.observable(rawText);
+            self.ignoreLastLine = ko.observable(rawIgnore);
+
+            console.log("Ignore Last line: ", self.ignoreLastLine());
+            
             self._extractPointsFromText = function(text) {
                 const points = [];
                 const trimmed = (text || '').trim();
@@ -34,6 +54,9 @@ define([
                 const delimiter = trimmed.includes('\t') ? '\t' : ' ';
 
                 lines.forEach(line => {
+                    if (self.ignoreLastLine() && line === lines[lines.length - 1]) {
+                        return;
+                    }
                     const parts = line.trim().split(delimiter).filter(Boolean);
                     if (parts.length >= 4) {
                         const label = parts[0];
@@ -58,7 +81,7 @@ define([
                 return [ySum / points.length, xSum / points.length];
             };
 
-            const points = self._extractPointsFromText(ko.unwrap(self.coordinatesText));
+            const points = self._extractPointsFromText(self.coordinatesText());
             const centroid = self._findCentroid(points) || [0, 0];
 
             self.map = L.map('coordinates-map-display');

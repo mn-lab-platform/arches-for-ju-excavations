@@ -114,13 +114,6 @@ define([
                     self.successMessage('');
                     self.errorMessage('Please enter coordinates to proceed.');
                     self.value(null);
-                    if (self.form) {
-                        if (ko.isObservable(self.form.complete)) {
-                            self.form.complete(false);
-                        } else {
-                            self.form.complete = false;
-                        }
-                    }
                     return false;
                 }
                 const allLines = text.split('\n');
@@ -149,20 +142,16 @@ define([
                     self.coordinatesValid(true);
                     self.errorMessage('');
                     self.successMessage('Coordinates are valid you may proceed further.');
-                    self.value(self.coordinatesText());
+                    
+                    self.value({
+                        text: self.coordinatesText(),
+                        ignoreLastLine: self.ignoreLastLine()
+                    });
                 } else {
                     self.coordinatesValid(false);
                     self.successMessage('');
                     self.errorMessage('Some lines contain invalid format. Please correct them to proceed.');
                     self.value(null);
-                }
-
-                if (self.form) {
-                    if (ko.isObservable(self.form.complete)) {
-                        self.form.complete(self.coordinatesValid());
-                    } else {
-                        self.form.complete = self.coordinatesValid();
-                    }
                 }
 
                 return allValid;
@@ -194,8 +183,18 @@ define([
 
             (function initFromSaved() {
                 const initial = typeof self.value === 'function' ? self.value() : self.value;
-                const text = initial || '';
+                let text = '';
+                let ignore = false;
+                
+                if (initial && typeof initial === 'object') {
+                    text = initial.text || '';
+                    ignore = initial.ignoreLastLine || false;
+                } else {
+                    text = initial || '';
+                }
+
                 self.coordinatesText(text);
+                self.ignoreLastLine(ignore);
                 self.delimiter(self.detectDelimiter(text));
                 self._coordinatesTextIsValid();
             })();
