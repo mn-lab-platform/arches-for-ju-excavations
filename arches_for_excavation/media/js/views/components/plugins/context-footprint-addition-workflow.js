@@ -102,7 +102,6 @@ define([
               tilesManaged: 'none',
               parameters: {
                 resourceId: "['resource-selection']['resource-selector']['value']",
-                coordinatesText: "['coordinates-addition']['coordinates-adder']['value']",
                 footprintSaved: "['context-footprint-confirmation']['context-footprint-confirmer']['value']"
               }
             }]
