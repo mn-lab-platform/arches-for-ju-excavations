@@ -4,9 +4,11 @@ define([
   'arches',
   'viewmodels/workflow',
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
+  'views/components/workflows/context-footprint-addition/process-selection-step',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/context-footprint-addition/coordinates-addition-step',
   'views/components/workflows/context-footprint-addition/coordinates-map-display-step',
+  'views/components/workflows/context-footprint-addition/context-footprint-confirmation-step',
   'views/components/workflows/context-footprint-addition/context-footprint-summary-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('context-footprint-addition-workflow', {
@@ -18,6 +20,19 @@ define([
 
       this.stepConfig = [
         {
+          title: 'Select Process',
+          name: 'process-selection',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'process-selection-step',
+              uniqueInstanceName: 'process-selector',
+              tilesManaged: 'none',
+              parameters: {}
+            }]
+          }]
+        },
+        {
           title: 'Select Context Resource',
           name: 'resource-selection',
           required: true,
@@ -27,7 +42,7 @@ define([
               uniqueInstanceName: 'resource-selector',
               tilesManaged: 'none',
               parameters: {
-                graphId: 'd6559924-9f52-11eb-96c4-020063fe0012',
+                graphId: "['process-selection']['process-selector']['value']",
                 searchPlaceHolder: 'Search for a Context resource...'
               }
             }]
@@ -49,14 +64,29 @@ define([
         {
           title: 'Verify Coordinates',
           name: 'coordinates-verification',
-          required: false,
+          required: true,
           layoutSections: [{
             componentConfigs: [{
               componentName: 'coordinates-map-display-step',
               uniqueInstanceName: 'coordinates-viewer',
               tilesManaged: 'none',
               parameters: {
-                coordinatesText: "['coordinates-addition']['coordinates-adder']['value']",
+                coordinatesData: "['coordinates-addition']['coordinates-adder']['value']"
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Confirm and Save',
+          name: 'context-footprint-confirmation',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'context-footprint-confirmation-step',
+              uniqueInstanceName: 'context-footprint-confirmer',
+              tilesManaged: 'none',
+              parameters: {
+                coordinatesData: "['coordinates-addition']['coordinates-adder']['value']"
               }
             }]
           }]
@@ -64,7 +94,7 @@ define([
         {
           title: 'Summary',
           name: 'coordinates-summary',
-          required: false,
+          required: true,
           layoutSections: [{
             componentConfigs: [{
               componentName: 'context-footprint-summary-step',
@@ -72,7 +102,7 @@ define([
               tilesManaged: 'none',
               parameters: {
                 resourceId: "['resource-selection']['resource-selector']['value']",
-                coordinatesText: "['coordinates-addition']['coordinates-adder']['value']"
+                footprintSaved: "['context-footprint-confirmation']['context-footprint-confirmer']['value']"
               }
             }]
           }]

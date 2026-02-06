@@ -21,9 +21,9 @@ define([
                 backgroundColor: '#e3bcf1ff'
             },
             {
-                name: 'Context Footprint Addition Workflow',
+                name: 'GNSS/Total Station Data Import Workflow',
                 slug: 'context-footprint-addition-workflow',
-                icon: 'fa-digg',
+                icon: 'fa-object-group',
                 description: 'Add footprint to Context resources',
                 backgroundColor: '#f9d5b3ff'
             },
