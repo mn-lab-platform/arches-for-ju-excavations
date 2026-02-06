@@ -58,6 +58,24 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             {% render_bundle 'css/accessibility' 'css' %}
         {% endif %}
     {% endblock css %}
+
+    <style>
+        .navbar-toggle {
+            z-index: 1000;
+        }
+        @media (max-width: 700px) {
+        .v5-splash-navbar .container-fluid {
+            flex-wrap: wrap;
+        }
+
+        #myNavbar .navbar-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 0;
+        }
+    }
+    </style>
 </head>
 
 <body>
