@@ -96,7 +96,7 @@ export class Scene {
         const newRadius = tileset.boundingSphere.radius;
         this.widget.scene.screenSpaceCameraController.minimumZoomDistance = newRadius * 0.1;
         
-        this.widget.scene.screenSpaceCameraController.enableCollisionDetection = false;
+        this.widget.scene.screenSpaceCameraController.enableCollisionDetection = true;
 
         this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, {
             duration: 1.0,
