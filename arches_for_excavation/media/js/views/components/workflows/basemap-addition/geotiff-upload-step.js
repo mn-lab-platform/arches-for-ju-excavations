@@ -88,6 +88,16 @@ define([
 
                     dz.on('success', function(file, response) {
                         console.log('Upload successful:', response);
+                        
+                        if (response.status === 'error' || response.error) {
+                            let displayError = response.error || response.message || 'Upload failed';
+                            self.errorMessage(displayError);
+                            self.infoMessage('');
+                            self.successMessage('');
+                            self.canSubmit(true);
+                            return;
+                        }
+                        
                         self.infoMessage('Basemap upload initiated. Processing your file in the background...');
                         self.errorMessage('');
                         self.successMessage('');
@@ -96,9 +106,27 @@ define([
                         self.pollTask(response.task_id);
                     });
 
-                    dz.on('error', function(file, errorMessage) {
+                    dz.on('error', function(file, errorMessage, xhr) {
                         console.error('Upload failed:', errorMessage);
-                        self.errorMessage(typeof errorMessage === 'string' ? errorMessage : 'Upload failed');
+                        
+                        let displayError = 'Upload failed';
+                        
+                        if (typeof errorMessage === 'object' && errorMessage.message) {
+                            displayError = errorMessage.message;
+                        } else if (typeof errorMessage === 'string') {
+                            if (errorMessage.includes('<')) {
+                                const parser = new DOMParser();
+                                const htmlDoc = parser.parseFromString(errorMessage, 'text/html');
+                                const messageDiv = htmlDoc.querySelector('.message');
+                                displayError = messageDiv ? messageDiv.textContent.trim() : 'Server error occurred';
+                            } else {
+                                displayError = errorMessage;
+                            }
+                        }
+                        
+                        self.errorMessage(displayError);
+                        self.infoMessage('');
+                        self.canSubmit(true);
                     });
 
                     dz.on('dragover', function() {
