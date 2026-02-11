@@ -20,8 +20,8 @@ define([
             self.RELATED_NODE_ID = '19d7fe5b-59ff-46e4-8366-9b2cc77b0a8d',
             self.ANNOTATIONS_NODE_ID = '82c68bd5-586a-4a27-984d-b1aa5fd0f54c';
 
-            self.loading = ko.observable(false);
             self.errorMessage = ko.observable(null);
+            self.infoMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
             self.canSubmit = ko.observable(false);
             self.isGeoreferenced = ko.observable(false);
@@ -100,9 +100,9 @@ define([
 
             self.dropzoneOptionsZip = {
                 url: '/api/model-3d/upload/',
-                paramName: 'zip_file',
+                paramName: 'model_file',
                 maxFiles: 1,
-                acceptedFiles: '.zip',
+                acceptedFiles: '.zip,.3tz',
                 autoProcessQueue: false,
                 maxFilesize: 10240,
                 clickable: '#dropzone-button',
@@ -139,19 +139,23 @@ define([
                         self.canSubmit(dz.files.length > 0);
                         self.errorMessage(null);
                         self.successMessage(null);
+                        self.infoMessage(null);
                         self.modelName('');
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
-                        self.loading(true);
                         formData.append('parent_resource_id', self.parentResourceId() || '');
+                        self.infoMessage('Uploading 3D model file...  0%');
+                    });
+
+                    dz.on('uploadprogress', function(file, progress, bytesSent) {
+                        self.infoMessage(`Uploading 3D model file...  ${Math.round(progress)}%`);
                     });
 
                     dz.on('success', function(file, response) {
                         console.log('Upload successful:', response);
                         const {_, model_id, url} = response;
                         self._createModelResource(self._sanitizeFilename(self.modelName()), url, model_id);
-                        self.loading(false);
                         self.errorMessage('');
                         self.successMessage('3D model uploaded successfully.');
                         self.canSubmit(false);
@@ -160,10 +164,12 @@ define([
                     dz.on('error', function(file, errorMessage) {
                         console.error('Upload failed:', errorMessage);
                         self.errorMessage(typeof errorMessage === 'string' ? errorMessage : 'Upload failed');
+                        self.infoMessage('');
+                        self.successMessage('');
                     });
 
                     dz.on('complete', function() {
-                        self.loading(false);
+                        self.infoMessage('');
                     });
 
                     dz.on('dragover', function() {
