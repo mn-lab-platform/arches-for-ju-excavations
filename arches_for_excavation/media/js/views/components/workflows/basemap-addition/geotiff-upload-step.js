@@ -39,6 +39,7 @@ define([
                 clickable: '#dropzone-button',
                 previewsContainer: '#dropzone-preview',
                 addRemoveLinks: true,
+                timeout: 0,
                 headers: {
                     'X-CSRFToken': serviceUtils.getCookie('csrftoken')
                 },
