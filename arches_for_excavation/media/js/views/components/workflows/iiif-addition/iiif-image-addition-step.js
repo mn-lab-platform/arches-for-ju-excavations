@@ -69,7 +69,7 @@ define([
 
     // queue for processing selected files (only originals)
     self.maxParallel = ko.observable(3);
-    self.queue = ko.observableArray([]); // [{ localId, file, name, statusObs, file_id, url, iiif_service_url, task_id }]
+    self.queue = ko.observableArray([]); // [{ localId, file, name, statusObs, file_id, url, iiif_service_url, task_id, derivedItems }]
     self.activeCount = ko.observable(0);
     self.isFinalizing = ko.observable(false);
 
@@ -120,88 +120,33 @@ define([
         if (!self.activeCount()) self.progressPhase('idle');
       }
     };
-    // dropzone
-    self.dropzone = null;
-    self.dropzoneOptionsCreate = {
-      url: baseUrl,
-      dictDefaultMessage: '',
-      maxFilesize: 4096,
-      autoProcessQueue: false,
-      uploadMultiple: true,
-      autoQueue: false,
-      clickable: '.fileinput-create-button',
-      previewsContainer: '#hidden-dz-create-previews',
-      init: function() {
-        var dz = this;
-        self.dropzone = dz;
-
-        function normalizeFiles(files) {
-          if (!files) return [];
-          if (Array.isArray(files)) return files;
-          if (typeof files.length === 'number') return Array.prototype.slice.call(files);
-          return [files];
-        }
-
-        function addToQueue(file) {
-          if (!file) return;
-          var exists = self.queue().some(function(it) { return it.file === file; });
-          if (exists) return;
-
-          self.queue.push({
-            localId: iiifAdditionUtils.uuidv4(),
-            file: file,
-            name: file.name || 'unnamed',
-            isDemObs: ko.observable(!!self.forceDem()),            
-            statusObs: ko.observable('selected'),
-            file_id: null,
-            url: null,
-            iiif_service_url: null,
-            task_id: null
-          });
-        }
-
-        function refreshReadyState() {
-          var count = dz.files ? dz.files.length : self.queue().length;
-          if (count > 0) {
-            self.canStartUpload(true);
-            self.progressStatus('Ready to upload ' + count + ' file(s)');
-            self.progressPhase('ready');
-          } else {
-            self.canStartUpload(false);
-            self.progressStatus('');
-            if (!self.activeCount()) self.progressPhase('idle');
-          }
-        }
-
-        dz.on('addedfiles', function(files) {
-          normalizeFiles(files).forEach(addToQueue);
-          refreshReadyState();
-        });
-
-        dz.on('addedfile', function(file) {
-          addToQueue(file);
-          refreshReadyState();
-        });
-
-        dz.on('removedfile', function(file) {
-          self.queue.remove(function(it) {
-            return it.file === file && ['selected', 'queued', 'failed'].includes(it.statusObs());
-          });
-          refreshReadyState();
-        });
-
-        dz.on('error', function(file, error) {
-          console.error('[IIIF-STEP] Dropzone error:', error);
-          file.error = error;
-        });
-      }
-    };
 
     // ------------------------------------------------------------
-    // Helpers: file entries (truth) -> tile payload
+    // Helpers
     // ------------------------------------------------------------
     function stripExt(name) {
       return String(name || '').replace(/\.[^.]+$/, '');
+    }
+
+    function safeGet(obj, pathArr) {
+      var cur = obj;
+      for (var i = 0; i < pathArr.length; i++) {
+        if (!cur) return null;
+        cur = cur[pathArr[i]];
+      }
+      return cur == null ? null : cur;
+    }
+
+    // Your Celery result structure:
+    // result.derived.hillshade.download_url_cog.titiler.iiif_service_url
+    // result.derived.color_relief.download_url_cog.titiler.iiif_service_url
+    function getDerivedIiifServiceUrl(result, key) {
+      // tolerate a few variants
+      return (
+        safeGet(result, ['derived', key, 'download_url_cog', 'titiler', 'iiif_service_url']) ||
+        safeGet(result, ['derived', key, 'titiler', 'iiif_service_url']) ||
+        null
+      );
     }
 
     function makeFileListItem(e) {
@@ -254,6 +199,88 @@ define([
         self.tiles.fileListTileId(t.tileid);
         return t;
       });
+    };
+
+    // ------------------------------------------------------------
+    // dropzone
+    // ------------------------------------------------------------
+    self.dropzone = null;
+    self.dropzoneOptionsCreate = {
+      url: baseUrl,
+      dictDefaultMessage: '',
+      maxFilesize: 4096,
+      autoProcessQueue: false,
+      uploadMultiple: true,
+      autoQueue: false,
+      clickable: '.fileinput-create-button',
+      previewsContainer: '#hidden-dz-create-previews',
+      init: function() {
+        var dz = this;
+        self.dropzone = dz;
+
+        function normalizeFiles(files) {
+          if (!files) return [];
+          if (Array.isArray(files)) return files;
+          if (typeof files.length === 'number') return Array.prototype.slice.call(files);
+          return [files];
+        }
+
+        function addToQueue(file) {
+          if (!file) return;
+          var exists = self.queue().some(function(it) { return it.file === file; });
+          if (exists) return;
+
+          self.queue.push({
+            localId: iiifAdditionUtils.uuidv4(),
+            file: file,
+            name: file.name || 'unnamed',
+            isDemObs: ko.observable(!!self.forceDem()),              
+            statusObs: ko.observable('selected'),
+            file_id: null,
+            url: null,
+            iiif_service_url: null,
+            task_id: null,
+
+            // NEW: derived IIIF services to include in manifest
+            derivedItems: [] // [{ kind, label, iiif_service_url }]
+          });
+        }
+
+        function refreshReadyState() {
+          var count = dz.files ? dz.files.length : self.queue().length;
+          if (count > 0) {
+            self.canStartUpload(true);
+            self.progressStatus('Ready to upload ' + count + ' file(s)');
+            self.progressPhase('ready');
+          } else {
+            self.canStartUpload(false);
+            self.progressStatus('');
+            if (!self.activeCount()) self.progressPhase('idle');
+          }
+        }
+
+        dz.on('addedfiles', function(files) {
+          normalizeFiles(files).forEach(addToQueue);
+          refreshReadyState();
+        });
+
+        dz.on('addedfile', function(file) {
+          addToQueue(file);
+          refreshReadyState();
+        });
+
+        dz.on('removedfile', function(file) {
+          self.queue.remove(function(it) {
+            return it.file === file && ['selected', 'queued', 'failed'].includes(it.statusObs());
+          });
+          refreshReadyState();
+        });
+
+        dz.on('error', function(file, error) {
+          console.error('[IIIF-STEP] Dropzone error:', error);
+          file.error = error;
+        });
+      }
     };
 
     // ------------------------------------------------------------
@@ -497,6 +524,39 @@ define([
 
               var svc = result && result.titiler && result.titiler.iiif_service_url;
               item.iiif_service_url = svc || null;
+
+              // NEW: read derived IIIF services from Celery result
+              var derivedItems = [];
+
+              var hsSvc = getDerivedIiifServiceUrl(result, 'hillshade');
+              if (hsSvc) {
+                derivedItems.push({
+                  kind: 'hillshade',
+                  label: item.name + ' (hillshade)',
+                  iiif_service_url: hsSvc
+                });
+                // optional: add IIIF into description for the derived entry tile
+                upsertEntriesInMemory([{
+                  file_id: item.file_id + '_hillshade',
+                  description: 'IIIF: ' + hsSvc
+                }]);
+              }
+
+              var crSvc = getDerivedIiifServiceUrl(result, 'color_relief');
+              if (crSvc) {
+                derivedItems.push({
+                  kind: 'colorrelief',
+                  label: item.name + ' (color relief)',
+                  iiif_service_url: crSvc
+                });
+                upsertEntriesInMemory([{
+                  file_id: item.file_id + '_colorrelief',
+                  description: 'IIIF: ' + crSvc
+                }]);
+              }
+
+              item.derivedItems = derivedItems;
+
               item.statusObs('ready');
 
               // Update original entry (don’t blow away derived products)
@@ -542,21 +602,34 @@ define([
     };
 
     // ------------------------------------------------------------
-    // FINALIZE: build manifest from ready iiif_service_url + update iiif_url tile
+    // FINALIZE: build manifest from ready iiif_service_url + derived + update iiif_url tile
     // ------------------------------------------------------------
     self.finalizeManifest = function() {
       if (self.isFinalizing()) return;
       self.isFinalizing(true);
 
-      var services = self.queue()
-        .filter(function(it) { return it.statusObs() === 'ready' && it.iiif_service_url; })
-        .map(function(it) {
-          return {
+      // NEW: include derived items as separate canvases
+      var services = [];
+      self.queue().forEach(function(it) {
+        if (it.statusObs() !== 'ready') return;
+
+        if (it.iiif_service_url) {
+          services.push({
             label: it.name,
             iiif_service_url: it.iiif_service_url,
             file_id: it.file_id
-          };
+          });
+        }
+
+        (it.derivedItems || []).forEach(function(d) {
+          if (!d || !d.iiif_service_url) return;
+          services.push({
+            label: d.label || (it.name + ' (' + (d.kind || 'derived') + ')'),
+            iiif_service_url: d.iiif_service_url,
+            file_id: (it.file_id || '') + '_' + (d.kind || 'derived')
+          });
         });
+      });
 
       if (!services.length) {
         self.progressPhase('error');
