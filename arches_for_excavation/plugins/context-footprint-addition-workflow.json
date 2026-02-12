@@ -1,6 +1,6 @@
 {
   "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k89",
-  "name": "Context Footprint Addition",
+  "name": "GNSS/Total Station Data Import Workflow",
   "icon": "fa fa-digg",
   "component": "views/components/plugins/context-footprint-addition-workflow",
   "componentname": "context-footprint-addition-workflow",

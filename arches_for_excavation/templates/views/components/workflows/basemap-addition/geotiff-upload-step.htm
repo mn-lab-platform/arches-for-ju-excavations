@@ -1,0 +1,257 @@
+<style>
+.spinning {
+    -webkit-animation: spin 2s linear infinite;
+    -moz-animation: spin 2s linear infinite;
+    -ms-animation: spin 2s linear infinite;
+    -o-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-blue {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+.panel-body.dragover {
+    animation: pulse-blue 1.5s infinite;
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.dz-details {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.dz-filename{
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.dz-size {
+    font-size: 0.9em;
+    color: #667;
+}
+
+.dz-error-message {
+    display: none;
+}
+
+.dz-error-mark {
+    display: none;
+}
+
+.dz-success-mark {
+    display: none;
+}
+
+.workflow-tab-controls {
+    display: none;
+}
+
+.dz-remove {
+    background-color: #ff6666;  
+    color: #fff;                   
+    border-radius: 0.3rem;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.panel-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    border:1px dashed #999; 
+    padding:10px; 
+    text-align:center;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+section {
+    display: flex;
+    flex-direction: column;
+    unicode-bidi: isolate;
+}
+
+#submit-button {
+    align-self: center;   
+}
+
+.fileinput-geotiff-button {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.fileinput-geotiff-button:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.settings-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+    width: 100%;
+    align-items: start; 
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #333;
+}
+
+.checkboxes-group {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    height: 38px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.checkbox-item label {
+    margin: 0;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.numeric-field input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .settings-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .checkboxes-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .checkbox-item {
+        width: 100%;
+    }
+}
+</style>
+
+<section class="workflow-step">
+    <h3>Upload GEOTIFF File</h3>
+    <div data-bind="visible: infoMessage" class="alert alert-info">
+        <span class="glyphicon glyphicon-refresh spinning"></span> 
+        <span data-bind="text: infoMessage"></span>
+    </div>
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+    <div data-bind="visible: successMessage" class="alert alert-success">
+        <span data-bind="text: successMessage"></span>
+    </div>
+    <div class="panel panel-default" style="margin-top:10px;">
+        <div class="panel-body"
+             data-bind="dropzone: dropzoneOptionsZip">
+            <div id="dropzone-preview"></div>
+            <button id="dropzone-button" type="button" class="fileinput-geotiff-button">
+                Choose GEOTIFF file…
+            </button>
+        </div>
+    </div>
+
+    <div class="settings-container">
+        <div class="form-group">
+            <label for="basemap-name-input">Basemap Name</label>
+            <input id="basemap-name-input" 
+                type="text" 
+                data-bind="value: basemapName"
+                placeholder="Enter basemap name">
+        </div>
+
+        <div class="form-group">
+            <label for="sort-order-input">Sort Order</label>
+            <input id="sort-order-input" 
+                type="number" 
+                data-bind="value: sortOrder"
+                placeholder="0">
+        </div>
+
+        <div class="checkboxes-group">
+            <div class="checkbox-item">
+                <input id="add-to-map-checkbox" type="checkbox" data-bind="checked: addToMap">
+                <label for="add-to-map-checkbox">Add to Map</label>
+            </div>
+            <div class="checkbox-item">
+                <input id="is-overlay-checkbox" type="checkbox" data-bind="checked: isOverlay">
+                <label for="is-overlay-checkbox">Is overlay</label>
+            </div>
+            <div class="checkbox-item">
+                <input id="is-public-checkbox" type="checkbox" data-bind="checked: isPublic">
+                <label for="is-public-checkbox">Is Public</label>
+            </div>
+        </div>
+    </div>
+
+    <button id="submit-button"
+            type="button" 
+            class="btn btn-primary" 
+            data-bind="click: submitUpload, enable: canSubmit"
+            style="margin-top: 15px;">
+        Create a new Basemap
+    </button>
+</section>

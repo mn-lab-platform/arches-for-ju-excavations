@@ -25,16 +25,23 @@ MODE = get_env_variable("DJANGO_MODE")
 
 DEBUG = ast.literal_eval(get_env_variable("DJANGO_DEBUG"))
 
-if not DEBUG:
-    # Some extra security settings for production deployments
+DOMAIN_NAMES = get_env_variable("DOMAIN_NAMES").split()
+is_localhost = any(host in ['localhost', '127.0.0.1', '0.0.0.0'] for host in DOMAIN_NAMES)
 
-    SESSION_COOKIE_SECURE = True
-    # We could use the DOMAINS envinronment variable here, but
-    # since we're only supporting one domain and that's the same
-    # has DEPLOY_HOST that is used for the SSL CERT_PATH.
+if not DEBUG:
     DEPLOY_HOST = get_env_variable("DEPLOY_HOST")
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    if not is_localhost:
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+    
     CSRF_TRUSTED_ORIGINS = [
-        f"https://{DEPLOY_HOST}", 
+        f"https://{DEPLOY_HOST}",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost",
+        "http://127.0.0.1",
     ]
 
 # Set the APP_NAME here too, it may be useful for making the URLs
@@ -109,7 +116,7 @@ USER_ELASTICSEARCH_PREFIX = get_optional_env_variable("ELASTICSEARCH_PREFIX")
 if USER_ELASTICSEARCH_PREFIX:
     ELASTICSEARCH_PREFIX = USER_ELASTICSEARCH_PREFIX
 
-ALLOWED_HOSTS = get_env_variable("DOMAIN_NAMES").split() + ['*']
+ALLOWED_HOSTS = get_env_variable("DOMAIN_NAMES").split()
 
 USER_SECRET_KEY = get_optional_env_variable("DJANGO_SECRET_KEY")
 if USER_SECRET_KEY:

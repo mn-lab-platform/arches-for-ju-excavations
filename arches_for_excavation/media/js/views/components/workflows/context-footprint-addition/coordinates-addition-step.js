@@ -22,6 +22,7 @@ define([
             self.errorLines = ko.observableArray([]);
             self.editorElement = null;
             self.delimiter = ko.observable(' ');
+            self.ignoreLastLine = ko.observable(false);
 
             let debounceTimeout = null;
             
@@ -40,7 +41,7 @@ define([
                 }
                 debounceTimeout = setTimeout(function() {
                     self._coordinatesTextIsValid();
-                }, 300);
+                }, 500);
             };
 
             self.updateDisplay = function() {
@@ -58,7 +59,23 @@ define([
                 const lines = text.split('\n');
                 const errorLineIndices = self.errorLines();
 
+                const lastNonEmptyIndex = (() => {
+                    for (let i = lines.length - 1; i >= 0; i--) {
+                        if (lines[i].trim().length > 0) return i;
+                    }
+                    return -1;
+                })();
+
                 const htmlLines = lines.map((line, index) => {
+                    const isEmpty = line.trim().length === 0;
+                    if (isEmpty) {
+                        return line; 
+                    }
+
+                    if (self.ignoreLastLine() && index === lastNonEmptyIndex) {
+                        return line + '<span title="Line is ignored" class="ignore-line-indicator visible"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#3b82f6"/></svg></span>';
+                    }
+                    
                     const hasError = errorLineIndices.includes(index);
                     const indicator = hasError 
                         ? '<span title="Line contains error" class="error-indicator visible"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="red"/></svg></span>' 
@@ -97,13 +114,6 @@ define([
                     self.successMessage('');
                     self.errorMessage('Please enter coordinates to proceed.');
                     self.value(null);
-                    if (self.form) {
-                        if (ko.isObservable(self.form.complete)) {
-                            self.form.complete(false);
-                        } else {
-                            self.form.complete = false;
-                        }
-                    }
                     return false;
                 }
                 const allLines = text.split('\n');
@@ -113,6 +123,9 @@ define([
                 let allValid = true;
 
                 allLines.forEach((line, index) => {
+                    if (self.ignoreLastLine() && index === allLines.length - 1) {
+                        return;
+                    }
                     const trimmedLine = line.trim();
                     if (trimmedLine.length === 0) return;
                     const match = trimmedLine.match(coordinateLineRegex);
@@ -129,20 +142,16 @@ define([
                     self.coordinatesValid(true);
                     self.errorMessage('');
                     self.successMessage('Coordinates are valid you may proceed further.');
-                    self.value(self.coordinatesText());
+                    
+                    self.value({
+                        text: self.coordinatesText(),
+                        ignoreLastLine: self.ignoreLastLine()
+                    });
                 } else {
                     self.coordinatesValid(false);
                     self.successMessage('');
                     self.errorMessage('Some lines contain invalid format. Please correct them to proceed.');
                     self.value(null);
-                }
-
-                if (self.form) {
-                    if (ko.isObservable(self.form.complete)) {
-                        self.form.complete(self.coordinatesValid());
-                    } else {
-                        self.form.complete = self.coordinatesValid();
-                    }
                 }
 
                 return allValid;
@@ -163,14 +172,29 @@ define([
                 self._coordinatesTextIsValid();
             };
 
+            self.toggleIgnoreLastLine = function() {
+                self.ignoreLastLine(!self.ignoreLastLine());
+                self._coordinatesTextIsValid();
+            }
+
             if (self.form) {
                 self.form.value = self.value;
             }
 
             (function initFromSaved() {
                 const initial = typeof self.value === 'function' ? self.value() : self.value;
-                const text = initial || '';
+                let text = '';
+                let ignore = false;
+                
+                if (initial && typeof initial === 'object') {
+                    text = initial.text || '';
+                    ignore = initial.ignoreLastLine || false;
+                } else {
+                    text = initial || '';
+                }
+
                 self.coordinatesText(text);
+                self.ignoreLastLine(ignore);
                 self.delimiter(self.detectDelimiter(text));
                 self._coordinatesTextIsValid();
             })();

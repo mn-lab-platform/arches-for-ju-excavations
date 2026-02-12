@@ -90,11 +90,13 @@ ELASTICSEARCH_CUSTOM_INDEXES = []
 KIBANA_URL = "http://localhost:5601/"
 KIBANA_CONFIG_BASEPATH = "kibana"  # must match Kibana config.yml setting (server.basePath) but without the leading slash,
 # also make sure to set server.rewriteBasePath: true
-
+MEDIA_ROOT = os.path.join(APP_ROOT)
+UPLOADED_FILES_DIR = "uploadedfiles"
 LOAD_DEFAULT_ONTOLOGY = False
 LOAD_PACKAGE_ONTOLOGIES = True
-IIIF_GEOTIFF_META_DIR = os.path.join(APP_ROOT, 'iiif_geotiff_meta')
-IIIF_RAW_DEM_DIR = os.path.join(APP_ROOT, 'iiif_raw_dem')
+# ✅ CRITICAL: These must point to the shared volume path, not venv package path
+IIIF_GEOTIFF_META_DIR = os.path.join(APP_ROOT, UPLOADED_FILES_DIR, "iiif_geotiff_meta")
+IIIF_RAW_DEM_DIR = os.path.join(APP_ROOT, UPLOADED_FILES_DIR, "iiif_raw_dem")
 # This is the namespace to use for export of data (for RDF/XML for example)
 # It must point to the url where you host your site
 # Make sure to use a trailing slash
@@ -190,14 +192,6 @@ TEMPLATES = build_templates_config(
     app_root=APP_ROOT,
 )
 
-ALLOWED_HOSTS = [ 'tap.mn.cenagis.edu.pl', ] 
-CSRF_TRUSTED_ORIGINS = [ 'https://tap.mn.cenagis.edu.pl', ] 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
-USE_TLS = True 
-SECURE_SSL_REDIRECT = False 
-SESSION_COOKIE_SECURE = True 
-CSRF_COOKIE_SECURE = True
-
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(APP_ROOT, 'system_settings', 'System_Settings.json')
 WSGI_APPLICATION = 'arches_slocal.wsgi.application'
 
@@ -206,7 +200,7 @@ WSGI_APPLICATION = 'arches_slocal.wsgi.application'
 MEDIA_URL = '/files/'
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
-MEDIA_ROOT =  os.path.join(APP_ROOT)
+
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"

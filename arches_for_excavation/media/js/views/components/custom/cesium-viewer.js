@@ -1,7 +1,6 @@
 import ko from 'knockout';
 import viewerTemplate from 'templates/views/components/custom/cesium-viewer.htm';
 import { initializeCesiumViewer } from '../../../cesium_viewer';
-import { getCesiumToken } from '../../../config/config';
 
 export default ko.components.register('cesium-viewer', {
     viewModel: function(params) {
@@ -27,7 +26,6 @@ export default ko.components.register('cesium-viewer', {
         };
 
         self.initializeAllViewers = async function () {
-            const token = getCesiumToken();
             console.log("Initializing viewers for models:", models);
 
             for (let i = 0; i < models.length; i++) {
@@ -57,7 +55,6 @@ export default ko.components.register('cesium-viewer', {
                 try {
                     console.log(`Initializing viewer ${i} with model:`, model);
                     await initializeCesiumViewer(
-                        token, 
                         viewerId, 
                         { 
                             georeferenced: georeferenced, 

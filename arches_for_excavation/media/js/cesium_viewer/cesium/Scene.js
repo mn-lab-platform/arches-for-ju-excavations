@@ -1,11 +1,8 @@
-import { Ion, CesiumWidget, Cesium3DTileset, Color, HeadingPitchRange, Matrix4, Cartesian3 } from 'cesium';
+import { CesiumWidget, Cesium3DTileset, Color, HeadingPitchRange, Matrix4, Cartesian3, Transforms } from 'cesium';
 import { SCALE_FACTORS } from '../const/const';
 
 export class Scene {
-    constructor(containerId, {token, georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false, existingAnnotations=[]} = {}) {
-        if (token) {
-            Ion.defaultAccessToken = token;
-        }
+    constructor(containerId, {georeferenced=false, allowAnnotationsEdits=false, allowObjectPicking=false, existingAnnotations=[]} = {}) {
         this.georeferenced = georeferenced;
         this.allowAnnotationsEdits = allowAnnotationsEdits;
         this.allowObjectPicking = allowObjectPicking;
@@ -14,8 +11,8 @@ export class Scene {
         this.containerId = containerId;
         
         this.widget = new CesiumWidget(containerId, {
-            globe: georeferenced ? undefined : false,
             creditContainer: document.createElement('div'),
+            scene3DOnly: true 
         });
 
         this._initializeScene();
@@ -23,10 +20,15 @@ export class Scene {
 
     _initializeScene() {
         this.widget.scene.skyBox = undefined;
-        this.widget.scene.backgroundColor = new Color(0.85, 0.85, 0.95, 0.5);
+        this.widget.scene.backgroundColor = Color.fromCssColorString('#3e3d3d');
         this.widget.scene.moon.show = false;
         this.widget.scene.sun.show = false;
         this.widget.scene.fog.enabled = false;
+
+        if (!this.georeferenced) {
+            this.widget.scene.globe.show = false;
+            this.widget.scene.skyAtmosphere.show = false;
+        }
 
         if (this.existingAnnotations.length > 0) {
             this._displayExistingAnnotations();
@@ -57,13 +59,12 @@ export class Scene {
         });
         this.widget.scene.primitives.add(tileset);
 
-        const boundingSphereRadius = tileset.boundingSphere.radius;
-        console.log("Bounding: ", boundingSphereRadius);
+        const radius = tileset.boundingSphere.radius;
+        console.log("Original Radius:", radius);
         
         // if object's bounding sphere radius is smaller than 1 meter scale up for viewer to work correctly and to recognise unit between meters and centimeters
-        this.scale = boundingSphereRadius > 1 ? SCALE_FACTORS.METERS : SCALE_FACTORS.CENTIMETERS; 
+        this.scale = radius > 1 ? SCALE_FACTORS.METERS : SCALE_FACTORS.CENTIMETERS; 
         console.log("Scale set to: ", this.scale);
-        this._scaleTileset(tileset);
 
         if (this.georeferenced) {
             this._handleGeoreferencedTileset(tileset);
@@ -74,17 +75,44 @@ export class Scene {
     }
 
     _handleUngeoreferencedTileset(tileset) {
-        this.widget.scene.screenSpaceCameraController.minimumZoomDistance = tileset.boundingSphere.radius * 0.3;
-        this.widget.camera.viewBoundingSphere(tileset.boundingSphere, new HeadingPitchRange(0.5, -0.5, tileset.boundingSphere.radius * 3));
+        const fakePosition = Cartesian3.fromDegrees(0.0, 0.0, 0.0);
+
+        const fixedFrame = Transforms.eastNorthUpToFixedFrame(fakePosition);
+
+        const center = tileset.boundingSphere.center;
+        const centerOffset = Cartesian3.negate(center, new Cartesian3());
+        const translationMatrix = Matrix4.fromTranslation(centerOffset);
+
+        const scaleMatrix = Matrix4.fromUniformScale(this.scale);
+
+        const finalMatrix = new Matrix4();
+        Matrix4.multiply(scaleMatrix, translationMatrix, finalMatrix); 
+        Matrix4.multiply(fixedFrame, finalMatrix, finalMatrix);        
+
+        tileset.modelMatrix = finalMatrix;
+
+        tileset.update(this.widget.scene.frameState);
+
+        const newRadius = tileset.boundingSphere.radius;
+        this.widget.scene.screenSpaceCameraController.minimumZoomDistance = newRadius * 0.1;
+        
+        this.widget.scene.screenSpaceCameraController.enableCollisionDetection = true;
+
+        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, {
+            duration: 1.0,
+            offset: new HeadingPitchRange(0.0, -Math.PI / 2.5, newRadius * 1.5) // approx 72 degrees tilt
+        });
     }
 
     _handleGeoreferencedTileset(tileset) {
-        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, { duration: 1.5 });
-    }
+        if (this.scale !== SCALE_FACTORS.METERS) {
+            const scaleMatrix = Matrix4.fromUniformScale(this.scale);
+            tileset.modelMatrix = scaleMatrix;
+        }
 
-    _scaleTileset(tileset) {
-        if (this.scale === SCALE_FACTORS.METERS) return; // No scaling needed
-        const scaleMatrix = Matrix4.fromUniformScale(this.scale);
-        tileset.modelMatrix = scaleMatrix;
+        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, {
+            duration: 1.5,
+            offset: new HeadingPitchRange(0.0, -Math.PI / 2, tileset.boundingSphere.radius * 2) // straight down
+        });
     }
 }

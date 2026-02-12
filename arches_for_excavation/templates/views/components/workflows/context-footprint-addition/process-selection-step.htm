@@ -1,0 +1,105 @@
+<style>
+.workflow-tab-controls {
+    display: none;
+}
+
+.process-selection-wrapper {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.process-options-container {
+    height: 70%;
+    width: 70%;
+
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 1.5rem;
+
+}
+
+.process-options-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+
+    background: #ffffff;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    box-shadow: none;
+
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+    padding: 2rem 1.25rem;
+}
+
+.process-options-card:hover {
+    cursor: pointer;
+    border-color: #3b82f6;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+    transform: translateY(-6px) scale(1.02);
+}
+
+.process-options-card.active {
+    border-color: #2563eb;
+    box-shadow: 0 8px 24px rgba(59,130,246,0.22);
+    background: #e6f0fa;
+}
+
+.process-options-card i {
+    font-size: 6rem;
+    margin-bottom: 0.75rem;
+    color: #3b82f6;
+}
+
+.process-options-card h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .process-options-container {
+        grid-template-columns: 1fr !important;
+        width: 100%;
+        gap: 1rem;
+    }
+}
+
+</style>
+
+
+<div class="process-selection-wrapper">
+    <div class="process-options-container">
+        <div class="process-options-card"
+            data-bind="click: function() { toggleCard('context'); }, css: { 'active': graphId() === CONTEXT_GRAPHID }">
+            <i class="fa fa-digg"></i>
+            <h3>Import Context Measurements</h3>
+        </div>
+        <div class="process-options-card"
+            data-bind="click: function() { toggleCard('trench'); }, css: { 'active': graphId() === TRENCH_GRAPHID }">
+            <i class="fa fa-crop"></i>
+            <h3>Import Trench Measurements</h3>
+        </div>
+        <!-- <div class="process-options-card">
+            <i class="fa fa-digg"></i>
+            <h3>Import Context Measurements</h3>
+        </div>
+        <div class="process-options-card">
+            <i class="fa fa-crop"></i>
+            <h3>Import Trench Measurements</h3>
+        </div> -->
+    </div>
+</div>
+

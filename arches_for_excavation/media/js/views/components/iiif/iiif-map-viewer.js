@@ -487,7 +487,7 @@ define([
             if (!L || self._mapInitialized) return;
             if (self.map) self.map.remove();
 
-            console.log('[IIIF MAP] Creating Leaflet map...');
+            console.log('[IIIF MAP] Creating Leaflet    asadsadasdasdasmap...');
 
             self.map = L.map(container, {
                 crs: L.CRS.Simple,
