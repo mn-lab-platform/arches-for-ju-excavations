@@ -6,16 +6,18 @@ import os
 import uuid
 
 class Model3DView(View):
+    supported_formats = ['.zip', '.3tz']
+    
     def post(self, request):
-        zip_file = request.FILES.get('zip_file')
+        input_file = request.FILES.get('model_file')
         parent_resource_id = request.POST.get('parent_resource_id')
         print(f"Received upload request for parent_resource_id: {parent_resource_id}")
 
-        if not zip_file or not zip_file.name.endswith('.zip'):
+        if not input_file or not any(input_file.name.endswith(ext) for ext in self.supported_formats):
             print("Invalid file type uploaded")
             return HttpResponseBadRequest('Invalid file type.')
 
-        validation = self._zipfile_is_valid_3d_tiles(zip_file)
+        validation = self._file_is_valid_3d_tiles(input_file)
         if validation is not None:
             print(f"Validation failed: {validation}")
             return HttpResponseBadRequest(validation)
@@ -24,14 +26,14 @@ class Model3DView(View):
         os.makedirs(model_folder_path, exist_ok=True)
         print(f"Created folder: {model_folder_path}")
 
-        with zipfile.ZipFile(zip_file) as zf:
+        with zipfile.ZipFile(input_file) as zf:
             zf.extractall(model_folder_path)
         print(f"Extracted ZIP to: {model_folder_path}")
         return JsonResponse({'status': 'success', 'model_id': model_id, 'url': f"{settings.MEDIA_URL}{settings.UPLOADED_FILES_DIR}/3d_models/{parent_resource_id}/{model_id}/"})
     
-    def _zipfile_is_valid_3d_tiles(self, zip_file) -> str:
+    def _file_is_valid_3d_tiles(self, file) -> str:
         try:
-            with zipfile.ZipFile(zip_file) as zf:
+            with zipfile.ZipFile(file) as zf:
                 namelist = zf.namelist()
                 print(f"ZIP contents: {namelist}")
                 if not any(name == 'tileset.json' for name in namelist):
