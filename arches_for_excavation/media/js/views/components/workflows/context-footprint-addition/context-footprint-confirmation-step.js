@@ -9,17 +9,29 @@ define([
             const self = this;
             
             const tileService = tileServiceModule.default || tileServiceModule;
-            const FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
-            const MEASURED_GEOJSON_NODE_ID = 'bd290f65-b2fe-4de2-a9b6-fa056036facb';
 
-            const inputData = ko.unwrap(params.coordinatesData);
+            const CONTEXT_GRAPHID = 'd6559924-9f52-11eb-96c4-020063fe0012';
+            const TRENCH_GRAPHID= '9d82972a-f537-11ea-ac6d-9fb7e90de197';
+
+            const CONTEXT_FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
+            const CONTEXT_MEASURED_GEOJSON_NODE_ID = 'bd290f65-b2fe-4de2-a9b6-fa056036facb';
+            const TRENCH_FOOTPRINT_NODE_ID = '3a9f46c0-f538-11ea-ac6d-9fb7e90de197';
+            const TRENCH_MEASURED_GEOJSON_NODE_ID = '5d81185e-81ed-48a8-86f7-01a387e58e00';
+
+            self.inputData = ko.unwrap(params.coordinatesData);
+            self.graphId = ko.unwrap(params.graphId);
+            self.resourceId = ko.unwrap(params.resourceId);
+
+            console.log('Received coordinatesData:', self.inputData);
+            console.log('Received graphId:', self.graphId);
+            console.log('Received resourceId:', self.resourceId);
                         
             let rawText = '';
             let rawIgnore = false;
 
-            if (inputData && typeof inputData === 'object') {
-                rawText = inputData.text || '';
-                rawIgnore = inputData.ignoreLastLine || false;
+            if (self.inputData && typeof self.inputData === 'object') {
+                rawText = self.inputData.text || '';
+                rawIgnore = self.inputData.ignoreLastLine || false;
             }
 
             self.coordinatesText = ko.observable(rawText);
@@ -47,6 +59,28 @@ define([
                     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                     return v.toString(16);
                 });
+            };
+
+            self._getFootprintNodeIdForGraphId = function(graphId) {
+                switch(graphId) {
+                    case CONTEXT_GRAPHID:
+                        return CONTEXT_FOOTPRINT_NODE_ID;
+                    case TRENCH_GRAPHID:
+                        return TRENCH_FOOTPRINT_NODE_ID;
+                    default:
+                        throw new Error('Unknown graphId: ' + graphId);
+                }
+            };
+
+            self._getMeasuredGeojsonNodeIdForGraphId = function(graphId) {
+                switch(graphId) {
+                    case CONTEXT_GRAPHID:
+                        return CONTEXT_MEASURED_GEOJSON_NODE_ID;
+                    case TRENCH_GRAPHID:
+                        return TRENCH_MEASURED_GEOJSON_NODE_ID;
+                    default:
+                        throw new Error('Unknown graphId: ' + graphId);
+                }
             };
 
             self.geojson = ko.computed(() => {
@@ -86,7 +120,7 @@ define([
                         id: generateFeatureId(),
                         type: 'Feature',
                         properties: {
-                            nodeId: FOOTPRINT_NODE_ID
+                            nodeId: self._getFootprintNodeIdForGraphId(self.graphId),
                         },
                         geometry: {
                             type: 'Polygon',
@@ -117,12 +151,7 @@ define([
 
                 payload.data[nodegroup_id] = data;
 
-                // return tileService.createOne(payload);
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve({mock: true, nodegroup_id, data});
-                    }, 500);
-                });
+                return tileService.createOne(payload);
             }
 
             self.saveFootprint = async function() {
@@ -139,8 +168,8 @@ define([
                 const geojsonStr = self.geojsonString();
 
                 try {
-                    await self._postTile(FOOTPRINT_NODE_ID, geojsonValue);
-                    await self._postTile(MEASURED_GEOJSON_NODE_ID, geojsonStr);
+                    await self._postTile(self._getFootprintNodeIdForGraphId(self.graphId), geojsonValue);
+                    await self._postTile(self._getMeasuredGeojsonNodeIdForGraphId(self.graphId), geojsonStr);
                     
                     self.infoMessage(null);
                     self.successMessage('Footprint data saved successfully.');

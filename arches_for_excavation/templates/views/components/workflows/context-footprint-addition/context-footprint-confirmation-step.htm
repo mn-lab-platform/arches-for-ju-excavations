@@ -106,7 +106,7 @@
     <button id="submit-button"
             type="button" 
             class="btn btn-success save-button" 
-            data-bind="click: saveFootprint, enable: geojsonString">
+            data-bind="click: saveFootprint, enable: geojsonString() && !footprintSaved()">
             Add to Resource
     </button>
 </div>

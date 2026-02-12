@@ -86,7 +86,9 @@ define([
               uniqueInstanceName: 'context-footprint-confirmer',
               tilesManaged: 'none',
               parameters: {
-                coordinatesData: "['coordinates-addition']['coordinates-adder']['value']"
+                coordinatesData: "['coordinates-addition']['coordinates-adder']['value']",
+                graphId: "['process-selection']['process-selector']['value']",
+                resourceId: "['resource-selection']['resource-selector']['value']"
               }
             }]
           }]
