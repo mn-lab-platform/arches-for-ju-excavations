@@ -60,33 +60,6 @@ define([
               }
             }]
           }]
-        },
-
-        {
-          title: 'Add DEM (optional)',
-          name: 'dem-addition',
-          required: false,
-          informationboxdata: {
-            heading: 'Add DEM (optional)',
-            text: 'Upload/select a DEM-derived visualization (hillshade/color relief recommended for IIIF) and link it to the same target resource. DEM manifest will get related -> ortho.'
-          },
-          layoutSections: [{
-            componentConfigs: [{
-              componentName: 'iiif-image-addition-step',
-              uniqueInstanceName: 'dem-addition-instance',
-              tilesManaged: 'none',
-              parameters: {
-                hostResourceId: "['resource-selection']['resource-selection-instance']['value']",
-                assetType: 'dem',
-                optional: true,
-                stepTitle: 'Add DEM (optional)',
-                labelPrefix: 'DEM: ',
-
-                // DEM knows ORTHO globalid from step 2:
-                relatedManifestGlobalId: "['iiif-image-selection']['iiif-image-addition-instance']['value']['manifestGlobalId']"
-              }
-            }]
-          }]
         }
       ];
 

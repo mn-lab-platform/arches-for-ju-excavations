@@ -92,9 +92,13 @@ KIBANA_CONFIG_BASEPATH = "kibana"  # must match Kibana config.yml setting (serve
 # also make sure to set server.rewriteBasePath: true
 MEDIA_ROOT = os.path.join(APP_ROOT)
 UPLOADED_FILES_DIR = "uploadedfiles"
+
+RASTER_DATA_DIR = os.path.join(MEDIA_ROOT, UPLOADED_FILES_DIR,"iiif_raster")
+TITILER_DATA_MOUNT = "/data"
+
 LOAD_DEFAULT_ONTOLOGY = False
 LOAD_PACKAGE_ONTOLOGIES = True
-# ✅ CRITICAL: These must point to the shared volume path, not venv package path
+
 IIIF_GEOTIFF_META_DIR = os.path.join(APP_ROOT, UPLOADED_FILES_DIR, "iiif_geotiff_meta")
 IIIF_RAW_DEM_DIR = os.path.join(APP_ROOT, UPLOADED_FILES_DIR, "iiif_raw_dem")
 # This is the namespace to use for export of data (for RDF/XML for example)
