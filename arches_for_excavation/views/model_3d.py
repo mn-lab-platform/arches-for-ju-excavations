@@ -35,7 +35,6 @@ class Model3DView(View):
         try:
             with zipfile.ZipFile(file) as zf:
                 namelist = zf.namelist()
-                print(f"ZIP contents: {namelist}")
                 if not any(name == 'tileset.json' for name in namelist):
                     return 'Missing tileset.json file in uploaded zip.'
                 try:

@@ -156,7 +156,7 @@ define([
                         self.infoMessage('');
                         self.errorMessage('Processing was cancelled (Revoked).');
                     } else {
-                        self.infoMessage(`Basemap processing status: ${state}. Please wait...`);
+                        self.infoMessage(`We are processing your basemap on our servers. Please wait...`);
                         setTimeout(() => self.pollTask(taskId), 2000);
                     }
                 }).catch(err => {
