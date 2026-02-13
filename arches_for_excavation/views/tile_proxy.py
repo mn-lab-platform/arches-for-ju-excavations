@@ -46,7 +46,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
                 return HttpResponseForbidden("Access Denied: Insufficient Permissions")
     
     try:
-        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{layer_info['name']}/{basemap_id}.tif"
+        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{layer_info['name']}/{basemap_id}.tif&bidx=1&bidx=2&bidx=3"
 
         upstream_req = requests.get(titiler_url, stream=True, timeout=5)
 
