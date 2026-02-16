@@ -69,12 +69,13 @@ define([
                         self.canSubmit(dz.files.length > 0);
                         self.errorMessage(null);
                         self.successMessage(null);
+                        self.infoMessage(null);
                         self.basemapName('');
                         self.sortOrder(0);
                     });
 
                     dz.on('sending', function(file, xhr, formData) {
-                        formData.append('basemap_name', self._sanitizeFilename(self.basemapName()));
+                        formData.append('basemap_name', self.basemapName());
                         formData.append('basemap_sortorder', self.sortOrder());
                         formData.append('basemap_addto_map', self.addToMap());
                         formData.append('basemap_ispublic', self.isPublic());
@@ -165,10 +166,6 @@ define([
                     self.errorMessage(`Error checking task status: ${err.message}`);
                 });
             }
-
-            self._sanitizeFilename = function(name) {
-                return name.replace(/[\/\\:*?"<>|]/g, '_').trim();
-            };
 
             self.submitUpload = function() {
                 if (self.dropzone.files.length > 0) {

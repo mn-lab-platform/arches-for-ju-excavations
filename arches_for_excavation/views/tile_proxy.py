@@ -18,7 +18,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             print(f"Fetched layer {basemap_id} from DB: {layer}")
             layer_info = {
                 'name': layer.name,
-                'is_public': layer.ispublic
+                'is_public': layer.ispublic,
+                'basemap_dir': layer.layerdefinitions[0].get('basemap_dir')
             }
             print(f"Caching layer {basemap_id} is_public={layer.ispublic}")
             cache.set(layer_cache_key, layer_info, 300) #cache for 5 minutes
@@ -26,6 +27,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             return HttpResponseNotFound("Layer not found")
     
     is_public = layer_info['is_public']
+    basename_dir = layer_info['basemap_dir']
     if not is_public:
         if not user.is_authenticated:
             return HttpResponseForbidden("Secure Layer: Login Required")
@@ -46,7 +48,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
                 return HttpResponseForbidden("Access Denied: Insufficient Permissions")
     
     try:
-        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{layer_info['name']}/{basemap_id}.tif&bidx=1&bidx=2&bidx=3"
+        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{basename_dir}/{basemap_id}.tif&bidx=1&bidx=2&bidx=3"
 
         upstream_req = requests.get(titiler_url, stream=True, timeout=5)
 

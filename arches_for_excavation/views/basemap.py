@@ -16,8 +16,11 @@ class BasemapView(View):
         if not input_geotiff:
             return HttpResponseBadRequest("File upload failed, no file provided.")
         
+        basemap_name = request.POST.get('basemap_name', 'unnamed_basemap')
+        
         basemap_metadata = {
-            'name': get_valid_filename(request.POST.get('basemap_name', 'unnamed_basemap')),
+            'original_name': basemap_name,
+            'sanitized_name': get_valid_filename(basemap_name),
             'sortorder': request.POST.get('basemap_sortorder', '0'),
             'activated': request.POST.get('basemap_activated', 'true').lower() == 'true',
             'ispublic': request.POST.get('basemap_ispublic', 'true').lower() == 'true',
@@ -30,7 +33,7 @@ class BasemapView(View):
         }
 
         COG_STORAGE = os.path.join(settings.MEDIA_ROOT, settings.UPLOADED_FILES_DIR, 'basemaps')
-        basemap_dir = os.path.join(COG_STORAGE, basemap_metadata['name'])
+        basemap_dir = os.path.join(COG_STORAGE, basemap_metadata['sanitized_name'])
         os.makedirs(basemap_dir, exist_ok=True)
 
         original_path = os.path.join(basemap_dir, f"origin_{basemap_metadata['id']}.tif")
