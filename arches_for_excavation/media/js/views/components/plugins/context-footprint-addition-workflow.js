@@ -4,7 +4,7 @@ define([
   'arches',
   'viewmodels/workflow',
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
-  'views/components/workflows/context-footprint-addition/process-selection-step',
+  'views/components/workflows/universal/process-selection-step',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/context-footprint-addition/coordinates-addition-step',
   'views/components/workflows/context-footprint-addition/coordinates-map-display-step',
@@ -28,7 +28,20 @@ define([
               componentName: 'process-selection-step',
               uniqueInstanceName: 'process-selector',
               tilesManaged: 'none',
-              parameters: {}
+              parameters: {
+                cards: [
+                  {
+                    id: 'd6559924-9f52-11eb-96c4-020063fe0012',
+                    label: 'Import Context Measurements',
+                    icon: 'fa fa-digg'
+                  },
+                  {
+                    id: '9d82972a-f537-11ea-ac6d-9fb7e90de197',
+                    label: 'Import Trench Measurements',
+                    icon: 'fa fa-crop'
+                  }
+                ]
+              }
             }]
           }]
         },

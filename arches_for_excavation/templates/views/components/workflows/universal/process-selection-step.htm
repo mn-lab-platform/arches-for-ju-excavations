@@ -81,25 +81,12 @@
 
 
 <div class="process-selection-wrapper">
-    <div class="process-options-container">
+    <div class="process-options-container" data-bind="foreach: cards">
         <div class="process-options-card"
-            data-bind="click: function() { toggleCard('context'); }, css: { 'active': graphId() === CONTEXT_GRAPHID }">
-            <i class="fa fa-digg"></i>
-            <h3>Import Context Measurements</h3>
+            data-bind="click: function() { $parent.toggleCard($data.id); }, css: { 'active': $parent.cardId() === $data.id }">
+            <i data-bind="attr: { class: $data.icon }"></i>
+            <h3 data-bind="text: $data.label"></h3>
         </div>
-        <div class="process-options-card"
-            data-bind="click: function() { toggleCard('trench'); }, css: { 'active': graphId() === TRENCH_GRAPHID }">
-            <i class="fa fa-crop"></i>
-            <h3>Import Trench Measurements</h3>
-        </div>
-        <!-- <div class="process-options-card">
-            <i class="fa fa-digg"></i>
-            <h3>Import Context Measurements</h3>
-        </div>
-        <div class="process-options-card">
-            <i class="fa fa-crop"></i>
-            <h3>Import Trench Measurements</h3>
-        </div> -->
     </div>
 </div>
 
