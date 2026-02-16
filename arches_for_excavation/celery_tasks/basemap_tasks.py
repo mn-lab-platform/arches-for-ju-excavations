@@ -16,8 +16,8 @@ def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
             src_path,
             dst_path,
             driver='COG',      
-            compress='DEFLATE',
-            overview_resampling='NEAREST',
+            compress='ZSTD',
+            overview_resampling='BILINEAR',
             blocksize=512
         )
         print("Conversion Complete.")
@@ -43,11 +43,12 @@ def register_basemap_in_db(basemap_metadata):
     
     layer = MapLayer(
         maplayerid=uuid.UUID(basemap_metadata['id']),
-        name=basemap_metadata['name'],
+        name=basemap_metadata['original_name'],
         layerdefinitions=[{
             'id': basemap_metadata['id'],
             'type': 'raster',
-            'source': basemap_metadata['id']
+            'source': basemap_metadata['id'],
+            'basemap_dir': basemap_metadata['sanitized_name']
         }],
         isoverlay=basemap_metadata['isoverlay'],
         activated=basemap_metadata['activated'],
