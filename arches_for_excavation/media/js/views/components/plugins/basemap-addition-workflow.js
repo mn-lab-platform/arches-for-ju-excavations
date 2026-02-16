@@ -5,7 +5,7 @@ define([
   'viewmodels/workflow',
   'templates/views/components/plugins/basemap-addition-workflow.htm',
   'views/components/workflows/basemap-addition/geotiff-upload-step',
-  'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/universal/process-selection-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('basemap-addition-workflow', {
     viewModel: function(params) {
@@ -15,6 +15,32 @@ define([
         : '/';
 
       this.stepConfig = [
+        {
+          title: 'Select Process',
+          name: 'process-selection',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'process-selection-step',
+              uniqueInstanceName: 'process-selector',
+              tilesManaged: 'none',
+              parameters: {
+                cards: [
+                  {
+                    id: 'basemap',
+                    label: 'Add Basemap',
+                    icon: 'fa fa-map'
+                  },
+                  {
+                    id: 'overlay',
+                    label: 'Add Overlay',
+                    icon: 'fa fa-map-o'
+                  }
+                ]
+              }
+            }]
+          }]
+        },
         {
           title: 'Upload Basemap',
           name: 'basemap-selection',
@@ -29,7 +55,7 @@ define([
               uniqueInstanceName: 'basemap-addition-instance',
               tilesManaged: 'none',
               parameters: {
-                
+                mode: "['process-selection']['process-selector']['value']"
               }
             }]
           }]

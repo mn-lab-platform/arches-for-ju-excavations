@@ -9,6 +9,7 @@ import rasterio
 from pyproj import Transformer
 
 from ..celery_tasks.basemap_tasks import convert_geotiff_to_cog
+#TODO: check if layer with given name exists before saving
 
 class BasemapView(View):
     def post(self, request):

@@ -21,28 +21,6 @@ define([
             self.cardId(selectedCardId);
             params.value(selectedCardId);
         }
-        
-        // ===== Workflow Integration =====
-        if (params.form) {
-            // Set complete status
-            if (params.form?.complete) {
-                params.form.complete(ko.pureComputed(function() {
-                    return Boolean(params.value());
-                }));
-            }
-
-            // Override save method
-            if (params.form.save) {
-                const originalSave = params.form.save;
-                params.form.save = function() {
-                    const rid = (self.cardId() || '').trim();
-                    if (!rid) {
-                        return Promise.reject(new Error('No card selected'));
-                    }
-                    return originalSave.apply(params.form, arguments);
-                };
-            }
-        }
 
         return self;
     }

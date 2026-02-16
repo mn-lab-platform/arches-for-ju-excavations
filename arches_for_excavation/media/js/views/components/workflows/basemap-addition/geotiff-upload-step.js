@@ -16,18 +16,38 @@ define([
                 revoked: 'REVOKED',
             }
             const self = this;
+            self.value = params.value;
+
             const basemapService = basemapServiceModule.default || basemapServiceModule;
 
+            self.mode = ko.observable(params.mode);
+            self.submitLabel = ko.pureComputed(function() {
+                return self.mode() === 'overlay' ? 'Create a new Overlay' : 'Create a new Basemap';
+            });
             self.basemapName = ko.observable('');
             self.sortOrder = ko.observable(0);
-            self.addToMap = ko.observable(true);
-            self.isOverlay = ko.observable(false);
             self.isPublic = ko.observable(true);
+            self.isOverlay = ko.observable(self.mode() === 'overlay');
 
             self.errorMessage = ko.observable(null);
             self.infoMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
             self.canSubmit = ko.observable(false);
+            self.showModal = ko.observable(false);
+
+            self.isNameProvided = ko.pureComputed(function() {
+                return self.basemapName() && self.basemapName().trim().length > 0;
+            });
+
+            self.canOpenModal = ko.pureComputed(function() {
+                return self.canSubmit() && self.isNameProvided();
+            });
+
+            self.submitTitle = ko.pureComputed(function() {
+                if (!self.canSubmit()) { return 'Upload a GEOTIFF file to enable'; }
+                if (!self.isNameProvided()) { return 'Enter a basemap name to enable'; }
+                return '';
+            });
             
             self.dropzoneOptionsZip = {
                 url: '/api/basemap/upload',
@@ -55,7 +75,7 @@ define([
                             thumbnailElement.style.display = 'none';
                             
                             const iconElement = document.createElement('i');
-                            iconElement.className = 'fa fa-map fa-5x';
+                            iconElement.className = self.isOverlay() ? 'fa fa-map-o fa-5x' : 'fa fa-map fa-5x';
                             iconElement.style.color = '#5bc0de'; 
                             iconElement.style.display = 'block';
                             iconElement.style.textAlign = 'center';
@@ -77,7 +97,7 @@ define([
                     dz.on('sending', function(file, xhr, formData) {
                         formData.append('basemap_name', self.basemapName());
                         formData.append('basemap_sortorder', self.sortOrder());
-                        formData.append('basemap_addto_map', self.addToMap());
+                        formData.append('basemap_addto_map', true);
                         formData.append('basemap_ispublic', self.isPublic());
                         formData.append('basemap_isoverlay', self.isOverlay());
                         self.infoMessage('Uploading basemap GEOTIFF file...  0%');
@@ -124,7 +144,6 @@ define([
                                 displayError = errorMessage;
                             }
                         }
-                        
                         self.errorMessage(displayError);
                         self.infoMessage('');
                         self.canSubmit(true);
@@ -147,9 +166,12 @@ define([
             self.pollTask = function(taskId) {
                 basemapService.getCeleryTaskStatus(taskId).then(response => {
                     const { _, state, info } = response;
+                    console.log(response);
+                    
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
                         self.successMessage('Basemap processing completed successfully.');
+                        self.value(info.basemap_id);
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
                         self.errorMessage(`Basemap processing failed: ${info}`);
@@ -165,13 +187,27 @@ define([
                     self.successMessage('');
                     self.errorMessage(`Error checking task status: ${err.message}`);
                 });
-            }
+            };
+
+            self.openVisibilityModal = function() {
+                $('#visibility-modal').modal('show');
+            };
+
+            self.confirmVisibilityAndSubmit = function() {
+                $('#visibility-modal').modal('hide');
+                console.log("Submitting with option", self.isPublic());
+                self.submitUpload();
+            };
+            
+            self.selectVisibility = function(isPublic) {
+                self.isPublic(isPublic);
+            };
 
             self.submitUpload = function() {
                 if (self.dropzone.files.length > 0) {
                     self.dropzone.processQueue();
                 }
-            };
+            };            
         },
         template: template
     });
