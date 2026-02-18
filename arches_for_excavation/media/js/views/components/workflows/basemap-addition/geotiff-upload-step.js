@@ -170,8 +170,9 @@ define([
                     
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
+                        self.errorMessage('');
                         self.successMessage('Basemap processing completed successfully.');
-                        self.value(info.basemap_id);
+                        self.value(info);
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
                         self.errorMessage(`Basemap processing failed: ${info}`);
@@ -190,12 +191,20 @@ define([
             };
 
             self.openVisibilityModal = function() {
-                $('#visibility-modal').modal('show');
+                basemapService.checkIfBasemapNameExists(self.basemapName()).then(response => {
+                    if (response.exists) {
+                        self.errorMessage(`Map layer with this name already exists. Please choose a different name.`);
+                    } else {
+                        self.errorMessage(null);
+                        $('#visibility-modal').modal('show');
+                    }
+                }).catch(err => {
+                    self.errorMessage(`Error occurred while verifying uniqueness of your ${self.isOverlay() ? 'Overlay' : 'Basemap'}: ${err.message}`);
+                });
             };
 
             self.confirmVisibilityAndSubmit = function() {
                 $('#visibility-modal').modal('hide');
-                console.log("Submitting with option", self.isPublic());
                 self.submitUpload();
             };
             

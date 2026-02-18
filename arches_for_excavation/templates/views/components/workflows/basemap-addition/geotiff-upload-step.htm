@@ -199,6 +199,85 @@ section {
     background-color: #e6f0fa;
 }
 
+.tooltip {
+    display: inline;
+    position: relative;
+}
+
+.tooltip:hover {
+    color: #c00;
+    text-decoration: none;
+}
+
+.tooltip:hover:after {
+    background: #111;
+    background: rgba(0,0,0,.8);
+    border-radius: .5em;
+    bottom: 1.35em;
+    color: #fff;
+    content: attr(title);
+    display: block;
+    left: 1em;
+    padding: .3em 1em;
+    position: absolute;
+    text-shadow: 0 1px 0 #000;
+    white-space: nowrap;
+    z-index: 98;
+}
+
+.tooltip:hover:before {
+    border: solid;
+    border-color: #111 transparent;
+    border-color: rgba(0,0,0,.8) transparent;
+    border-width: .4em .4em 0 .4em;
+    bottom: 1em;
+    content: "";
+    display: block;
+    left: 2em;
+    position: absolute;
+    z-index: 99;
+}
+
+/* Pure CSS Tooltip for Icons */
+/* Source - https://stackoverflow.com/a/25214869 */
+/* Modified for icon usage */
+.info-tooltip {
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.info-tooltip:hover:after {
+    background: rgba(0, 0, 0, .9);
+    border-radius: .5em;
+    bottom: 150%;
+    color: #fff;
+    content: attr(data-tooltip);
+    display: block;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: .5em 1em;
+    position: absolute;
+    z-index: 9999;
+    font-size: 13px;
+    white-space: normal;
+    width: 200px;
+    text-align: center;
+}
+
+.info-tooltip:hover:before {
+    border: solid rgba(0, 0, 0, .9) transparent;
+    border-width: .4em .4em 0 .4em;
+    bottom: calc(150% - .4em);
+    content: "";
+    display: block;
+    left: 50%;
+    transform: translateX(-50%);
+    position: absolute;
+    z-index: 9999;
+}
+
 @media (max-width: 768px) {
     .settings-container {
         grid-template-columns: 1fr;
@@ -249,7 +328,12 @@ section {
         </div>
 
         <div class="form-group">
-            <label for="sort-order-input">Sort Order</label>
+            <label for="sort-order-input">
+                Sort Order 
+                <span class="info-tooltip" data-tooltip="The sort order determines the position of the map layer in the list of available layers. The higher the number, lower the layer appears in the list.">
+                    <i class="fa fa-info-circle"></i>
+                </span>
+            </label>
             <input id="sort-order-input" 
                 type="number" 
                 data-bind="value: sortOrder"

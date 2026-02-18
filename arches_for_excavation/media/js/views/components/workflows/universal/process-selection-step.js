@@ -7,11 +7,12 @@ define([
     function viewModel(params) {
         const self = this;
 
-        process = {
-            id: 'd6559924-9f52-11eb-96c4-020063fe0012',
-            label: 'Import Context Measurements',
-            icon: 'fa-digg'
-        }
+        // process = {
+        //     id: 'id',
+        //     label: 'Will be displayed as the title of the workflow step and in the process selection card.',
+        //     icon: 'icon class for the process selection card, e.g. "fa fa-map"',
+        //     description: 'Optional description of the process to be performed, which may include instructions for the user.'
+        // }
 
         self.cards = ko.observableArray(params.cards || []);
         self.cardId = params.value || ko.observable(null);
@@ -21,8 +22,6 @@ define([
             self.cardId(selectedCardId);
             params.value(selectedCardId);
         }
-
-        return self;
     }
 
     return ko.components.register('process-selection-step', {
