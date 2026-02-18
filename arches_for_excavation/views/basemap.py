@@ -2,6 +2,7 @@ from django.views import View
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.conf import settings
 from django.utils.text import get_valid_filename
+from arches.app.models.models import MapLayer
 
 import os
 from uuid import uuid4
@@ -9,7 +10,6 @@ import rasterio
 from pyproj import Transformer
 
 from ..celery_tasks.basemap_tasks import convert_geotiff_to_cog
-#TODO: check if layer with given name exists before saving
 
 class BasemapView(View):
     def post(self, request):
@@ -18,6 +18,9 @@ class BasemapView(View):
             return HttpResponseBadRequest("File upload failed, no file provided.")
         
         basemap_name = request.POST.get('basemap_name', 'unnamed_basemap')
+
+        if MapLayer.objects.filter(name=basemap_name).exists():
+            return HttpResponseBadRequest("A basemap with this name already exists. Please choose a different name.")
         
         basemap_metadata = {
             'original_name': basemap_name,
@@ -92,5 +95,14 @@ class BasemapView(View):
                 'bounds': bounds
             }
 
+
+class BasemapCheckView(View):
+    def get(self, request):
+        basemap_name = request.GET.get('name')
+        if not basemap_name:
+            return HttpResponseBadRequest("Missing 'name' query parameter.")
+        
+        exists = MapLayer.objects.filter(name=basemap_name).exists()
+        return JsonResponse({'exists': exists})
 
 
