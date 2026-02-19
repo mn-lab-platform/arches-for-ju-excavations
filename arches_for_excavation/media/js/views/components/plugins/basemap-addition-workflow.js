@@ -45,7 +45,7 @@ define([
           }]
         },
         {
-          title: 'Upload Basemap',
+          title: 'Upload Map Layer',
           name: 'basemap-selection',
           required: true,
           layoutSections: [{

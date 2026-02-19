@@ -18,7 +18,8 @@ def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
             driver='COG',      
             compress='ZSTD',
             overview_resampling='BILINEAR',
-            blocksize=512
+            blocksize=512,
+            BIGTIFF='IF_NEEDED'
         )
         print("Conversion Complete.")
         return register_basemap_in_db(basemap_metadata)
@@ -52,7 +53,7 @@ def register_basemap_in_db(basemap_metadata):
         }],
         isoverlay=basemap_metadata['isoverlay'],
         activated=basemap_metadata['activated'],
-        icon='fa fa-binoculars',
+        icon=basemap_metadata['icon'],
         addtomap=basemap_metadata['addto_map'],
         centerx=basemap_metadata['center_coordinates'][0],
         centery=basemap_metadata['center_coordinates'][1],
