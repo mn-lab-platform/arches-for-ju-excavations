@@ -30,6 +30,7 @@ class BasemapView(View):
             'ispublic': request.POST.get('basemap_ispublic', 'true').lower() == 'true',
             'addto_map': request.POST.get('basemap_addto_map', 'false').lower() == 'true',
             'isoverlay': request.POST.get('basemap_isoverlay', 'false').lower() == 'true',
+            'icon': request.POST.get('basemap_icon', 'fa fa-map'),
             'authorized_group': 'TEST', #IMPORTANT: hardcoded group with basemap viewing rights,
             'bounds': None,
             'center_coordinates': None,

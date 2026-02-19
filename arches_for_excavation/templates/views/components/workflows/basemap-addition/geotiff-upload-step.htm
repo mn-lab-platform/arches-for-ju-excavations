@@ -88,7 +88,8 @@ section {
 }
 
 #submit-button {
-    align-self: center;   
+    align-self: center;
+    margin-bottom: 20px;   
 }
 
 .fileinput-geotiff-button {
@@ -128,18 +129,6 @@ section {
     color: #333;
 }
 
-.checkboxes-group {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: space-between;
-    padding: 15px;
-    background: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
 .form-group input[type="text"],
 .form-group input[type="number"] {
     padding: 8px 10px;
@@ -149,22 +138,6 @@ section {
     height: 38px;
     width: 100%;
     box-sizing: border-box;
-}
-
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.checkbox-item input[type="checkbox"] {
-    cursor: pointer;
-}
-
-.checkbox-item label {
-    margin: 0;
-    cursor: pointer;
-    font-size: 13px;
 }
 
 .numeric-field input {
@@ -278,6 +251,81 @@ section {
     z-index: 9999;
 }
 
+.icon-picker-group {
+    grid-column: 1 / -1;
+    gap: 10px;
+}
+
+.icon-picker-header {
+    display: flex;
+    gap: 1.5rem;
+    align-items: end;
+}
+
+.icon-picker-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #333;
+}
+
+.selected-icon-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #2563eb;
+    border-radius: 4px;
+    background-color: #e6f0fa;
+    width: 40px;
+    height: 40px;
+}
+
+.icon-search-input {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    height: 40px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.icon-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-option i {
+    font-size: 20px;
+    color: #333;
+}
+
+.icon-option:hover {
+    background-color: #f0f0f0;
+}
+
+.icon-option.selected-icon {
+    border-color: #2563eb;
+    background-color: #e6f0fa;
+}
+
 @media (max-width: 768px) {
     .settings-container {
         grid-template-columns: 1fr;
@@ -320,11 +368,11 @@ section {
 
     <div class="settings-container">
         <div class="form-group">
-            <label for="basemap-name-input">Basemap Name <span style="color:red">*</span></label>
+            <label for="basemap-name-input">Map Layer Name <span style="color:red">*</span></label>
             <input id="basemap-name-input" 
                 type="text" 
                 data-bind="value: basemapName, valueUpdate: 'afterkeydown'"
-                placeholder="Enter basemap name">
+                placeholder="Enter map layer name">
         </div>
 
         <div class="form-group">
@@ -338,6 +386,29 @@ section {
                 type="number" 
                 data-bind="value: sortOrder"
                 placeholder="0">
+        </div>
+
+        <div class="form-group icon-picker-group">
+            <div class="icon-picker-header">
+                <span class="icon-picker-title">Layer Icon:</span>
+                <div class="selected-icon-preview">
+                    <i data-bind="attr: { class: selectedIcon }" class="icon-preview"></i>
+                </div>
+            </div>
+            
+            <input id="icon-search-input" type="text" 
+                data-bind="value: iconSearchQuery, valueUpdate: 'afterkeydown'"
+                class="icon-search-input"
+                placeholder="Search icons (e.g., 'map', 'globe', 'tree')">
+            
+            <div class="icon-grid">
+                <!-- ko foreach: filteredIcons -->
+                <div class="icon-option"
+                    data-bind="click: function() { $parent.selectIcon($data); }, css: { 'selected-icon': $data === $parent.selectedIcon() }">
+                    <i data-bind="attr: { class: $data }"></i>
+                </div>
+                <!-- /ko -->
+            </div>
         </div>
     </div>
 

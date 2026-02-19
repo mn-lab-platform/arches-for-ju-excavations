@@ -16,27 +16,7 @@ define([
 
         let map = new maplibreGl.Map({
             container: 'map-preview',
-            style: {
-                'version': 8,
-                'sources': {
-                    'raster-tiles': {
-                        'type': 'raster',
-                        'tiles': ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                        'tileSize': 256,
-                        'minzoom': 0,
-                        'maxzoom': 19,
-                        'attribution': "© OpenStreetMap contributors",
-                    }
-                },
-                'layers': [
-                    {
-                        'id': 'simple-tiles',
-                        'type': 'raster',
-                        'source': 'raster-tiles',
-                    }
-                ],
-                'id': 'blank'
-            },
+            style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
             center: [self.centerX, self.centerY],
             zoom: 17
         });

@@ -35,6 +35,133 @@ define([
             self.canSubmit = ko.observable(false);
             self.showModal = ko.observable(false);
 
+            self.iconSearchQuery = ko.observable('');
+            self.selectedIcon = ko.observable('fa fa-map');
+
+            self.availableIcons = [
+                'fa fa-map',
+                'fa fa-map-o',
+                'fa fa-map-marker',
+                'fa fa-map-pin',
+                'fa fa-map-signs',
+                'fa fa-globe',
+                'fa fa-compass',
+                'fa fa-location-arrow',
+                'fa fa-crosshairs',
+                'fa fa-street-view',
+                
+                'fa fa-university',
+                'fa fa-fort-awesome',
+                'fa fa-building',
+                'fa fa-building-o',
+                'fa fa-home',
+                'fa fa-ticket', 
+                
+                'fa fa-search',
+                'fa fa-search-plus',
+                'fa fa-archive',
+                'fa fa-cube',
+                'fa fa-cubes',
+                'fa fa-diamond',
+                'fa fa-certificate',
+                'fa fa-graduation-cap',
+                'fa fa-puzzle-piece', 
+                'fa fa-language',
+                
+                'fa fa-history',
+                'fa fa-clock-o',
+                'fa fa-hourglass',
+                'fa fa-hourglass-half',
+                
+                'fa fa-camera',
+                'fa fa-camera-retro',
+                'fa fa-picture-o',
+                'fa fa-image',
+                'fa fa-photo',
+                'fa fa-file-image-o',
+                'fa fa-file-text',
+                'fa fa-file-text-o',
+                'fa fa-files-o',
+                'fa fa-book',
+                'fa fa-video-camera', 
+                'fa fa-share-alt', 
+                'fa fa-object-group', 
+                'fa fa-object-ungroup',
+                
+                'fa fa-database', 
+                'fa fa-folder-open',
+                'fa fa-tags', 
+                'fa fa-barcode', 
+                'fa fa-qrcode',
+                'fa fa-file-pdf-o', 
+                'fa fa-laptop', 
+                
+                'fa fa-tree',
+                'fa fa-leaf',
+                'fa fa-pagelines',
+                'fa fa-envira',
+                'fa fa-sun-o',
+                'fa fa-moon-o',
+                'fa fa-cloud',
+                'fa fa-tint',
+                'fa fa-fire',
+                'fa fa-bug', 
+                
+                'fa fa-plane', 
+                'fa fa-ship', 
+                'fa fa-car', 
+                'fa fa-road', 
+                'fa fa-paint-brush', 
+                'fa fa-spoon', 
+                'fa fa-filter', 
+                
+                'fa fa-binoculars',
+                'fa fa-eye',
+                'fa fa-eye-slash',
+                'fa fa-wrench',
+                'fa fa-cog',
+                'fa fa-cogs',
+                'fa fa-pencil',
+                'fa fa-edit',
+                'fa fa-arrows-alt',
+                'fa fa-bullseye', 
+                'fa fa-flask', 
+                'fa fa-magnet', 
+                'fa fa-balance-scale', 
+                'fa fa-level-down', 
+                'fa fa-sort-amount-desc', 
+                
+                'fa fa-pie-chart',
+                'fa fa-bar-chart',
+                'fa fa-line-chart',
+
+                'fa fa-circle',
+                'fa fa-circle-o',
+                'fa fa-dot-circle-o',
+                'fa fa-square',
+                'fa fa-square-o',
+                'fa fa-star',
+                'fa fa-star-o',
+                'fa fa-flag',
+                'fa fa-flag-o',
+                'fa fa-flag-checkered',
+                'fa fa-bookmark',
+                'fa fa-bookmark-o',
+                'fa fa-shield',
+                'fa fa-anchor'
+            ];
+            self.filteredIcons = ko.pureComputed(function() {
+                const query = self.iconSearchQuery().toLowerCase();
+                if (!query) return self.availableIcons;
+                return self.availableIcons.filter(icon => 
+                    icon.toLowerCase().includes(query)
+                );
+            });
+
+            self.selectIcon = function(icon) {
+                self.selectedIcon(icon);
+            };
+
             self.isNameProvided = ko.pureComputed(function() {
                 return self.basemapName() && self.basemapName().trim().length > 0;
             });
@@ -97,6 +224,7 @@ define([
                     dz.on('sending', function(file, xhr, formData) {
                         formData.append('basemap_name', self.basemapName());
                         formData.append('basemap_sortorder', self.sortOrder());
+                        formData.append('basemap_icon', self.selectedIcon());
                         formData.append('basemap_addto_map', true);
                         formData.append('basemap_ispublic', self.isPublic());
                         formData.append('basemap_isoverlay', self.isOverlay());
