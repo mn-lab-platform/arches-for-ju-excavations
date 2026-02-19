@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import os
 from django.core.exceptions import ImproperlyConfigured
 import ast
+from django.utils.safestring import mark_safe
 
 
 def get_env_variable(var_name):
@@ -49,12 +50,36 @@ if not DEBUG:
 # work correctly when running gunicorn.
 APP_NAME = get_env_variable("ARCHES_PROJECT")
 
+DEFAULT_FROM_EMAIL = "archesnoreply@cenagis.edu.pl"
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 EMAIL_HOST = 'pw-mx1.cenagis.edu.pl'
 EMAIL_HOST_USER = "archesnoreply@cenagis.edu.pl"
 EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_PASSWORD")
 EMAIL_PORT = 465
+
+
+_DEPLOY_HOST = get_env_variable('DEPLOY_HOST')
+_DOMAIN_URL = f"https://{_DEPLOY_HOST}"
+
+EXTRA_EMAIL_CONTEXT = {
+    "salutation": "Hi", 
+    "expiration": '24 hours', 
+    
+    "arches_project_name": "Thelpousa Agora Project",
+    "header_logo_alt": "Mare Nostrum Lab",
+    "greeting": mark_safe("""
+        Thanks for signing up to the <strong><a href="https://www.archesproject.org/" style="color:#0070d2; text-decoration:underline;">Arches</a></strong> instance created as part of the 
+        <strong><a href="https://mare.id.uj.edu.pl/pl" style="color:#0070d2; text-decoration:underline;">Mare Nostrum Lab</a></strong>, a project of the 
+        <strong>Institute of Archaeology at Jagiellonian University</strong>. 
+        All you need to do is confirm your email address by clicking the button below and we are good to go. 🏛️
+    """),
+    "button_text": "Confirm",
+    "domain_url": _DOMAIN_URL,
+    "footer_logo_alt": "Jagiellonian University",
+    "footer_strong_text": mark_safe("Institute of Archaeology &bull; Jagiellonian University"),
+    "footer_additional_text": mark_safe("Gołębia 11 &middot; 31-007 Kraków &middot; Poland")
+}
 
 DATABASES = {
     "default": {
