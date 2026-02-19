@@ -2,25 +2,833 @@ import ko from 'knockout';
 import $ from 'jquery';
 import arches from 'arches';
 import ReportViewModel from 'viewmodels/report';
-import iiifMapReportTemplate from 'templates/views/report-templates/iiif-report.htm';
 
-// IMPORTANT: ensure component is registered
-import 'views/components/iiif/iiif-map-viewer';
+import iiifReportTemplate from 'templates/views/report-templates/iiif-report.htm';
 
-// Node ID pola z URL-em IIIF w tile
+// ⬇⬇⬇ potrzebne do map-viewera (w tym samym pliku) ⬇⬇⬇
+import maplibregl from 'maplibre-gl';
+import proj4 from 'proj4';
+import iiifMapViewerTemplate from 'templates/views/components/iiif/iiif-map-viewer.htm';
+
 const DIGITAL_RES_URL_NODE_ID = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
+const LOG = '[iiif-report]';
+
+// ============================================================================
+// =======================  START: iiif-map-viewer  ===========================
+// ============================================================================
+
+const MV_LOG = '[iiif-map-viewer]';
+
+// -------- CDN loader for @allmaps/maplibre --------
+// beta.38: NIE zakładaj setMapOptions / setMapsOptions -> ale jak są, to używamy do opacity
+const ALLMAPS_ESM_URL =
+  'https://esm.sh/@allmaps/maplibre@1.0.0-beta.38?bundle';
+
+let _allmapsCdnPromise = null;
+function loadAllmapsCdn() {
+  if (_allmapsCdnPromise) return _allmapsCdnPromise;
+
+  _allmapsCdnPromise = import(/* webpackIgnore: true */ ALLMAPS_ESM_URL)
+    .then((mod) => {
+      const ctor = mod?.WarpedMapLayer || mod?.default?.WarpedMapLayer || mod?.default;
+      if (typeof ctor !== 'function') {
+        throw new Error('WarpedMapLayer not found in ESM module');
+      }
+      return ctor;
+    });
+
+  return _allmapsCdnPromise;
+}
+
+/**
+ * Minimal binding: odpala callback kiedy element jest w DOM.
+ * Używamy tego, żeby initMap dostał realny div.
+ */
+ko.bindingHandlers.iiifMapInit = {
+  init: function(element, valueAccessor) {
+    const callback = valueAccessor();
+    if (typeof callback === 'function') callback(element);
+  }
+};
+
+function mdValue(canvas, key) {
+  const md = canvas && canvas.metadata;
+  if (!Array.isArray(md)) return null;
+  for (let i = 0; i < md.length; i++) {
+    const row = md[i];
+    const label = row?.label?.en?.[0] ?? row?.label?.none?.[0] ?? null;
+    if (label !== key) continue;
+    const val = row?.value?.en?.[0] ?? row?.value?.none?.[0] ?? null;
+    return val ?? null;
+  }
+  return null;
+}
+
+function parseCanvasGeoref(canvas) {
+  const has = mdValue(canvas, 'has_georef');
+  const hasGeoref = String(has).toLowerCase() === 'true';
+  const epsgRaw = mdValue(canvas, 'epsg');
+  const epsg = epsgRaw ? parseInt(epsgRaw, 10) : null;
+  const trRaw = mdValue(canvas, 'transform');
+  let transform = null;
+  try { transform = trRaw ? JSON.parse(trRaw) : null; } catch (e) { transform = null; }
+  const width = parseInt(mdValue(canvas, 'width') || '0', 10);
+  const height = parseInt(mdValue(canvas, 'height') || '0', 10);
+  return { hasGeoref, epsg, transform, width, height };
+}
+
+function isValidGeoref(g) {
+  return !!(
+    g &&
+    g.hasGeoref === true &&
+    Number.isFinite(g.epsg) &&
+    Array.isArray(g.transform) &&
+    g.transform.length === 6 &&
+    Number.isFinite(g.width) && g.width > 1 &&
+    Number.isFinite(g.height) && g.height > 1
+  );
+}
+
+function baseLabelKey(label) {
+  return String(label || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\s+/g, ' ');
+}
+
+function slugifyId(s) {
+  return String(s || 'layer')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'layer';
+}
+
+function forceDoubleSlashAfterIiif(url) {
+  if (!url) return url;
+
+  let s = String(url).trim();
+  s = s.replace(/\/info\.json$/i, '').replace(/\/+$/, '');
+
+  const isAbs = /^https?:\/\//i.test(s);
+
+  if (isAbs) {
+    try {
+      const u = new URL(s);
+      let p = u.pathname || '/';
+
+      if (/^\/{1,2}data\//.test(p)) {
+        p = '/iiif/' + p.replace(/^\/+/, '');
+      } else if (!/^\/iiif(\/|$)/.test(p)) {
+        p = '/iiif/' + p.replace(/^\/+/, '');
+      }
+
+      p = p.replace(/^\/iiif\/(?!\/)(data\/)/, '/iiif//$1');
+
+      u.pathname = p;
+      const out = u.toString().replace(/\/+$/, '');
+      return out;
+    } catch (e) {
+      console.warn(MV_LOG, 'forceDoubleSlashAfterIiif URL parse failed:', s, e);
+    }
+  }
+
+  if (/^\/{1,2}data\//.test(s)) {
+    s = '/iiif/' + s.replace(/^\/+/, '');
+  } else if (!/^\/iiif(\/|$)/.test(s)) {
+    s = '/iiif/' + s.replace(/^\/+/, '');
+  }
+
+  s = s.replace(/^\/iiif\/(?!\/)(data\/)/, '/iiif//$1');
+  return s;
+}
+
+function extractServiceUrlFromCanvas(canvas) {
+  try {
+    const ap = canvas?.items?.[0];
+    const ann = ap?.items?.[0];
+    const body = ann?.body;
+    if (!body) return null;
+
+    const svc = body.service;
+    const s = Array.isArray(svc) ? svc[0] : svc;
+    const id = s?.id || s?.['@id'];
+    if (!id) return null;
+
+    return forceDoubleSlashAfterIiif(id);
+  } catch (e) {
+    console.warn(MV_LOG, 'extractServiceUrlFromCanvas failed:', e);
+    return null;
+  }
+}
+
+function canvasLabel(canvas) {
+  const l = canvas?.label;
+  return l?.en?.[0] ?? l?.none?.[0] ?? (typeof l === 'string' ? l : 'Layer');
+}
+
+function affineForward(tr, col, row) {
+  const a = tr[0], b = tr[1], c = tr[2], d = tr[3], e = tr[4], f = tr[5];
+  return [a * col + b * row + c, d * col + e * row + f];
+}
+
+function boundsFromCorners(cornersLonLat) {
+  let minLon = 180, minLat = 90, maxLon = -180, maxLat = -90;
+  for (const ll of cornersLonLat) {
+    if (!ll) continue;
+    const lon = ll[0], lat = ll[1];
+    if (!isFinite(lon) || !isFinite(lat)) continue;
+    minLon = Math.min(minLon, lon); minLat = Math.min(minLat, lat);
+    maxLon = Math.max(maxLon, lon); maxLat = Math.max(maxLat, lat);
+  }
+  if (minLon > maxLon || minLat > maxLat) return null;
+  return [[minLon, minLat], [maxLon, maxLat]];
+}
+
+function buildGeorefAnnotation(serviceUrl, width, height, cornersLonLat) {
+  const w = Math.round(width);
+  const h = Math.round(height);
+
+  const svg =
+    `<svg width="${w}" height="${h}">` +
+    `<polygon points="0,0 ${w},0 ${w},${h} 0,${h}" />` +
+    `</svg>`;
+
+  return {
+    id: 'urn:uuid:' + Math.random().toString(16).slice(2),
+    type: 'Annotation',
+    motivation: 'georeference',
+
+    target: {
+      type: 'SpecificResource',
+      source: { id: serviceUrl, type: 'ImageService3' },
+      selector: { type: 'SvgSelector', value: svg }
+    },
+
+    body: {
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { resourceCoords: [0, 0] }, geometry: { type: 'Point', coordinates: cornersLonLat[0] } },
+        { type: 'Feature', properties: { resourceCoords: [w, 0] }, geometry: { type: 'Point', coordinates: cornersLonLat[1] } },
+        { type: 'Feature', properties: { resourceCoords: [w, h] }, geometry: { type: 'Point', coordinates: cornersLonLat[2] } },
+        { type: 'Feature', properties: { resourceCoords: [0, h] }, geometry: { type: 'Point', coordinates: cornersLonLat[3] } }
+      ]
+    }
+  };
+}
+
+// ---- OPACITY: najpierw API Allmaps, potem CSS fallback ----
+function setLayerOpacityCompat(layerObj, mapIds, opacity) {
+  const o = Math.max(0, Math.min(1, parseFloat(opacity)));
+  if (!layerObj) return;
+
+  // 0) single-layer API (niektóre buildy)
+  if (typeof layerObj.setOpacity === 'function') {
+    try { layerObj.setOpacity(o); return; } catch (e) {}
+  }
+
+  // 1) API per-map (jeśli jest) — to jest realnie jedyny pewny sposób
+  const ids = Array.isArray(mapIds) ? mapIds.filter(x => typeof x === 'string') : [];
+
+  if (ids.length && typeof layerObj.setMapsOptions === 'function') {
+    try { layerObj.setMapsOptions(ids, { opacity: o }); return; } catch (e) {}
+  }
+
+  if (ids.length && typeof layerObj.setMapOptions === 'function') {
+    let ok = false;
+    for (const id of ids) {
+      try { layerObj.setMapOptions(id, { opacity: o }); ok = true; } catch (e) {}
+    }
+    if (ok) return;
+  }
+
+  // inne warianty nazw w różnych buildach
+  if (ids.length && typeof layerObj.setMapOpacity === 'function') {
+    let ok = false;
+    for (const id of ids) {
+      try { layerObj.setMapOpacity(id, o); ok = true; } catch (e) {}
+    }
+    if (ok) return;
+  }
+
+  if (ids.length && typeof layerObj.setOpacity === 'function') {
+    // czasem bywa setOpacity(mapId, opacity)
+    let ok = false;
+    for (const id of ids) {
+      try { layerObj.setOpacity(id, o); ok = true; } catch (e) {}
+    }
+    if (ok) return;
+  }
+
+  // 2) CSS fallback (działa tylko jeśli Allmaps ma osobny canvas)
+  const c =
+    layerObj.canvas ||
+    layerObj._canvas ||
+    layerObj._glCanvas ||
+    null;
+
+  if (c && c.style) {
+    c.style.opacity = String(o);
+  }
+}
+
+function applyOpacityWithRetry(vm, triesLeft) {
+  if (!vm || !vm.layerObj) return;
+  setLayerOpacityCompat(vm.layerObj, vm.mapIds, vm.opacity());
+
+  const c = vm.layerObj.canvas || vm.layerObj._canvas || vm.layerObj._glCanvas;
+  if (c && c.style) return;
+
+  if ((triesLeft ?? 0) <= 0) return;
+  requestAnimationFrame(() => applyOpacityWithRetry(vm, (triesLeft ?? 0) - 1));
+}
+
+// ---- warstwa-level controls (działa bez setMapOptions) ----
+async function setLayerVisibleCompat(map, vm, visible) {
+  if (!map || !vm) return;
+
+  if (!visible) {
+    try { if (vm.layerId && map.getLayer(vm.layerId)) map.removeLayer(vm.layerId); } catch (e) {}
+    vm.layerObj = null;
+    vm._isOnMap = false;
+    return;
+  }
+
+  if (vm.layerId && map.getLayer(vm.layerId)) {
+    vm._isOnMap = true;
+    try { map.moveLayer(vm.layerId); } catch (e) {}
+    // reaplikuj opacity “na wszelki”
+    applyOpacityWithRetry(vm, 2);
+    return;
+  }
+
+  try {
+    const layer = new vm.WarpedCtor(vm.layerId);
+    map.addLayer(layer);
+    vm.layerObj = layer;
+    vm._isOnMap = true;
+
+    // klucz: ponownie dodaj georef annotation + zaktualizuj mapIds
+    const res = await layer.addGeoreferenceAnnotation(vm._anno);
+    vm.mapIds = (res || []).filter(x => typeof x === 'string');
+
+    // przywróć opacity po re-create
+    applyOpacityWithRetry(vm, 6);
+
+    try { map.moveLayer(vm.layerId); } catch (e) {}
+  } catch (e) {
+    console.error(MV_LOG, 'Failed to re-enable layer', vm.layerId, e);
+  }
+}
+
+// -------------------- measure helpers --------------------
+function haversineMeters(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 6371008.8;
+  const lat1 = toRad(a[1]);
+  const lon1 = toRad(a[0]);
+  const lat2 = toRad(b[1]);
+  const lon2 = toRad(b[0]);
+  const dLat = lat2 - lat1;
+  const dLon = lon2 - lon1;
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function polylineLengthMeters(coords) {
+  if (!Array.isArray(coords) || coords.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < coords.length; i++) total += haversineMeters(coords[i - 1], coords[i]);
+  return total;
+}
+
+function formatDistance(meters) {
+  if (!Number.isFinite(meters) || meters <= 0) return '';
+  if (meters < 1000) return `${meters.toFixed(1)} m`;
+  return `${(meters / 1000).toFixed(3)} km`;
+}
+
+// -------------------- component --------------------
+ko.components.register('iiif-map-viewer', {
+  viewModel: {
+    createViewModel: function(params) {
+      const self = {};
+      installIiifInfoJsonPatch();
+
+      self.manifest = params.manifest;
+      self.status = ko.observable('Initializing…');
+      self.error = ko.observable('');
+      self.layers = ko.observableArray([]);
+
+      self._map = null;
+      self.mapReady = ko.observable(false);
+      self._rendering = false;
+      self._renderedManifestId = null;
+
+      self.measureMode = ko.observable(false);
+      self.measureDistance = ko.observable('');
+
+      const MEASURE_SOURCE_ID = 'iiif-measure-source';
+      const MEASURE_POINTS_LAYER_ID = 'iiif-measure-points';
+      const MEASURE_LINES_LAYER_ID = 'iiif-measure-lines';
+
+      let _measurePointSeq = 1;
+      self._measureGeojson = { type: 'FeatureCollection', features: [] };
+
+      function getMeasurePoints() {
+        return self._measureGeojson.features.filter(f => f?.geometry?.type === 'Point');
+      }
+
+      function ensureMeasureLayers() {
+        if (!self._map) return;
+
+        if (!self._map.getSource(MEASURE_SOURCE_ID)) {
+          self._map.addSource(MEASURE_SOURCE_ID, {
+            type: 'geojson',
+            data: self._measureGeojson
+          });
+        }
+
+        if (!self._map.getLayer(MEASURE_POINTS_LAYER_ID)) {
+          self._map.addLayer({
+            id: MEASURE_POINTS_LAYER_ID,
+            type: 'circle',
+            source: MEASURE_SOURCE_ID,
+            paint: {
+              'circle-radius': 5,
+              'circle-color': '#000'
+            },
+            filter: ['in', '$type', 'Point'],
+            layout: { visibility: 'none' }
+          });
+        }
+
+        if (!self._map.getLayer(MEASURE_LINES_LAYER_ID)) {
+          self._map.addLayer({
+            id: MEASURE_LINES_LAYER_ID,
+            type: 'line',
+            source: MEASURE_SOURCE_ID,
+            layout: {
+              'line-cap': 'round',
+              'line-join': 'round',
+              visibility: 'none'
+            },
+            paint: {
+              'line-color': '#000',
+              'line-width': 2.5
+            },
+            filter: ['in', '$type', 'LineString']
+          });
+        }
+
+        bringMeasureLayersToFront();
+      }
+
+      function bringMeasureLayersToFront() {
+        if (!self._map) return;
+        try {
+          // najpierw linia, potem punkty -> punkty nad linią
+          if (self._map.getLayer(MEASURE_LINES_LAYER_ID)) self._map.moveLayer(MEASURE_LINES_LAYER_ID);
+          if (self._map.getLayer(MEASURE_POINTS_LAYER_ID)) self._map.moveLayer(MEASURE_POINTS_LAYER_ID);
+        } catch (e) {}
+      }
+
+      function setMeasureLayerVisibility(isVisible) {
+        if (!self._map) return;
+        const v = isVisible ? 'visible' : 'none';
+        try { if (self._map.getLayer(MEASURE_POINTS_LAYER_ID)) self._map.setLayoutProperty(MEASURE_POINTS_LAYER_ID, 'visibility', v); } catch (e) {}
+        try { if (self._map.getLayer(MEASURE_LINES_LAYER_ID)) self._map.setLayoutProperty(MEASURE_LINES_LAYER_ID, 'visibility', v); } catch (e) {}
+      }
+
+      function rebuildMeasureFeatures(pointsOnly) {
+        const points = pointsOnly.slice();
+        const features = points.slice();
+
+        if (points.length > 1) {
+          features.push({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: points.map(p => p.geometry.coordinates)
+            },
+            properties: {}
+          });
+        }
+
+        self._measureGeojson = {
+          type: 'FeatureCollection',
+          features
+        };
+      }
+
+      function syncMeasureSourceAndDistance() {
+        const src = self._map?.getSource(MEASURE_SOURCE_ID);
+        if (src && typeof src.setData === 'function') {
+          src.setData(self._measureGeojson);
+        }
+
+        const coords = getMeasurePoints().map(p => p.geometry.coordinates);
+        const total = polylineLengthMeters(coords);
+        self.measureDistance(formatDistance(total));
+      }
+
+      function onMeasureClick(e) {
+        if (!self.measureMode() || !self._map) return;
+        if (!self._map.getLayer(MEASURE_POINTS_LAYER_ID)) return;
+
+        let points = getMeasurePoints();
+
+        let hit = null;
+        try {
+          const hits = self._map.queryRenderedFeatures(e.point, { layers: [MEASURE_POINTS_LAYER_ID] });
+          hit = hits && hits.length ? hits[0] : null;
+        } catch (err) {
+          hit = null;
+        }
+
+        if (hit?.properties?.id != null) {
+          const id = String(hit.properties.id);
+          points = points.filter(p => String(p?.properties?.id) !== id);
+        } else {
+          points.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [e.lngLat.lng, e.lngLat.lat]
+            },
+            properties: {
+              id: String(_measurePointSeq++)
+            }
+          });
+        }
+
+        rebuildMeasureFeatures(points);
+        syncMeasureSourceAndDistance();
+      }
+
+      function onMeasureMouseMove(e) {
+        if (!self._map) return;
+        const canvas = self._map.getCanvas();
+        if (!canvas) return;
+
+        if (!self.measureMode()) {
+          canvas.style.cursor = '';
+          return;
+        }
+
+        try {
+          const hits = self._map.queryRenderedFeatures(e.point, { layers: [MEASURE_POINTS_LAYER_ID] });
+          canvas.style.cursor = (hits && hits.length) ? 'pointer' : 'crosshair';
+        } catch (err) {
+          canvas.style.cursor = 'crosshair';
+        }
+      }
+
+      self.clearMeasure = function() {
+        _measurePointSeq = 1;
+        self._measureGeojson = { type: 'FeatureCollection', features: [] };
+        self.measureDistance('');
+        syncMeasureSourceAndDistance();
+      };
+
+      self.toggleMeasure = function() {
+        const next = !self.measureMode();
+        self.measureMode(next);
+        setMeasureLayerVisibility(next);
+
+        if (!next) {
+          self.clearMeasure();
+          if (self._map?.getCanvas()) self._map.getCanvas().style.cursor = '';
+        } else if (self._map?.getCanvas()) {
+          bringMeasureLayersToFront();
+          self._map.getCanvas().style.cursor = 'crosshair';
+        }
+      };
+
+      function manifestId(m) {
+        return m && (m.id || m['@id']) ? (m.id || m['@id']) : null;
+      }
+
+      function destroy() {
+        try { if (self._map) self._map.remove(); } catch (e) {}
+        self._map = null;
+        self.layers([]);
+        self.mapReady(false);
+        self._renderedManifestId = null;
+      }
+
+      function clearWarpedLayers() {
+        if (self._map) {
+          const prev = self.layers();
+          for (const l of prev) {
+            if (l?.layerId && self._map.getLayer(l.layerId)) {
+              try { self._map.removeLayer(l.layerId); } catch (e) {}
+            }
+          }
+        }
+        self.layers([]);
+      }
+
+      function fitToAllLayers() {
+        if (!self._map) return;
+        const boundsList = self.layers().map(l => l.bounds).filter(Boolean);
+        if (!boundsList.length) return;
+
+        let minLon = 180, minLat = 90, maxLon = -180, maxLat = -90;
+        for (const b of boundsList) {
+          minLon = Math.min(minLon, b[0][0]); minLat = Math.min(minLat, b[0][1]);
+          maxLon = Math.max(maxLon, b[1][0]); maxLat = Math.max(maxLat, b[1][1]);
+        }
+        self._map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 40, duration: 0 });
+      }
+      self.fit = fitToAllLayers;
+
+      // ---- getWarpedCtor via CDN ----
+      let _warpedCtor = null;
+      async function getWarpedCtor() {
+        if (_warpedCtor) return _warpedCtor;
+        self.status('Loading Allmaps library…');
+        _warpedCtor = await loadAllmapsCdn();
+        self.status('');
+        return _warpedCtor;
+      }
+
+      async function addAllmapsLayersFromManifest(m) {
+        const canvases = Array.isArray(m?.items) ? m.items : [];
+        const picked = [];
+
+        const georefByBase = new Map();
+
+        for (const canvas of canvases) {
+          const svc = extractServiceUrlFromCanvas(canvas);
+          if (!svc) continue;
+
+          const g = parseCanvasGeoref(canvas);
+          if (!isValidGeoref(g)) continue;
+
+          const label = canvasLabel(canvas);
+          const baseKey = baseLabelKey(label);
+
+          if (!georefByBase.has(baseKey)) {
+            georefByBase.set(baseKey, {
+              epsg: g.epsg,
+              transform: g.transform,
+              width: g.width,
+              height: g.height,
+              sourceLabel: label
+            });
+          }
+        }
+
+        for (const canvas of canvases) {
+          const svc = extractServiceUrlFromCanvas(canvas);
+          if (!svc) continue;
+
+          const label = canvasLabel(canvas);
+          const baseKey = baseLabelKey(label);
+
+          const own = parseCanvasGeoref(canvas);
+          const donor = georefByBase.get(baseKey);
+
+          let geo = null;
+
+          if (isValidGeoref(own)) geo = own;
+          else if (donor) geo = donor;
+          else continue;
+
+          const width = own?.width > 1 ? own.width : geo.width;
+          const height = own?.height > 1 ? own.height : geo.height;
+
+          picked.push({
+            label,
+            serviceUrl: svc,
+            epsg: geo.epsg,
+            transform: geo.transform,
+            width,
+            height
+          });
+        }
+
+        if (!picked.length) {
+          self.error('No displayable canvases found (no service/georeference).');
+          return;
+        }
+
+        const WarpedCtor = await getWarpedCtor();
+        const layerVMs = [];
+
+        for (const p of picked) {
+          const layerId = 'iiif-warped-' + slugifyId(p.label);
+
+          const warpedLayer = new WarpedCtor(layerId);
+          try {
+            self._map.addLayer(warpedLayer);
+          } catch (e) {
+            console.error(MV_LOG, 'Failed to add warped layer to map:', layerId, e);
+            continue;
+          }
+
+          const fromKey = 'EPSG:' + p.epsg;
+          if (!proj4.defs(fromKey)) {
+            console.warn(MV_LOG, 'proj4 missing definition for', fromKey, '(ensure proj4 defs loaded)');
+          }
+
+          const w = p.width, h = p.height, tr = p.transform;
+          const pxCorners = [[0,0],[w,0],[w,h],[0,h]];
+          const cornersLonLat = pxCorners.map(([x,y]) => {
+            const xy = affineForward(tr, x, y);
+            const ll = proj4(fromKey, 'EPSG:4326', xy);
+            return [ll[0], ll[1]];
+          });
+
+          const bounds = boundsFromCorners(cornersLonLat);
+          if (!bounds) {
+            try { if (self._map.getLayer(layerId)) self._map.removeLayer(layerId); } catch (e) {}
+            continue;
+          }
+
+          const anno = buildGeorefAnnotation(p.serviceUrl, w, h, cornersLonLat);
+
+          let mapIds = [];
+          try {
+            const res = await warpedLayer.addGeoreferenceAnnotation(anno);
+            mapIds = (res || []).filter(x => typeof x === 'string');
+          } catch (e) {
+            console.error(MV_LOG, 'addGeoreferenceAnnotation failed for', p.label, e);
+            try { if (self._map.getLayer(layerId)) self._map.removeLayer(layerId); } catch (e2) {}
+            continue;
+          }
+
+          const vm = {
+            label: p.label,
+            bounds,
+            layerId,
+            layerObj: warpedLayer,
+            WarpedCtor,
+            _anno: anno,
+            mapIds,               // <--- WRÓCIŁO
+            _isOnMap: true,
+            visible: ko.observable(true),
+            opacity: ko.observable(1)
+          };
+
+          // initial opacity attempt
+          applyOpacityWithRetry(vm, 8);
+
+          vm.visible.subscribe(async (v) => {
+            await setLayerVisibleCompat(self._map, vm, !!v);
+          });
+
+          vm.opacity.subscribe(val => {
+            // jeśli layer zdjęty, tylko trzymamy wartość – apply będzie przy enable
+            if (!vm.layerObj) return;
+            setLayerOpacityCompat(vm.layerObj, vm.mapIds, val);
+            applyOpacityWithRetry(vm, 3);
+            try { self._map.triggerRepaint(); } catch (e) {}
+          });
+
+          layerVMs.push(vm);
+        }
+
+        self.layers(layerVMs);
+        bringMeasureLayersToFront();
+        fitToAllLayers();
+      }
+
+      async function renderLayersIfReady(force) {
+        const m = ko.unwrap(self.manifest);
+        if (!m || !self._map || !self.mapReady()) return;
+        if (self._rendering) return;
+
+        const mid = manifestId(m);
+        if (!force && mid && self._renderedManifestId === mid) return;
+
+        self._rendering = true;
+        self.error('');
+
+        try {
+          clearWarpedLayers();
+          await addAllmapsLayersFromManifest(m);
+          self._renderedManifestId = mid || null;
+        } catch (e) {
+          console.error(MV_LOG, 'Failed to add layers from manifest', e);
+          self.error('Failed to build Allmaps layers: ' + (e?.message || String(e)));
+        } finally {
+          self._rendering = false;
+        }
+      }
+
+      self.initMap = function(mapDiv) {
+        if (self._map) return;
+        if (!mapDiv) { self.error('Missing map container.'); return; }
+
+        self.mapReady(false);
+        self.status('Initializing map…');
+
+        self._map = new maplibregl.Map({
+          container: mapDiv,
+          style: params.basemapStyleUrl || 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+          center: [19, 52],
+          zoom: 5,
+          maxZoom: 32
+        });
+
+        self._map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        self._map.on('click', onMeasureClick);
+        self._map.on('mousemove', onMeasureMouseMove);
+
+        self._map.on('load', function() {
+          self.status('');
+          self.mapReady(true);
+          try { self._map.resize(); } catch (e) {}
+
+          ensureMeasureLayers();
+          setMeasureLayerVisibility(false);
+
+          renderLayersIfReady(true);
+        });
+
+        self._map.on('error', function(e) {
+          console.error(MV_LOG, 'MapLibre error', e);
+        });
+
+        ko.utils.domNodeDisposal.addDisposeCallback(mapDiv, destroy);
+      };
+
+      ko.computed(() => {
+        const m = ko.unwrap(self.manifest);
+        const ready = self.mapReady();
+        if (!m || !ready) return;
+        renderLayersIfReady(false);
+      });
+
+      return self;
+    }
+  },
+  template: iiifMapViewerTemplate
+});
+
+// ============================================================================
+// ========================  END: iiif-map-viewer  ============================
+// ============================================================================
+
+
+// ------------------------------------------------------------
+// iiif-report component
+// ------------------------------------------------------------
 
 export default ko.components.register('iiif-report', {
   viewModel: function(params) {
     const self = this;
 
-    // ---- base report vm ----
     params.configKeys = params.configKeys || [];
     ReportViewModel.apply(self, [params]);
-    self.elevationEnabled = ko.observable(false);
-    self.elevationStatus = ko.observable('');
 
-    // ---- helpers ----
     function baseRoot() {
       const root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
       return root.replace(/\/+$/, '') + '/';
@@ -33,7 +841,6 @@ export default ko.components.register('iiif-report', {
     function getOverrideResourceIdFromActiveTab() {
       const tab = params.activeTab ? safeUnwrap(params.activeTab) : null;
       if (!tab) return null;
-
       const cp = tab.component_params ? safeUnwrap(tab.component_params) : null;
 
       const rid =
@@ -43,32 +850,15 @@ export default ko.components.register('iiif-report', {
       return rid || null;
     }
 
-    function extractServiceUrlFromManifest(manifest) {
-      const canvas = manifest?.sequences?.[0]?.canvases?.[0];
-      const img = canvas?.images?.[0]?.resource;
-      const svc = img?.service;
-      const s = Array.isArray(svc) ? svc[0] : svc;
-      return s?.['@id'] || s?.id || null;
+    function tilesArray(resp) {
+      if (!resp) return [];
+      if (Array.isArray(resp)) return resp;
+      if (Array.isArray(resp.tiles)) return resp.tiles;
+      return [];
     }
 
-    function extractMetaUrlFromManifest(manifest) {
-      const sa = manifest?.seeAlso;
-      const arr = Array.isArray(sa) ? sa : (sa ? [sa] : []);
-      const entry = arr.find(x => (x.format || '').includes('json')) || arr[0];
-      return entry ? (entry['@id'] || entry.id || null) : null;
-    }
-
-    // ✅ NEW: Extract related manifest URLs
-    function extractRelatedManifests(manifest) {
-      const related = manifest?.related;
-      if (!related) return [];
-      const arr = Array.isArray(related) ? related : [related];
-      return arr
-        .filter(r => r['@type'] === 'sc:Manifest' && r['@id'])
-        .map(r => r['@id']);
-    }
-
-    function getNodeRawFromTiles(nodeId, tiles) {
+    function getNodeRawFromTiles(nodeId, tilesResp) {
+      const tiles = tilesArray(tilesResp);
       for (let i = 0; i < tiles.length; i++) {
         const tile = tiles[i];
         if (!tile || !tile.data) continue;
@@ -91,677 +881,164 @@ export default ko.components.register('iiif-report', {
 
     function looksLikeManifestUrl(url) {
       if (!url) return false;
-      return String(url).includes('/manifest/');
+      const s = String(url);
+      return (s.indexOf('/manifest/') > -1 || s.indexOf('/api/iiif/geotiff-manifest/') > -1);
     }
 
-    // ---- state exposed to template ----
-    self.viewerId = ko.observable('iiif-report-unknown');
+    function normalizeManifestUrl(url) {
+      if (!url || typeof url !== 'string') return null;
+      const s = url.trim();
+      if (!s) return null;
 
-    // ✅ CHANGED: Array of service URLs for multi-layer display
-    self.iiifServiceUrls = ko.observableArray([]);
+      if (/^https?:\/\//i.test(s)) return s;
 
+      const root = baseRoot().replace(/\/$/, '');
+      return s.charAt(0) === '/' ? root + s : root + '/' + s;
+    }
+
+    function geotiffManifestUrlForResource(resourceId) {
+      return baseRoot() + 'api/iiif/geotiff-manifest/' + encodeURIComponent(resourceId);
+    }
+
+    function defaultManifestUrlForResource(resourceId) {
+      return baseRoot() + 'manifest/' + encodeURIComponent(resourceId);
+    }
+
+    self.status = ko.observable('Loading…');
+    self.error = ko.observable('');
     self.manifestUrl = ko.observable(null);
-    self.globalid = ko.observable(null);
-    self.metaUrl = ko.observable(null);
-    self.existingAnnotations = ko.observableArray([]);
+    self.manifest = ko.observable(null);
 
-    // meta UI
-    self.meta = ko.observable(null);
-    self.metaError = ko.observable('');
-    self.metaLoaded = ko.observable(false);
-
-    // measure tool state
-    self.measureEnabled = ko.observable(true);
-    self.measureStatus = ko.observable('');
-
-    // internal refs for measurement
-    self._mapRef = null;
-    self._geoMeta = null;
-    self._measureGroup = null;
-    self._measureControl = null;
-    self._onMeasureCreated = null;
-    
-    // ✅ NEW: Store mapping from service URL to globalid
-    self._serviceUrlToGlobalidMap = {};
-
-    // ---- fetch geotiff meta ----
-    function fetchGeotiffMeta(globalid, explicitMetaUrl) {
-      self.metaLoaded(false);
-      self.metaError('');
-
-      let url = null;
-      if (explicitMetaUrl) url = explicitMetaUrl;
-      else if (globalid) url = baseRoot() + 'api/iiif/geotiff-meta/' + globalid;
-      else return Promise.resolve(null);
-
-      return fetch(url, { credentials: 'include' })
-        .then(r => {
-          if (!r.ok) throw new Error('geotiff-meta HTTP ' + r.status);
-          return r.json();
-        })
-        .then(j => {
-          if (j && j.ok && j.meta) return j.meta;
-          throw new Error('Invalid geotiff-meta payload');
-        })
-        .catch(err => {
-          self.metaError(String(err.message || err));
-          return null;
-        })
-        .finally(() => {
-          self.metaLoaded(true);
-        });
-    }
-
-    // ---- measurement math ----
-    function isMetersCRS(crs) {
-      crs = (crs || '').toUpperCase();
-      return (
-        crs.includes('EPSG:2180') ||
-        crs.includes('EPSG:3857') ||
-        crs.includes('UTM') ||
-        crs.includes('EPSG:326') ||
-        crs.includes('EPSG:327')||
-        (crs.includes('LOCAL_CS') && crs.includes('UNIT["METRE"')) ||
-        (crs.includes('LOCAL_CS') && crs.includes('UNIT["M"'))        
-      );
-    }
-
-    function metersPerDegreeAtLat(latDeg) {
-      const latRad = latDeg * Math.PI / 180;
-      return {
-        mPerDegLat: 111320,
-        mPerDegLon: 111320 * Math.cos(latRad),
-      };
-    }
-
-    function pixelDeltaToNative(dxPx, dyPx, meta) {
-      const t = meta && meta.transform;
-      if (t && isFinite(t.a) && isFinite(t.b) && isFinite(t.d) && isFinite(t.e)) {
-        const dX = (Number(t.a) * dxPx) + (Number(t.b) * dyPx);
-        const dY = (Number(t.d) * dxPx) + (Number(t.e) * dyPx);
-        return { dX, dY };
-      }
-
-      if (meta && meta.res && meta.res.length >= 2) {
-        const rx = Number(meta.res[0]);
-        const ry = Number(meta.res[1]);
-        if (isFinite(rx) && isFinite(ry)) {
-          return { dX: dxPx * rx, dY: dyPx * ry };
-        }
-      }
-      return null;
-    }
-
-    function segmentLengthMeters(p1px, p2px, meta) {
-      const dx = p2px.x - p1px.x;
-      const dy = p2px.y - p1px.y;
-      const dn = pixelDeltaToNative(dx, dy, meta);
-      if (!dn) return null;
-
-      const crs = meta && meta.crs;
-
-      if (isMetersCRS(crs)) {
-        return Math.sqrt(dn.dX * dn.dX + dn.dY * dn.dY);
-      }
-      if ((crs || '').includes('LOCAL_CS')) {
-        console.log('[MEASUREMENT] LOCAL_CS detected, assuming meter units');
-        return Math.sqrt(dn.dX * dn.dX + dn.dY * dn.dY);
-      }
-
-      // EPSG:4326 deg -> meters approx
-      if ((crs || '').toUpperCase().includes('EPSG:4326') && meta.bounds_wgs84) {
-        const lat0 = (Number(meta.bounds_wgs84.top) + Number(meta.bounds_wgs84.bottom)) / 2;
-        const { mPerDegLat, mPerDegLon } = metersPerDegreeAtLat(lat0);
-        const mx = dn.dX * mPerDegLon;
-        const my = dn.dY * mPerDegLat;
-        return Math.sqrt(mx * mx + my * my);
-      }
-
-      return null;
-    }
-
-    function flattenLatLngs(latlngs) {
-      const out = [];
-      (function rec(a) {
-        if (!a) return;
-        if (Array.isArray(a)) a.forEach(rec);
-        else if (a.lat !== undefined && a.lng !== undefined) out.push(a);
-      })(latlngs);
-      return out;
-    }
-
-    function polylineLengthMeters(map, latlngs, meta) {
-      const pts = flattenLatLngs(latlngs);
-      if (pts.length < 2) return null;
-      const z = map.getMaxZoom();
-
-      let total = 0;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p1 = map.project(pts[i], z);
-        const p2 = map.project(pts[i + 1], z);
-        const seg = segmentLengthMeters(p1, p2, meta);
-        if (seg == null) return null;
-        total += seg;
-      }
-      return total;
-    }
-
-    function polygonAreaMeters2(map, latlngs, meta) {
-      const pts = flattenLatLngs(latlngs);
-      if (pts.length < 3) return null;
-
-      const crs = meta && meta.crs;
-      if (!isMetersCRS(crs) && !(crs || '').includes('LOCAL_CS')) {
-        console.warn('[MEASUREMENT] Cannot calculate area - CRS not in meters:', crs);
-        return null;
-      }
-
-      const z = map.getMaxZoom();
-      const px = pts.map(ll => map.project(ll, z));
-
-      const t = meta && meta.transform;
-      let XY = null;
-
-      if (t && isFinite(t.a) && isFinite(t.b) && isFinite(t.d) && isFinite(t.e)) {
-        const a = Number(t.a), b = Number(t.b), d = Number(t.d), e = Number(t.e);
-        XY = px.map(p => ({ X: a * p.x + b * p.y, Y: d * p.x + e * p.y }));
-      } else if (meta && meta.res && meta.res.length >= 2) {
-        const rx = Number(meta.res[0]), ry = Number(meta.res[1]);
-        if (isFinite(rx) && isFinite(ry)) {
-          XY = px.map(p => ({ X: p.x * rx, Y: p.y * ry }));
-        }
-      }
-
-      if (!XY) return null;
-
-      let area = 0;
-      for (let i = 0; i < XY.length; i++) {
-        const j = (i + 1) % XY.length;
-        area += XY[i].X * XY[j].Y - XY[j].X * XY[i].Y;
-      }
-      return Math.abs(area) / 2;
-    }
-
-    function fmtMeters(m) {
-      if (m == null) return '—';
-      if (m >= 1000) return (m / 1000).toFixed(3) + ' km';
-      return m.toFixed(2) + ' m';
-    }
-
-    function fmtArea(m2) {
-      if (m2 == null) return '—';
-      if (m2 >= 10000) return (m2 / 10000).toFixed(3) + ' ha';
-      return m2.toFixed(2) + ' m²';
-    }
-
-    function detachCustomMeasure(map) {
-      const L = window.L;
-      if (!map || !L) return;
-
-      if (self._measureControl) {
-        try { map.removeControl(self._measureControl); } catch (e) {}
-        self._measureControl = null;
-      }
-      if (self._measureGroup) {
-        try { map.removeLayer(self._measureGroup); } catch (e) {}
-        self._measureGroup = null;
-      }
-      if (self._onMeasureCreated) {
-        try { map.off(L.Draw.Event.CREATED, self._onMeasureCreated); } catch (e) {}
-        self._onMeasureCreated = null;
-      }
-    }
-    //SADD
-    function attachCustomMeasure(map, meta) {
-    const L = window.L;
-    if (!L || !L.Control || !L.Control.Draw) {
-      console.warn('[IIIF REPORT] Leaflet.Draw missing (leaflet-draw not loaded?)');
-      return;
-    }
-
-    detachCustomMeasure(map);
-
-    self._measureGroup = new L.FeatureGroup();
-    map.addLayer(self._measureGroup);
-
-    self._measureControl = new L.Control.Draw({
-      edit: { featureGroup: self._measureGroup, remove: true },
-      draw: {
-        polyline: true,
-        polygon: true,
-        rectangle: false,
-        circle: false,
-        marker: true,
-        circlemarker: false
-      }
-    });
-    map.addControl(self._measureControl);
-
-    function onMeasureCreated(e) {
-      if (!self.measureEnabled()) return;
-
-      const layer = e.layer;
-      self._measureGroup.addLayer(layer);
-
-      let msg = 'No geo units (missing/unknown CRS units)';
-      if (!meta) msg = 'No GeoTIFF meta available';
-      if (meta && meta.crs) {
-        console.log('[MEASUREMENT] CRS:', meta.crs);
-        console.log('[MEASUREMENT] Is meters CRS:', isMetersCRS(meta.crs));
-        console.log('[MEASUREMENT] Transform:', meta.transform);
-        console.log('[MEASUREMENT] Resolution:', meta.res);
-      }
-      // ======================
-      // 1) DŁUGOŚĆ / POWIERZCHNIA
-      // ======================
-      if (meta && e.layerType === 'polyline') {
-        const len = polylineLengthMeters(map, layer.getLatLngs(), meta);
-        msg = 'Length: ' + fmtMeters(len);
-      } else if (meta && e.layerType === 'polygon') {
-        const area = polygonAreaMeters2(map, layer.getLatLngs(), meta);
-        const ring = layer.getLatLngs()[0] || layer.getLatLngs();
-        const peri = polylineLengthMeters(map, ring, meta);
-        msg = 'Area: ' + fmtArea(area) + '<br/>Perimeter: ' + fmtMeters(peri);
-      }
-
-      // ======================
-      // 2) PUNKT – ZAWSZE PROBE WYSOKOŚCI
-      // ======================
-      if (e.layerType === 'marker') {
-        const latlng = layer.getLatLng();
-        const z = map.getMaxZoom();
-        const p = map.project(latlng, z);
-
-        // ✅ ZMIANA: Użyj globalid aktywnej warstwy zamiast self.globalid()
-        // self.activeLayerGlobalid pobiera globalid z aktualnie widocznej warstwy
-        let demId = null;
-        demId = demId || self.passid;
-
-
-        console.log("Active Layer globalid:", demId);
-        
-        if (!demId) {
-          self.elevationStatus('No active layer globalid for elevation');
-          msg = 'Point placed (no active layer globalid)';
-        } else {
-          const px = p.x;
-          const py = p.y;
-          const pxI = Math.round(p.x);
-          const pyI = Math.round(p.y);
-
-          // ✅ Użyj globalid aktywnej warstwy do elevation probe
-          const url = baseRoot() + 'api/iiif/dem-elevation/' + demId +
-            '?px=' + pxI + '&py=' + pyI;
-
-          self.elevationStatus('Querying elevation…');
-
-          fetch(url, { credentials: 'include' })
-            .then(r => r.json())
-            .then(data => {
-              if (data.ok && typeof data.elevation === 'number') {
-                const unit = (meta && meta.vertical_unit) || 'm';
-
-                let natX = null, natY = null;
-                if (meta && meta.transform) {
-                  const t = meta.transform;
-                  natX = t.a * px + t.b * py + t.c;
-                  natY = t.d * px + t.e * py + t.f;
-                }
-
-                let popupText =
-                  'Elevation: ' + data.elevation.toFixed(3) + ' ' + unit +
-                  '<br/>Pixel: (' + px.toFixed(1) + ', ' + py.toFixed(1) + ')';
-
-                if (natX !== null && natY !== null) {
-                  popupText +=
-                    '<br/>Native: (' +
-                    natX.toFixed(3) + ', ' + natY.toFixed(3) + ')';
-                }
-
-                layer.bindPopup(popupText).openPopup();
-
-                self.elevationStatus(
-                  'Elevation: ' + data.elevation.toFixed(3) + ' ' + unit +
-                  ' | px=(' + px.toFixed(1) + ', ' + py.toFixed(1) + ')' +
-                  (natX !== null
-                    ? ' | native=(' + natX.toFixed(3) + ', ' + natY.toFixed(3) + ')'
-                    : '')
-                );
-              } else {
-                const msg = data.nodata
-                  ? 'No elevation (nodata)'
-                  : ('Elevation error: ' + (data.error || 'unknown'));
-                layer.bindPopup(msg).openPopup();
-                self.elevationStatus(msg);
-              }
-            })
-            .catch(err => {
-              console.error('[ELEVATION] Error:', err);
-              const msg = 'Elevation request failed';
-              layer.bindPopup(msg).openPopup();
-              self.elevationStatus(msg);
-            });
-        }
-
-        msg = 'Point placed';
-      }
-
-      self.measureStatus(msg.replace('<br/>', ' | '));
-      if (e.layerType !== 'marker') {
-        layer.bindPopup(msg).openPopup();
-      }
-    }
-
-    self._onMeasureCreated = onMeasureCreated;
-    map.on(L.Draw.Event.CREATED, onMeasureCreated);
-
-    console.log('[IIIF REPORT] Custom measure attached (line/polygon + point)');
-  };
-
-    // ✅ ADD: Function to load existing annotations
-    function loadExistingAnnotations(resourceId) {
-      if (!resourceId) return;
-
-      const baseUrl = baseRoot();
-      const manifestUrl = baseUrl + 'manifest/' + resourceId;
-      
-      $.getJSON(manifestUrl)
-        .done(function(manifest) {
-          try {
-            // Check if manifest has annotations
-            const canvas = manifest?.sequences?.[0]?.canvases?.[0];
-            if (!canvas?.otherContent || canvas.otherContent.length === 0) {
-              console.log('[IIIF REPORT] No annotations found in manifest');
-              return;
-            }
-
-            // Load annotation list
-            const listUrl = canvas.otherContent[0]['@id'];
-            console.log('[IIIF REPORT] Loading annotations from:', listUrl);
-            
-            $.getJSON(listUrl)
-              .done(function(annoList) {
-                if (annoList && annoList.resources) {
-                  console.log('[IIIF REPORT] Loaded', annoList.resources.length, 'existing annotations');
-                  self.existingAnnotations(annoList.resources);
-                }
-              })
-              .fail(function(err) {
-                console.warn('[IIIF REPORT] Failed to load annotation list:', err);
-              });
-          } catch(e) {
-            console.warn('[IIIF REPORT] Error parsing manifest for annotations:', e);
-          }
-        })
-        .fail(function(err) {
-          console.warn('[IIIF REPORT] Failed to load manifest for annotations:', err);
-        });
-    }
-
-    // ✅ NEW: Load manifest and related manifests
-    function loadManifestAndSetup(resourceId) {
-      if (!resourceId) return;
-
-      const url = baseRoot() + 'manifest/' + resourceId;
+    function loadManifestFromUrl(url) {
+      self.status('Loading manifest…');
+      self.error('');
       self.manifestUrl(url);
 
-      console.log('[IIIF REPORT] Loading manifest from:', url);
-
-      $.getJSON(url)
-        .done(function(manifest) {
-          // ✅ DEBUG: Log full manifest structure
-          console.log('[IIIF REPORT] ====== FULL MANIFEST ======');
-          console.log('[IIIF REPORT] Manifest @id:', manifest['@id'] || manifest.id);
-          console.log('[IIIF REPORT] Manifest @type:', manifest['@type'] || manifest.type);
-          console.log('[IIIF REPORT] Manifest label:', manifest.label);
-          console.log('[IIIF REPORT] Manifest description:', manifest.description);
-          console.log('[IIIF REPORT] Manifest sequences:', manifest.sequences);
-          console.log('[IIIF REPORT] Manifest related:', manifest.related);
-          console.log('[IIIF REPORT] Manifest seeAlso:', manifest.seeAlso);
-          console.log('[IIIF REPORT] Full manifest object:', manifest);
-          console.log('[IIIF REPORT] ============================');
-
-          const svcUrl = extractServiceUrlFromManifest(manifest);
-          const mu = extractMetaUrlFromManifest(manifest);
-          if (mu) self.metaUrl(mu);
-
-          // ✅ Extract globalid from primary manifest @id
-          const manifestId = manifest['@id'] || manifest.id || '';
-          console.log('[IIIF REPORT] Extracting globalid from manifest @id:', manifestId);
-          const primaryGlobalidMatch = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i.exec(manifestId);
-          const primaryGlobalid = primaryGlobalidMatch ? primaryGlobalidMatch[1] : null;
-          console.log('[IIIF REPORT] Primary manifest globalid:', primaryGlobalid);
-
-          // ✅ Check for related manifests
-          const relatedUrls = extractRelatedManifests(manifest);
-          
-          if (relatedUrls.length > 0) {
-            console.log('[IIIF REPORT] Found related manifests:', relatedUrls);
-            
-            // Load all related manifests WITH their globalids
-            const relatedPromises = relatedUrls.map(relUrl => {
-              console.log('[IIIF REPORT] Loading related manifest from:', relUrl);
-              return $.getJSON(relUrl).then(relManifest => {
-                console.log('[IIIF REPORT] Related manifest loaded:', relManifest);
-                
-                const relServiceUrl = extractServiceUrlFromManifest(relManifest);
-                const relManifestId = relManifest['@id'] || relManifest.id || '';
-                const relGlobalidMatch = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i.exec(relManifestId);
-                const relGlobalid = relGlobalidMatch ? relGlobalidMatch[1] : null;
-                
-                console.log('[IIIF REPORT] Related manifest @id:', relManifestId);
-                console.log('[IIIF REPORT] Related manifest globalid:', relGlobalid);
-                console.log('[IIIF REPORT] Related manifest service URL:', relServiceUrl);
-                
-                return { serviceUrl: relServiceUrl, globalid: relGlobalid };
-              });
-            });
-
-            Promise.all(relatedPromises).then(relatedData => {
-              // Combine primary + related
-              const primaryData = { serviceUrl: svcUrl, globalid: primaryGlobalid };
-              const allData = [primaryData, ...relatedData].filter(d => d.serviceUrl);
-              
-              const allUrls = allData.map(d => d.serviceUrl);
-              
-              // ✅ Create mapping: serviceUrl -> globalid
-              const globalidMap = {};
-              allData.forEach(d => {
-                if (d.serviceUrl && d.globalid) {
-                  globalidMap[d.serviceUrl] = d.globalid;
-                  console.log('[IIIF REPORT] Mapping:', d.serviceUrl, '->', d.globalid);
-                }
-              });
-              
-              self._serviceUrlToGlobalidMap = globalidMap;
-              self.iiifServiceUrls(allUrls);
-              
-              console.log('[IIIF REPORT] Final service URLs:', allUrls);
-              console.log('[IIIF REPORT] Final globalid mapping:', globalidMap);
-              console.log('[IIIF REPORT] Loading', allUrls.length, 'IIIF layers');
-              
-              // ✅ DODAJ: Load annotations after setting up layers
-              loadExistingAnnotations(resourceId);
-            }).catch(err => {
-              console.warn('[IIIF REPORT] Failed to load related manifest:', err);
-              self.iiifServiceUrls([svcUrl].filter(Boolean));
-              // ✅ DODAJ: Load annotations even if related manifests fail
-              loadExistingAnnotations(resourceId);
-            });
-          } else {
-            // No related manifests - just show primary
-            const globalidMap = (svcUrl && primaryGlobalid) ? { [svcUrl]: primaryGlobalid } : {};
-            self._serviceUrlToGlobalidMap = globalidMap;
-            self.iiifServiceUrls([svcUrl].filter(Boolean));
-            
-            console.log('[IIIF REPORT] No related manifests');
-            console.log('[IIIF REPORT] Single service URL:', svcUrl);
-            console.log('[IIIF REPORT] Single globalid mapping:', globalidMap);
-            
-            // ✅ DODAJ: Load annotations for primary manifest
-            loadExistingAnnotations(resourceId);
-          }
-
-          console.log('[IIIF REPORT] Primary IIIF service URL:', svcUrl);
+      return $.getJSON(url)
+        .then(m => {
+          self.manifest(m);
+          self.status('');
+          return m;
         })
-        .fail(function(err) {
-          console.warn('[IIIF REPORT] Failed to load manifest:', err);
-          self.iiifServiceUrls([]);
+        .catch(err => {
+          self.manifest(null);
+          self.status('');
+          self.error('Manifest load failed: ' + (err?.message || String(err)));
+          throw err;
         });
     }
 
-    // ---- tiles-driven setup (non-tabbed mode) ----
-    function setupFromTilesIfPossible() {
-      const tiles =
-        (params.tiles && Array.isArray(params.tiles) ? params.tiles : null) ||
-        (self.report && self.report.get ? (self.report.get('tiles') || []) : []);
+    function manifestUrlFromTiles(resourceId) {
+      const tilesUrl = baseRoot() + 'resource/' + encodeURIComponent(resourceId) + '/tiles';
+      return $.ajax({ url: tilesUrl, method: 'GET', xhrFields: { withCredentials: true } })
+        .then(resp => {
+          const raw = getNodeRawFromTiles(DIGITAL_RES_URL_NODE_ID, resp);
+          const val = normalizeLangString(raw) || raw;
+          const url = (typeof val === 'string') ? val : null;
+          if (url && looksLikeManifestUrl(url)) return url;
+          return null;
+        });
+    }
 
-      const raw = getNodeRawFromTiles(DIGITAL_RES_URL_NODE_ID, tiles);
-      const url = normalizeLangString(raw);
+    function bootstrap() {
+      const ridFromTab = getOverrideResourceIdFromActiveTab();
+      const ridFallback = self.report && self.report.get ? self.report.get('resourceid') : null;
+      const rid = ridFromTab || ridFallback;
 
-      if (!url) {
-        self.iiifServiceUrls([]);
+      if (!rid) {
+        self.status('');
+        self.error('No resource id available for IIIF report.');
         return;
       }
 
-      if (looksLikeManifestUrl(url)) {
-        self.manifestUrl(url);
-        $.getJSON(url)
-          .done(function(manifest) {
-            const svcUrl = extractServiceUrlFromManifest(manifest);
-            const mu = extractMetaUrlFromManifest(manifest);
-            if (mu) self.metaUrl(mu);
+      manifestUrlFromTiles(rid)
+        .then(tileManifestUrl => {
+          const tileUrl = normalizeManifestUrl(tileManifestUrl);
 
-            // ✅ Check for related manifests in non-tabbed mode też
-            const relatedUrls = extractRelatedManifests(manifest);
-            
-            if (relatedUrls.length > 0) {
-              const relatedPromises = relatedUrls.map(relUrl => 
-                $.getJSON(relUrl).then(relManifest => extractServiceUrlFromManifest(relManifest))
-              );
+          if (tileUrl && looksLikeManifestUrl(tileUrl)) {
+            return loadManifestFromUrl(tileUrl);
+          }
 
-              Promise.all(relatedPromises).then(relatedServiceUrls => {
-                const allUrls = [svcUrl, ...relatedServiceUrls].filter(Boolean);
-                self.iiifServiceUrls(allUrls);
-                
-                // ✅ DODAJ: Load annotations in non-tabbed mode
-                const fallbackRid = self.report && self.report.get ? self.report.get('resourceid') : null;
-                if (fallbackRid) {
-                  loadExistingAnnotations(fallbackRid);
-                }
-              }).catch(() => {
-                self.iiifServiceUrls([svcUrl].filter(Boolean));
-              });
-            } else {
-              self.iiifServiceUrls([svcUrl].filter(Boolean));
-              
-              // ✅ DODAJ: Load annotations for single manifest
-              const fallbackRid = self.report && self.report.get ? self.report.get('resourceid') : null;
-              if (fallbackRid) {
-                loadExistingAnnotations(fallbackRid);
-              }
-            }
-
-            console.log('[IIIF REPORT] IIIF service URL (from stored manifest):', svcUrl);
-          })
-          .fail(function(err) {
-            console.warn('[IIIF REPORT] Failed to load stored manifest url:', err);
-            self.iiifServiceUrls([]);
-          });
-      } else {
-        self.iiifServiceUrls([url].filter(Boolean));
-        console.log('[IIIF REPORT] IIIF service URL (from tile):', url);
-      }
+          return loadManifestFromUrl(geotiffManifestUrlForResource(rid))
+            .catch(() => loadManifestFromUrl(defaultManifestUrlForResource(rid)));
+        })
+        .catch(() => {
+          return loadManifestFromUrl(geotiffManifestUrlForResource(rid))
+            .catch(() => loadManifestFromUrl(defaultManifestUrlForResource(rid)));
+        });
     }
 
-    // ---- react to active tab changes (and initial load) ----
-    ko.computed(function() {
-      const rid = getOverrideResourceIdFromActiveTab();
-
-      // reset per-resource state on change
-      self.existingAnnotations([]);
-      self.meta(null);
-      self.metaError('');
-      self.metaLoaded(false);
-      self._geoMeta = null;
-
-      if (rid) {
-        // tabbed mode: Digital Resource id
-        self.globalid(rid);
-        self.viewerId('iiif-report-' + rid);
-
-        // manifest -> service url(s)
-        self.iiifServiceUrls([]);
-        self.metaUrl(null);
-        loadManifestAndSetup(rid);
-      } else {
-        // non-tabbed mode: use report resourceid and tile-stored url
-        const fallbackRid = self.report && self.report.get ? self.report.get('resourceid') : null;
-        self.globalid(fallbackRid || null);
-        self.viewerId('iiif-report-' + (fallbackRid || 'unknown'));
-
-        setupFromTilesIfPossible();
-      }
-    });
-
-    // ---- load geotiff-meta whenever globalid/metaUrl changes ----
-    ko.computed(function() {
-      const gid = self.globalid();
-      const mu = self.metaUrl();
-
-      fetchGeotiffMeta(gid, mu).then(meta => {
-        self._geoMeta = meta;
-        self.meta(meta);
-
-        if (self._mapRef && self.measureEnabled()) {
-          attachCustomMeasure(self._mapRef, self._geoMeta);
-        }
-      });
-    });
-
-    // ✅ ADD: Callback functions for the template
-    self.onMapReadyCallback = function(map) {
-      console.log('[IIIF REPORT] Map ready callback');
-      self._mapRef = map;
-      
-      // Attach measurement tools if enabled and we have metadata
-      if (self.measureEnabled() && self._geoMeta) {
-        attachCustomMeasure(self._mapRef, self._geoMeta);
-      }
-    };
-
-    self.onLayerMetadataChanged = function(meta) {
-      console.log('[IIIF REPORT] Layer metadata changed:', meta);
-      self._geoMeta = meta;
-      self.meta(meta);
-      self.passid = null;
-      if (meta.manifest_url) {
-        const match = /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i.exec(meta.manifest_url);
-        self.passid = match ? match[1] : null;
-      }
-      // ✅ DODAJ: Przechowaj aktywny globalid w _mapRef
-      if (self._mapRef) {
-        // Znajdź globalid dla aktualnie aktywnej warstwy
-        const activeGlobalid = Object.values(self._serviceUrlToGlobalidMap)[0]; // lub inna logika
-        self._mapRef._activeLayerGlobalid = activeGlobalid;
-
-      }
-      
-      // Re-attach measurement tools with new metadata
-      if (self._mapRef && self.measureEnabled()) {
-        attachCustomMeasure(self._mapRef, self._geoMeta);
-      }
-    };
-
-
-    // Add this function to clear custom measurements from the map
-    self.clearMeasurements = function() {
-      if (self._measureGroup) {
-        self._measureGroup.clearLayers();
-      }
-      self.measureStatus('');
-    };
-
+    bootstrap();
   },
-  template: iiifMapReportTemplate
+
+  template: iiifReportTemplate
 });
+
+let _iiifInfoPatchInstalled = false;
+function installIiifInfoJsonPatch() {
+  if (_iiifInfoPatchInstalled) return;
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+
+  const nativeFetch = window.fetch.bind(window);
+
+  window.fetch = async function(input, init) {
+    const reqUrl =
+      typeof input === 'string' ? input :
+      (input && input.url ? input.url : '');
+
+    const res = await nativeFetch(input, init);
+
+    try {
+      const abs = new URL(reqUrl, window.location.origin);
+      const path = abs.pathname || '';
+
+      if (!/\/info\.json$/i.test(path)) return res;
+      if (!/\/(iiif\/{1,2})?data\//i.test(path)) return res;
+
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!res.ok || (!ct.includes('json') && !ct.includes('ld+json'))) return res;
+
+      const cloned = res.clone();
+      const json = await cloned.json();
+
+      const rawId = json?.id ?? json?.['@id'] ?? '';
+      const fallbackId = abs.origin + path.replace(/\/info\.json$/i, '');
+      const idAbs = rawId ? new URL(rawId, abs.origin).toString() : fallbackId;
+      const fixedId = forceDoubleSlashAfterIiif(idAbs);
+
+      const needsPatch =
+        !rawId ||
+        rawId !== fixedId ||
+        json?.type !== 'ImageService3' ||
+        json?.['@context'] !== 'http://iiif.io/api/image/3/context.json';
+
+      if (!needsPatch) return res;
+
+      const patched = {
+        ...json,
+        id: fixedId,
+        type: 'ImageService3',
+        '@context': 'http://iiif.io/api/image/3/context.json'
+      };
+      delete patched['@id'];
+
+      const headers = new Headers(res.headers);
+      headers.set('content-type', 'application/json');
+      headers.delete('content-length');
+
+      console.warn(MV_LOG, 'Patched info.json for Allmaps:', rawId, '=>', fixedId);
+
+      return new Response(JSON.stringify(patched), {
+        status: res.status,
+        statusText: res.statusText,
+        headers
+      });
+    } catch (e) {
+      console.warn(MV_LOG, 'info.json patch skipped:', e);
+      return res;
+    }
+  };
+
+  _iiifInfoPatchInstalled = true;
+  console.log(MV_LOG, 'Installed IIIF info.json fetch patch');
+}

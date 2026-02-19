@@ -28,6 +28,32 @@ def _fetch_info(service_url: str) -> dict:
     r.raise_for_status()
     return r.json()
 
+def _iiif_lang(v) -> dict:
+    return {"en": [str(v)]}
+
+
+def _to_iiif_metadata(meta: dict) -> list:
+    """
+    Convert flat/nested dict into IIIF v3 metadata array:
+    [{ "label": {"en": ["key"]}, "value": {"en": ["value"]} }]
+    """
+    out = []
+    if not isinstance(meta, dict):
+        return out
+
+    def walk(obj, prefix=""):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                key = f"{prefix}.{k}" if prefix else str(k)
+                walk(v, key)
+        elif isinstance(obj, list):
+            out.append({"label": _iiif_lang(prefix), "value": _iiif_lang(json.dumps(obj, ensure_ascii=False))})
+        else:
+            out.append({"label": _iiif_lang(prefix), "value": _iiif_lang(obj)})
+
+    walk(meta)
+    return out
+
 class BuildGeoTiffManifestView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -59,7 +85,7 @@ class BuildGeoTiffManifestView(APIView):
             ann_id = f"{page_id}/annotation/1"
             body_image_id = svc + "/full/max/0/default.jpg"
 
-            canvases.append({
+            canvas = {
                 "id": canvas_id,
                 "type": "Canvas",
                 "width": w,
@@ -85,7 +111,14 @@ class BuildGeoTiffManifestView(APIView):
                         }
                     }]
                 }]
-            })
+            }
+
+            # NEW: attach per-file metadata (from item.metadata)
+            iiif_meta = _to_iiif_metadata(it.get("metadata") or {})
+            if iiif_meta:
+                canvas["metadata"] = iiif_meta
+
+            canvases.append(canvas)
 
         if not canvases:
             return Response({"error": "No valid iiif_service_url items"}, status=400)

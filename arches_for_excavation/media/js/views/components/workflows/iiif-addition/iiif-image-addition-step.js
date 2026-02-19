@@ -360,6 +360,9 @@ define([
           var svc = result && result.titiler && result.titiler.iiif_service_url;
           item.iiif_service_url = svc || null;
 
+          // NEW: keep metadata from celery result (written also to separate json)
+          item.fileMetadata = (result && result.metadata) ? result.metadata : null;
+
           // derived
           var derivedItems = [];
 
@@ -414,7 +417,8 @@ define([
           services.push({
             label: it.name,
             iiif_service_url: it.iiif_service_url,
-            file_id: it.file_id
+            file_id: it.file_id,
+            metadata: it.fileMetadata || {} // NEW
           });
         }
 

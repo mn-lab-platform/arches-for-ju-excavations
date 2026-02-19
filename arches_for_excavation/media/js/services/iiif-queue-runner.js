@@ -4,10 +4,10 @@ define(['knockout'], function(ko) {
   function QueueRunner(opts) {
     opts = opts || {};
 
-    this.queue = opts.queue;                 // ko.observableArray
-    this.maxParallel = opts.maxParallel;     // ko.observable
-    this.processItem = opts.processItem;     // function(item) => Promise
-    this.onDrain = opts.onDrain || null;     // function() => (Promise|void)
+    this.queue = opts.queue;                
+    this.maxParallel = opts.maxParallel;    
+    this.processItem = opts.processItem;    
+    this.onDrain = opts.onDrain || null;    
 
     this.activeCount = ko.observable(0);
 
