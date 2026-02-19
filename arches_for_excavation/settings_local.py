@@ -48,6 +48,12 @@ if not DEBUG:
 # work correctly when running gunicorn.
 APP_NAME = get_env_variable("ARCHES_PROJECT")
 
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_HOST = 'pw-mx1.cenagis.edu.pl'
+EMAIL_HOST_USER = "archesnoreply@cenagis.edu.pl"
+EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_PASSWORD")
+EMAIL_PORT = 465
 
 DATABASES = {
     "default": {
@@ -73,6 +79,8 @@ CACHES = {
         "LOCATION": "user_permission_cache",
     },
 }
+SECURE_SSL_REDIRECT = False 
+
 
 """
 Since we're using Docker, we can use Redis (even on a Windows OS). So, we
@@ -90,7 +98,13 @@ CELERY_BROKER_URL = "redis://@arches_redis:6379/0"
 #
 # CELERY_BROKER_URL = ""
 
-CANTALOUPE_HTTP_ENDPOINT = "http://{}:{}".format(get_env_variable("CANTALOUPE_HOST"), get_env_variable("CANTALOUPE_PORT"))
+# ✅ FIX: Use correct protocol based on deployment mode
+CANTALOUPE_PROTOCOL = "https" if not is_localhost else "http"
+CANTALOUPE_HTTP_ENDPOINT = "{}://{}:{}".format(
+    CANTALOUPE_PROTOCOL,
+    get_env_variable("CANTALOUPE_HOST"), 
+    get_env_variable("CANTALOUPE_PORT")
+)
 
 # ✅ FIXED: Path from Arches container's perspective (not Cantaloupe's)
 # This is the shared volume that both containers can access
@@ -138,3 +152,7 @@ LANGUAGES = [
 SHOW_LANGUAGE_SWITCH = False
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SAVED_SEARCHES = []
+
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
