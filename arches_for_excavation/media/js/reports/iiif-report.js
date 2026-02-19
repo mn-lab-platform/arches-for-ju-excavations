@@ -50,6 +50,35 @@ ko.bindingHandlers.iiifMapInit = {
     if (typeof callback === 'function') callback(element);
   }
 };
+function extractTitilerFilePathFromServiceUrl(serviceUrl) {
+  if (!serviceUrl) return null;
+  try {
+    const u = new URL(serviceUrl, window.location.origin);
+    const p = u.pathname || '';
+    // /iiif//data/... lub /iiif/data/... -> /data/...
+    const m = p.match(/\/iiif\/{1,2}(data\/.+)$/i);
+    if (!m) return null;
+    return '/' + m[1].replace(/^\/+/, '');
+  } catch (e) {
+    return null;
+  }
+}
+
+function extractElevationValue(pointResp) {
+  if (!pointResp || typeof pointResp !== 'object') return null;
+  if (Number.isFinite(pointResp.value)) return pointResp.value;
+
+  if (Array.isArray(pointResp.values)) {
+    const first = pointResp.values.find(v => Number.isFinite(v));
+    if (Number.isFinite(first)) return first;
+  }
+
+  const candidates = ['b1', 'band1', 'elevation', 'z', 'val'];
+  for (const k of candidates) {
+    if (Number.isFinite(pointResp[k])) return pointResp[k];
+  }
+  return null;
+}
 
 function mdValue(canvas, key) {
   const md = canvas && canvas.metadata;
@@ -62,6 +91,13 @@ function mdValue(canvas, key) {
     return val ?? null;
   }
   return null;
+}
+
+function mdBool(canvas, key) {
+  const v = mdValue(canvas, key);
+  if (v == null) return false;
+  const s = String(v).trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes' || s === 'on';
 }
 
 function parseCanvasGeoref(canvas) {
@@ -349,8 +385,8 @@ function polylineLengthMeters(coords) {
 
 function formatDistance(meters) {
   if (!Number.isFinite(meters) || meters <= 0) return '';
-  if (meters < 1000) return `${meters.toFixed(1)} m`;
-  return `${(meters / 1000).toFixed(3)} km`;
+  if (meters < 1000) return `${meters.toFixed(2)} m`;
+  return `${(meters / 1000).toFixed(5)} km`;
 }
 
 // -------------------- component --------------------
@@ -372,6 +408,70 @@ ko.components.register('iiif-map-viewer', {
 
       self.measureMode = ko.observable(false);
       self.measureDistance = ko.observable('');
+
+      // NEW: DEM point-elevation state
+      self.elevationMode = ko.observable(true);
+      self.elevationLoading = ko.observable(false);
+      self.elevationValue = ko.observable('');
+      self.elevationError = ko.observable('');
+
+      self.toggleElevation = function() {
+        const next = !self.elevationMode();
+        self.elevationMode(next);
+        self.elevationError('');
+        if (!next) self.elevationValue('');
+      };
+
+      function looksLikeDemByText(s) {
+        return /(^|[_.\-\s])(dem|dtm|dsm|elevation|height)([_.\-\s]|$)/i.test(String(s || ''));
+      }
+
+      function pickDemLayerForSampling() {
+        const arr = self.layers();
+
+        // TYLKO warstwa z is_dem_hint=True
+        const cand = arr.find(l => l?.isDemHint === true && l?.titilerFilePath);
+        return cand || null;
+      }
+
+      async function fetchElevationAt(lon, lat) {
+        const demLayer = pickDemLayerForSampling();
+        if (!demLayer) {
+          self.elevationError('Brak warstwy DEM (is_dem_hint=True) do próbkowania.');
+          self.elevationValue('');
+          return;
+        }
+
+        const base = (demLayer.titilerBaseUrl || '').replace(/\/+$/, '');
+        const fpath = demLayer.titilerFilePath;
+        if (!base || !fpath) {
+          self.elevationError('Brak danych TiTiler (file_path/base_url).');
+          self.elevationValue('');
+          return;
+        }
+
+        const url = `${base}/cog/point/${lon},${lat}?url=${encodeURIComponent(fpath)}`;
+        self.elevationLoading(true);
+        self.elevationError('');
+        self.elevationValue('');
+
+        try {
+          const resp = await $.getJSON(url);
+          const z = extractElevationValue(resp);
+
+          if (!Number.isFinite(z)) {
+            self.elevationError('Nie udało się odczytać wysokości dla tego punktu.');
+            return;
+          }
+
+          const unit = demLayer.elevationUnit || 'm';
+          self.elevationValue(`${Number(z).toFixed(2)} ${unit}`);
+        } catch (e) {
+          self.elevationError('Błąd odczytu wysokości z DEM.');
+        } finally {
+          self.elevationLoading(false);
+        }
+      }
 
       const MEASURE_SOURCE_ID = 'iiif-measure-source';
       const MEASURE_POINTS_LAYER_ID = 'iiif-measure-points';
@@ -529,6 +629,15 @@ ko.components.register('iiif-map-viewer', {
         }
       }
 
+      async function onMapClick(e) {
+        if (self.measureMode()) {
+          onMeasureClick(e);
+          return;
+        }
+        if (!self.elevationMode()) return;
+        await fetchElevationAt(e.lngLat.lng, e.lngLat.lat);
+      }
+
       self.clearMeasure = function() {
         _measurePointSeq = 1;
         self._measureGeojson = { type: 'FeatureCollection', features: [] };
@@ -547,6 +656,9 @@ ko.components.register('iiif-map-viewer', {
         } else if (self._map?.getCanvas()) {
           bringMeasureLayersToFront();
           self._map.getCanvas().style.cursor = 'crosshair';
+          // optional: clear elevation when entering measure mode
+          self.elevationError('');
+          self.elevationValue('');
         }
       };
 
@@ -644,13 +756,29 @@ ko.components.register('iiif-map-viewer', {
           const width = own?.width > 1 ? own.width : geo.width;
           const height = own?.height > 1 ? own.height : geo.height;
 
+          // STRICT: tylko metadata.is_dem_hint decyduje o DEM
+          const isDemHint = mdBool(canvas, 'is_dem_hint');
+
+          const titilerFilePath =
+            mdValue(canvas, 'titiler.file_path') ||
+            mdValue(canvas, 'file_path') ||
+            extractTitilerFilePathFromServiceUrl(svc);
+
+          let titilerBaseUrl = '';
+          try { titilerBaseUrl = new URL(svc, window.location.origin).origin; } catch (e) {}
+          const elevationUnit = mdValue(canvas, 'vertical_units') || 'm';
+
           picked.push({
             label,
             serviceUrl: svc,
             epsg: geo.epsg,
             transform: geo.transform,
             width,
-            height
+            height,
+            isDemHint,
+            titilerFilePath,
+            titilerBaseUrl,
+            elevationUnit
           });
         }
 
@@ -711,21 +839,47 @@ ko.components.register('iiif-map-viewer', {
             layerObj: warpedLayer,
             WarpedCtor,
             _anno: anno,
-            mapIds,               // <--- WRÓCIŁO
+            mapIds,
             _isOnMap: true,
-            visible: ko.observable(true),
-            opacity: ko.observable(1)
+            visible: ko.observable(!p.isDemHint),   // DEM hint: start jako niewidoczny
+            opacity: ko.observable(p.isDemHint ? 0 : 1),
+
+            // STRICT DEM source for sampling
+            isDemHint: !!p.isDemHint,
+
+            // blokada UI dla DEM hint (sampling-only)
+            samplingOnly: !!p.isDemHint,
+
+            titilerFilePath: p.titilerFilePath,
+            titilerBaseUrl: p.titilerBaseUrl,
+            elevationUnit: p.elevationUnit
           };
+
+          // DEM hint ma być stale 0% i nie do włączenia
+          if (vm.samplingOnly) {
+            try { setLayerOpacityCompat(vm.layerObj, vm.mapIds, 0); } catch (e) {}
+            try { await setLayerVisibleCompat(self._map, vm, false); } catch (e) {}
+          }
 
           // initial opacity attempt
           applyOpacityWithRetry(vm, 8);
 
           vm.visible.subscribe(async (v) => {
+            // blokada: tej warstwy nie można włączyć
+            if (vm.samplingOnly) {
+              if (v !== false) vm.visible(false);
+              return;
+            }
             await setLayerVisibleCompat(self._map, vm, !!v);
           });
 
           vm.opacity.subscribe(val => {
-            // jeśli layer zdjęty, tylko trzymamy wartość – apply będzie przy enable
+            // blokada: tej warstwy nie można rozjaśnić
+            if (vm.samplingOnly) {
+              if (val !== 0) vm.opacity(0);
+              return;
+            }
+
             if (!vm.layerObj) return;
             setLayerOpacityCompat(vm.layerObj, vm.mapIds, val);
             applyOpacityWithRetry(vm, 3);
@@ -779,7 +933,7 @@ ko.components.register('iiif-map-viewer', {
         });
 
         self._map.addControl(new maplibregl.NavigationControl(), 'top-right');
-        self._map.on('click', onMeasureClick);
+        self._map.on('click', onMapClick);
         self._map.on('mousemove', onMeasureMouseMove);
 
         self._map.on('load', function() {

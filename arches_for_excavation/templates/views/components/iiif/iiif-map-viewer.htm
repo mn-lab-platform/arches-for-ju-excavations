@@ -42,12 +42,35 @@
         <span data-bind="text: measureMode() ? 'Wyłącz pomiar' : 'Mierz odległość'"></span>
       </button>
       <button class="btn btn-xs btn-default" data-bind="click: clearMeasure, enable: measureMode">Wyczyść</button>
+      <button class="btn btn-xs btn-default" data-bind="click: toggleElevation, css: { active: elevationMode }, enable: !measureMode()">
+        <span data-bind="text: elevationMode() ? 'Wysokość: ON' : 'Wysokość: OFF'"></span>
+      </button>
     </div>
 
     <!-- ko if: measureDistance -->
     <div style="font-size:12px; margin-top:6px;">
       Dystans: <b data-bind="text: measureDistance"></b>
     </div>
+    <!-- /ko -->
+
+    <!-- ko if: elevationMode -->
+    <div style="font-size:12px; margin-top:6px;">
+      Kliknij mapę, aby odczytać wysokość z DEM.
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: elevationLoading -->
+    <div style="font-size:12px; margin-top:4px;">Pobieranie wysokości…</div>
+    <!-- /ko -->
+
+    <!-- ko if: elevationValue -->
+    <div style="font-size:12px; margin-top:4px;">
+      Wysokość: <b data-bind="text: elevationValue"></b>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: elevationError -->
+    <div style="font-size:12px; margin-top:4px; color:#b00020;" data-bind="text: elevationError"></div>
     <!-- /ko -->
   </div>
 </div>
