@@ -37,35 +37,41 @@
     <!-- /ko -->
 
     <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-      <button class="btn btn-xs btn-default" data-bind="click: fit, enable: layers().length">Fit</button>
+      <button class="btn btn-xs btn-default" data-bind="click: fit, enable: layers().length">Zoom to Layers</button>
       <button class="btn btn-xs btn-default" data-bind="click: toggleMeasure, css: { active: measureMode }">
-        <span data-bind="text: measureMode() ? 'Wyłącz pomiar' : 'Mierz odległość'"></span>
+        <span data-bind="text: measureMode() ? 'Disable Measure' : 'Measure Distance'"></span>
       </button>
-      <button class="btn btn-xs btn-default" data-bind="click: clearMeasure, enable: measureMode">Wyczyść</button>
+      <button class="btn btn-xs btn-default" data-bind="click: clearMeasure, enable: measureMode">Clear</button>
       <button class="btn btn-xs btn-default" data-bind="click: toggleElevation, css: { active: elevationMode }, enable: !measureMode()">
-        <span data-bind="text: elevationMode() ? 'Wysokość: ON' : 'Wysokość: OFF'"></span>
+        <span data-bind="text: elevationMode() ? 'Measure height: ON' : 'Measure height: OFF'"></span>
       </button>
     </div>
 
     <!-- ko if: measureDistance -->
     <div style="font-size:12px; margin-top:6px;">
-      Dystans: <b data-bind="text: measureDistance"></b>
+      Measure Distance: <b data-bind="text: measureDistance"></b>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: measureCoords -->
+    <div style="font-size:12px; margin-top:4px;">
+      Coords: <b data-bind="text: measureCoords"></b>
     </div>
     <!-- /ko -->
 
     <!-- ko if: elevationMode -->
     <div style="font-size:12px; margin-top:6px;">
-      Kliknij mapę, aby odczytać wysokość z DEM.
+      Click on map to see height.
     </div>
     <!-- /ko -->
 
     <!-- ko if: elevationLoading -->
-    <div style="font-size:12px; margin-top:4px;">Pobieranie wysokości…</div>
+    <div style="font-size:12px; margin-top:4px;">Loading elevation…</div>
     <!-- /ko -->
 
     <!-- ko if: elevationValue -->
     <div style="font-size:12px; margin-top:4px;">
-      Wysokość: <b data-bind="text: elevationValue"></b>
+      Elevation: <b data-bind="text: elevationValue"></b>
     </div>
     <!-- /ko -->
 
