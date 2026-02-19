@@ -2,55 +2,62 @@
 <html>
 
     <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>email-preview</title>
         <style>
-            .btn {
-                text-decoration: none;
-                border-width: 1px;
-                color: #fff;
-                background-color: #337ab7;
-                border-color: #2e6da4;
-                font-size: 14px;
-                font-weight: 400;
-                display: inline-block;
-                padding: 6px 12px;
-                margin-bottom: 0;
-                font-size: 14px;
-                font-weight: 400;
-                line-height: 1.42857143;
-                text-align: center;
-                white-space: nowrap;
-                vertical-align: middle;
-                -ms-touch-action: manipulation;
-                touch-action: manipulation;
-                cursor: pointer;
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-                background-image: none;
-                border: 1px solid transparent;
-                border-radius: 4px;
-            }
+        img { border:0; -ms-interpolation-mode:bicubic; display:block; max-width:100%; height:auto; }
+        a { text-decoration:none; }
+        @media only screen and (max-width:600px) {
+            .container { width:100% !important; padding: 10px !important; }
+            .btn { display:block !important; width:100% !important; text-align: center !important; }
+        }
         </style>
-        {% include 'custom_email_css.htm' %}
     </head>
 
     <body>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8;">
+            <tr>
+                <td align="center" style="padding:24px 12px;">
+                    <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background:#ffffff; border-radius:8px; overflow:hidden;">
+                        
+                        {% include 'custom_email_header.htm' %}
+                        
+                        <tr>
+                            <td style="padding: 0 30px 30px 30px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size:16px; line-height:1.6; color:#333333;">
+                                {% if username != "" %}
+                                    <p style="margin:0 0 16px 0;">{{salutation}} <strong>{{username}}</strong>,</p>
+                                {% endif %}
+                                <p style="margin:0 0 20px 0;">{{greeting}}</p>
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                    <tr>
+                                        <td align="center">
+                                        <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                                            <tr>
+                                            <td align="center" bgcolor="#0070d2" style="border-radius:6px;">
+                                                <a href="{{link}}" class="btn" style="background-color:#0070d2; color:#ffffff; display:inline-block; padding:12px 28px; border-radius:6px; font-family:'Helvetica Neue', Arial, sans-serif; font-weight:700; font-size:16px; text-decoration:none; border: 1px solid #0070d2;">
+                                                {{button_text}}
+                                                </a>
+                                            </td>
+                                            </tr>
+                                        </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <p style="margin:12px 0 0 0; font-size:13px; color:#666666;">
+                                    This link expires in <strong>{{expiration}}</strong>.
+                                </p>
+                                <p style="margin:30px 0 0 0; font-size:13px; color:#999999;">If you didn't request this e-mail, please ignore this message.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
 
-        {% include 'custom_email_header.htm' %}
+            {% include 'custom_email_footer.htm' %}
 
-        {% if username != "" %}
-            <p>{{salutation}} {{username}},</p>
-        {% endif %}
-        <p>
-            {{greeting}}
-        </p>
-        {% if link != "" %}
-            <p><a href="{{link}}">{{button_text}}</a></p>
-        {% endif %}
-
-        {% include 'custom_email_footer.htm' %}
-
+        </table>
+        
     </body>
     
 </html>
