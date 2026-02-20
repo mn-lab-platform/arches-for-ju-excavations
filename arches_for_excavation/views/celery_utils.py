@@ -11,6 +11,6 @@ def get_celery_task_status(request, task_id):
     response = {
         'task_id': task_id,
         'state': task.state,
-        'info': str(task.info)
+        'info': task.info if task.info else None
     }
     return JsonResponse(response)

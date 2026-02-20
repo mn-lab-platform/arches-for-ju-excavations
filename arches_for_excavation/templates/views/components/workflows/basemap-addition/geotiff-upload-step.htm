@@ -88,7 +88,8 @@ section {
 }
 
 #submit-button {
-    align-self: center;   
+    align-self: center;
+    margin-bottom: 20px;   
 }
 
 .fileinput-geotiff-button {
@@ -128,18 +129,6 @@ section {
     color: #333;
 }
 
-.checkboxes-group {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: space-between;
-    padding: 15px;
-    background: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
 .form-group input[type="text"],
 .form-group input[type="number"] {
     padding: 8px 10px;
@@ -151,27 +140,190 @@ section {
     box-sizing: border-box;
 }
 
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.checkbox-item input[type="checkbox"] {
-    cursor: pointer;
-}
-
-.checkbox-item label {
-    margin: 0;
-    cursor: pointer;
-    font-size: 13px;
-}
-
 .numeric-field input {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 13px;
+}
+
+.visibility-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.visibility-option {
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.visibility-option-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.visibility-option.active {
+    border-color: #2563eb;
+    background-color: #e6f0fa;
+}
+
+.tooltip {
+    display: inline;
+    position: relative;
+}
+
+.tooltip:hover {
+    color: #c00;
+    text-decoration: none;
+}
+
+.tooltip:hover:after {
+    background: #111;
+    background: rgba(0,0,0,.8);
+    border-radius: .5em;
+    bottom: 1.35em;
+    color: #fff;
+    content: attr(title);
+    display: block;
+    left: 1em;
+    padding: .3em 1em;
+    position: absolute;
+    text-shadow: 0 1px 0 #000;
+    white-space: nowrap;
+    z-index: 98;
+}
+
+.tooltip:hover:before {
+    border: solid;
+    border-color: #111 transparent;
+    border-color: rgba(0,0,0,.8) transparent;
+    border-width: .4em .4em 0 .4em;
+    bottom: 1em;
+    content: "";
+    display: block;
+    left: 2em;
+    position: absolute;
+    z-index: 99;
+}
+
+/* Pure CSS Tooltip for Icons */
+/* Source - https://stackoverflow.com/a/25214869 */
+/* Modified for icon usage */
+.info-tooltip {
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.info-tooltip:hover:after {
+    background: rgba(0, 0, 0, .9);
+    border-radius: .5em;
+    bottom: 150%;
+    color: #fff;
+    content: attr(data-tooltip);
+    display: block;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: .5em 1em;
+    position: absolute;
+    z-index: 9999;
+    font-size: 13px;
+    white-space: normal;
+    width: 200px;
+    text-align: center;
+}
+
+.info-tooltip:hover:before {
+    border: solid rgba(0, 0, 0, .9) transparent;
+    border-width: .4em .4em 0 .4em;
+    bottom: calc(150% - .4em);
+    content: "";
+    display: block;
+    left: 50%;
+    transform: translateX(-50%);
+    position: absolute;
+    z-index: 9999;
+}
+
+.icon-picker-group {
+    grid-column: 1 / -1;
+    gap: 10px;
+}
+
+.icon-picker-header {
+    display: flex;
+    gap: 1.5rem;
+    align-items: end;
+}
+
+.icon-picker-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #333;
+}
+
+.selected-icon-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #2563eb;
+    border-radius: 4px;
+    background-color: #e6f0fa;
+    width: 40px;
+    height: 40px;
+}
+
+.icon-search-input {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    height: 40px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.icon-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-option i {
+    font-size: 20px;
+    color: #333;
+}
+
+.icon-option:hover {
+    background-color: #f0f0f0;
+}
+
+.icon-option.selected-icon {
+    border-color: #2563eb;
+    background-color: #e6f0fa;
 }
 
 @media (max-width: 768px) {
@@ -216,42 +368,104 @@ section {
 
     <div class="settings-container">
         <div class="form-group">
-            <label for="basemap-name-input">Basemap Name</label>
+            <label for="basemap-name-input">Map Layer Name <span style="color:red">*</span></label>
             <input id="basemap-name-input" 
                 type="text" 
-                data-bind="value: basemapName"
-                placeholder="Enter basemap name">
+                data-bind="value: basemapName, valueUpdate: 'afterkeydown'"
+                placeholder="Enter map layer name">
         </div>
 
         <div class="form-group">
-            <label for="sort-order-input">Sort Order</label>
+            <label for="sort-order-input">
+                Sort Order 
+                <span class="info-tooltip" data-tooltip="The sort order determines the position of the map layer in the list of available layers. The higher the number, lower the layer appears in the list.">
+                    <i class="fa fa-info-circle"></i>
+                </span>
+            </label>
             <input id="sort-order-input" 
                 type="number" 
                 data-bind="value: sortOrder"
                 placeholder="0">
         </div>
 
-        <div class="checkboxes-group">
-            <div class="checkbox-item">
-                <input id="add-to-map-checkbox" type="checkbox" data-bind="checked: addToMap">
-                <label for="add-to-map-checkbox">Add to Map</label>
+        <div class="form-group icon-picker-group">
+            <div class="icon-picker-header">
+                <span class="icon-picker-title">Map Layer Icon:</span>
+                <div class="selected-icon-preview">
+                    <i data-bind="attr: { class: selectedIcon }" class="icon-preview"></i>
+                </div>
             </div>
-            <div class="checkbox-item">
-                <input id="is-overlay-checkbox" type="checkbox" data-bind="checked: isOverlay">
-                <label for="is-overlay-checkbox">Is overlay</label>
-            </div>
-            <div class="checkbox-item">
-                <input id="is-public-checkbox" type="checkbox" data-bind="checked: isPublic">
-                <label for="is-public-checkbox">Is Public</label>
+            
+            <input id="icon-search-input" type="text" 
+                data-bind="value: iconSearchQuery, valueUpdate: 'afterkeydown'"
+                class="icon-search-input"
+                placeholder="Search icons (e.g., 'map', 'globe', 'tree')">
+            
+            <div class="icon-grid">
+                <!-- ko foreach: filteredIcons -->
+                <div class="icon-option"
+                    data-bind="click: function() { $parent.selectIcon($data); }, css: { 'selected-icon': $data === $parent.selectedIcon() }">
+                    <i data-bind="attr: { class: $data }"></i>
+                </div>
+                <!-- /ko -->
             </div>
         </div>
     </div>
 
     <button id="submit-button"
-            type="button" 
-            class="btn btn-primary" 
-            data-bind="click: submitUpload, enable: canSubmit"
-            style="margin-top: 15px;">
-        Create a new Basemap
+        type="button" 
+        class="btn btn-primary" 
+        data-bind="click: openVisibilityModal, enable: canOpenModal, text: submitLabel, attr: { title: submitTitle }"
+        style="margin-top: 15px;">
     </button>
+
+    <!-- Visibility Selection Modal -->
+    <div id="visibility-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="visibilityModalTitle">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 id="visibilityModalTitle" class="modal-title">Choose Basemap Visibility</h4>
+                    <button type="button" style="margin-left: auto;" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Who should be able to access this basemap?</p>
+                    <div class="visibility-options-container">
+                        <div class="visibility-option"
+                             data-bind="click: function() { selectVisibility(true); }, css: { 'active': isPublic() }">
+                            <div class="visibility-option-content">
+                                <i class="fa fa-globe" style="font-size: 24px; color: #3b82f6;"></i>
+                                <div>
+                                    <strong>Public</strong>
+                                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #667;">
+                                        Accessible to anyone on the internet
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="visibility-option"
+                             data-bind="click: function() { selectVisibility(false); }, css: { 'active': !isPublic() }">
+                            <div class="visibility-option-content">
+                                <i class="fa fa-lock" style="font-size: 24px; color: #667;"></i>
+                                <div>
+                                    <strong>Private</strong>
+                                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #667;">
+                                        Only accessible to authorized users
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" 
+                            data-bind="click: confirmVisibilityAndSubmit, enable: isPublic() !== null">
+                        Confirm and Create
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>

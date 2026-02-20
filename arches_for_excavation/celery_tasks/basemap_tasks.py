@@ -18,10 +18,11 @@ def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
             driver='COG',      
             compress='ZSTD',
             overview_resampling='BILINEAR',
-            blocksize=512
+            blocksize=512,
+            BIGTIFF='IF_NEEDED'
         )
         print("Conversion Complete.")
-        register_basemap_in_db(basemap_metadata)
+        return register_basemap_in_db(basemap_metadata)
     except Exception as e:
         print(f"Error during conversion: {e}")
         raise ConversionError(f"Failed to convert GeoTIFF to COG: {str(e)}")
@@ -52,7 +53,7 @@ def register_basemap_in_db(basemap_metadata):
         }],
         isoverlay=basemap_metadata['isoverlay'],
         activated=basemap_metadata['activated'],
-        icon='fa fa-binoculars',
+        icon=basemap_metadata['icon'],
         addtomap=basemap_metadata['addto_map'],
         centerx=basemap_metadata['center_coordinates'][0],
         centery=basemap_metadata['center_coordinates'][1],
@@ -71,4 +72,9 @@ def register_basemap_in_db(basemap_metadata):
         except Group.DoesNotExist:
             print(f"Group '{group_name}' does not exist. Permission not assigned.")
     
-    return layer.maplayerid
+    return {
+        'basemap_id': str(layer.maplayerid),
+        'centerx': layer.centerx,
+        'centery': layer.centery,
+        'bounds': basemap_metadata['bounds']
+    }

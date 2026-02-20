@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.urls import include, path
 from .views.model_3d import Model3DView
-from .views.basemap import BasemapView
+from .views.basemap import BasemapView, BasemapCheckView
 from .views.tile_proxy import titiler_tile_proxy
 from .views.celery_utils import get_celery_task_status
 from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif_annotation
@@ -19,6 +19,7 @@ urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
     path('api/basemap/upload', BasemapView.as_view(), name='basemaps'),
+    path('api/basemap/check-name', BasemapCheckView.as_view(), name='basemap_check_name'),
     path('api/titiler/tiles/<str:basemap_id>/<int:z>/<int:x>/<int:y>', titiler_tile_proxy, name='titiler_tile_proxy'),
     path('api/celery/task-status/<str:task_id>', get_celery_task_status, name='celery_task_status'),
     path('api/manifest/update_db', save_iiif_annotation_db, name='save_iiif_annotation_db'),

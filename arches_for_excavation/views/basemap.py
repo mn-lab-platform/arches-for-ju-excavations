@@ -2,6 +2,7 @@ from django.views import View
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.conf import settings
 from django.utils.text import get_valid_filename
+from arches.app.models.models import MapLayer
 
 import os
 from uuid import uuid4
@@ -17,6 +18,9 @@ class BasemapView(View):
             return HttpResponseBadRequest("File upload failed, no file provided.")
         
         basemap_name = request.POST.get('basemap_name', 'unnamed_basemap')
+
+        if MapLayer.objects.filter(name=basemap_name).exists():
+            return HttpResponseBadRequest("A basemap with this name already exists. Please choose a different name.")
         
         basemap_metadata = {
             'original_name': basemap_name,
@@ -26,6 +30,7 @@ class BasemapView(View):
             'ispublic': request.POST.get('basemap_ispublic', 'true').lower() == 'true',
             'addto_map': request.POST.get('basemap_addto_map', 'false').lower() == 'true',
             'isoverlay': request.POST.get('basemap_isoverlay', 'false').lower() == 'true',
+            'icon': request.POST.get('basemap_icon', 'fa fa-map'),
             'authorized_group': 'TEST', #IMPORTANT: hardcoded group with basemap viewing rights,
             'bounds': None,
             'center_coordinates': None,
@@ -91,5 +96,14 @@ class BasemapView(View):
                 'bounds': bounds
             }
 
+
+class BasemapCheckView(View):
+    def get(self, request):
+        basemap_name = request.GET.get('name')
+        if not basemap_name:
+            return HttpResponseBadRequest("Missing 'name' query parameter.")
+        
+        exists = MapLayer.objects.filter(name=basemap_name).exists()
+        return JsonResponse({'exists': exists})
 
 

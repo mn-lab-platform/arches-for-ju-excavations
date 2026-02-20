@@ -18,7 +18,7 @@
     width: 70%;
 
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
 
 }
@@ -47,7 +47,7 @@
     cursor: pointer;
     border-color: #3b82f6;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-6px);
 }
 
 .process-options-card.active {
@@ -69,6 +69,16 @@
     margin: 0;
 }
 
+.process-options-description {
+    display: block;
+    margin-top: 0.5rem;
+    color: #374151;
+    word-break: break-word;
+    white-space: normal;
+    text-align: center;
+    max-width: 100%;
+}
+
 @media (max-width: 700px) {
     .process-options-container {
         grid-template-columns: 1fr !important;
@@ -81,25 +91,15 @@
 
 
 <div class="process-selection-wrapper">
-    <div class="process-options-container">
+    <div class="process-options-container" data-bind="foreach: cards">
         <div class="process-options-card"
-            data-bind="click: function() { toggleCard('context'); }, css: { 'active': graphId() === CONTEXT_GRAPHID }">
-            <i class="fa fa-digg"></i>
-            <h3>Import Context Measurements</h3>
+            data-bind="click: function() { $parent.toggleCard($data.id); }, css: { 'active': $parent.cardId() === $data.id }">
+            <i data-bind="attr: { class: $data.icon }"></i>
+            <h3 data-bind="text: $data.label"></h3>
+            <div data-bind="if: $data.description">
+                <small class="process-options-description" data-bind="text: $data.description"></small>
+            </div>
         </div>
-        <div class="process-options-card"
-            data-bind="click: function() { toggleCard('trench'); }, css: { 'active': graphId() === TRENCH_GRAPHID }">
-            <i class="fa fa-crop"></i>
-            <h3>Import Trench Measurements</h3>
-        </div>
-        <!-- <div class="process-options-card">
-            <i class="fa fa-digg"></i>
-            <h3>Import Context Measurements</h3>
-        </div>
-        <div class="process-options-card">
-            <i class="fa fa-crop"></i>
-            <h3>Import Trench Measurements</h3>
-        </div> -->
     </div>
 </div>
 
