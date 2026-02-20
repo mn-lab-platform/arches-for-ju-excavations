@@ -57,6 +57,15 @@ module.exports = () => {
             ...archesCoreEntryPointConfiguration,
             ...archesApplicationsEntrypointConfiguration,
             ...projectEntryPointConfiguration,
+            // ✅ Dodaj ręcznie
+            'js/views/components/iiif/iiif-map-viewer': {
+                import: Path.resolve(__dirname, APP_ROOT, 'media', 'js', 'views', 'components', 'iiif', 'iiif-map-viewer.js'),
+                filename: 'js/views/components/iiif/[name].[contenthash].js'
+            },
+            'js/reports/iiif-report': {
+                import: Path.resolve(__dirname, APP_ROOT, 'media', 'js', 'reports', 'iiif-report.js'),
+                filename: 'js/reports/[name].[contenthash].js'
+            }
         };
 
         // END create entry point configurations
@@ -301,6 +310,10 @@ module.exports = () => {
             },
             plugins: [
                 new CleanWebpackPlugin(),
+                new webpack.NormalModuleReplacementPlugin(
+                    /^@turf\/rewind$/,
+                    Path.resolve(__dirname, APP_ROOT, 'media', 'js', 'shims', 'turf-rewind-shim.js')
+                ),
                 new webpack.DefinePlugin(universalConstants),
                 new webpack.DefinePlugin({
                     ARCHES_URLS: webpack.DefinePlugin.runtimeValue(

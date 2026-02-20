@@ -1,90 +1,175 @@
-<div class="iiif-viewer-container">
-    
-    <div id="iiif-map-container" 
-         style="height: 600px; width: 100%; background: #f0f0f0; border: 1px solid #ddd; position: relative; z-index: 1;">
+<link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+
+<div class="iiif-map-root" style="position:relative; width:100%; height:100%;">
+  <!-- ko if: error -->
+  <div style="position:absolute; z-index:60; left:10px; right:10px; top:10px; background:#fff; border:1px solid #b00020; color:#b00020; padding:8px 10px; border-radius:8px; font-size:12px; pointer-events:auto;">
+    <b>Viewer error:</b> <span data-bind="text: error"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: status -->
+  <div style="position:absolute; z-index:60; left:10px; top:10px; background:#fff; border:1px solid #ddd; color:#333; padding:6px 10px; border-radius:8px; font-size:12px; pointer-events:auto;">
+    <span data-bind="text: status"></span>
+  </div>
+  <!-- /ko -->
+
+  <div data-bind="iiifMapInit: initMap" style="position:relative; width:100%; height:650px; background:#e9e9e9;">
+    <div
+      class="iiif-maplibre-container"
+      style="position:absolute; inset:0;"
+      data-bind="style: { display: renderMode() === 'map' ? 'block' : 'none' }">
     </div>
 
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #777; text-align: center; z-index: 0;">
-        <i class="fa fa-picture-o" style="font-size: 40px; margin-bottom: 10px;"></i>
-        <p>Waiting for IIIF Image...</p>
+    <div
+      class="iiif-leaflet-container"
+      style="position:absolute; inset:0;"
+      data-bind="style: { display: renderMode() === 'image' ? 'block' : 'none' }">
     </div>
 
+    <!-- ONE CONTROL PANEL (ALWAYS ON TOP) -->
+    <div style="position:absolute; z-index:50; left:10px; bottom:10px; background:#fff; border:1px solid #ddd; padding:8px 10px; border-radius:8px; max-width:380px; pointer-events:auto;">
+      <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
+        <div style="font-size:12px; font-weight:700;">
+          <span data-bind="text: renderMode() === 'map' ? 'Map mode (georeferenced)' : 'Image-only mode (Leaflet CRS.Simple)'"></span>
+        </div>
+        <button class="btn btn-xs btn-default"
+                data-bind="click: toggleRenderMode, enable: canToggleRenderMode">
+          Toggle
+        </button>
+      </div>
+
+      <!-- ko if: fallbackReason -->
+      <div style="font-size:12px; margin-top:6px; color:#555;">
+        <span data-bind="text: fallbackReason"></span>
+      </div>
+      <!-- /ko -->
+
+      <!-- ================= MAP CONTROLS ================= -->
+      <!-- ko if: renderMode() === 'map' -->
+        <!-- ko if: layers().length -->
+        <div style="font-size:12px; font-weight:600; margin:10px 0 6px;">Layers</div>
+        <!-- /ko -->
+
+        <!-- ko foreach: layers -->
+          <div style="display:flex; gap:8px; align-items:center; margin:4px 0;">
+            <label style="margin:0; font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <input type="checkbox" data-bind="checked: visible" />
+              <span data-bind="text: label"></span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              style="width:110px"
+              data-bind="value: opacity, valueUpdate: 'input', enable: visible" />
+          </div>
+        <!-- /ko -->
+
+        <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+          <button class="btn btn-xs btn-default" data-bind="click: fit, enable: layers().length">Zoom to Layers</button>
+          <button class="btn btn-xs btn-default" data-bind="click: toggleMeasure, css: { active: measureMode }">
+            <span data-bind="text: measureMode() ? 'Disable Measure' : 'Measure Distance'"></span>
+          </button>
+          <button class="btn btn-xs btn-default" data-bind="click: clearMeasure, enable: measureMode">Clear</button>
+          <button class="btn btn-xs btn-default" data-bind="click: toggleElevation, css: { active: elevationMode }, enable: !measureMode()">
+            <span data-bind="text: elevationMode() ? 'Measure height: ON' : 'Measure height: OFF'"></span>
+          </button>
+        </div>
+
+        <!-- ko if: measureDistance -->
+        <div style="font-size:12px; margin-top:6px;">
+          Measure Distance: <b data-bind="text: measureDistance"></b>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: measureCoords -->
+        <div style="font-size:12px; margin-top:4px;">
+          Coords: <b data-bind="text: measureCoords"></b>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: elevationMode -->
+        <div style="font-size:12px; margin-top:6px;">
+          Click on map to see height.
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: elevationLoading -->
+        <div style="font-size:12px; margin-top:4px;">Loading elevation…</div>
+        <!-- /ko -->
+
+        <!-- ko if: elevationValue -->
+        <div style="font-size:12px; margin-top:4px;">
+          Elevation: <b data-bind="text: elevationValue"></b>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: elevationError -->
+        <div style="font-size:12px; margin-top:4px; color:#b00020;" data-bind="text: elevationError"></div>
+        <!-- /ko -->
+      <!-- /ko -->
+
+      <!-- ================= IMAGE CONTROLS ================= -->
+      <!-- ko if: renderMode() === 'image' -->
+        <div style="font-size:12px; z-index:50; font-weight:600; margin:10px 0 6px;">Reference canvas (locked)</div>
+
+        <select class="form-control input-sm"
+                style="width:100%; max-width:360px; background:#f5f5f5;"
+                disabled
+                data-bind="
+                  options: leafletCanvasOptions,
+                  optionsText: 'label',
+                  optionsValue: 'id',
+                  value: leafletBaseCanvasId
+                ">
+        </select>
+
+        <div style="font-size:12px; margin-top:6px; color:#666;">
+          Base jest ustawiana automatycznie na największy canvas i pozostaje pusta (EMPTY BASE).
+        </div>
+
+        <div style="font-size:12px; margin-top:4px; color:#333;"
+             data-bind="text: 'Overlays: ' + leafletLayers().length + ' total'">
+        </div>
+
+        <!-- ko if: leafletLayers().length -->
+        <div style="font-size:12px; font-weight:600; margin:10px 0 6px;">Overlays</div>
+        <!-- /ko -->
+
+        <!-- ko ifnot: leafletLayers().length -->
+        <div style="font-size:12px; margin-top:8px; color:#777;">
+          Brak overlayów do wyświetlenia.
+        </div>
+        <!-- /ko -->
+
+        <!-- ko foreach: leafletLayers -->
+          <div style="display:flex; gap:8px; align-items:center; margin:4px 0;">
+            <label style="margin:0; font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <input type="checkbox" data-bind="checked: visible" />
+              <span data-bind="text: label"></span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              style="width:110px"
+              data-bind="value: opacity, valueUpdate: 'input', enable: visible" />
+          </div>
+        <!-- /ko -->
+
+        <div style="font-size:12px; margin-top:8px; color:#333;">
+          Leaflet CRS.Simple: współrzędne pikselowe (bez georeferencji).
+        </div>
+
+        <div style="font-size:12px; margin-top:6px;">
+          Kliknij obraz, aby odczytać wartość DEM dla piksela.
+        </div>
+
+
+      <!-- /ko -->
+    </div>
+  </div>
 </div>
-
-<!-- ✅ Popup Template -->
-<script type="text/html" id="iiif-annotation-popup-template">
-    <div style="min-width: 200px;">
-        <div style="padding: 8px; background: #f8f9fa; border-bottom: 1px solid #dee2e6; margin: -10px -10px 10px -10px;">
-            <h5 style="margin: 0; font-size: 14px; font-weight: 600; color: #212529;" data-bind="text: label"></h5>
-        </div>
-        
-        <!-- ko if: description -->
-        <div style="margin-bottom: 12px; color: #6c757d; font-size: 13px; line-height: 1.5;" data-bind="text: description"></div>
-        <!-- /ko -->
-        
-        <!-- ✅ Tylko pokaż przycisk Delete jeśli canDelete === true -->
-        <!-- ko if: canDelete -->
-        <div style="border-top: 1px solid #dee2e6; padding-top: 10px; margin-top: 10px;">
-            <button class="btn btn-sm btn-danger" 
-                    style="width: 100%;" 
-                    data-bind="click: function() { window.deleteExistingAnnotation(annotationIndex); }">
-                <i class="fa fa-trash"></i> Delete Annotation
-            </button>
-        </div>
-        <!-- /ko -->
-    </div>
-</script>
-
-<style>
-    /* ✅ DODAJ: Poprawka dla ikon Leaflet */
-    .leaflet-default-icon-path {
-        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
-    }
-    
-    .leaflet-container .leaflet-marker-icon.leaflet-interactive {
-        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
-    }
-    
-    .leaflet-container .leaflet-marker-shadow {
-        background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png);
-    }
-
-    /* Poprawki CSS dla Leaflet Draw wewnątrz Archesa */
-    .leaflet-draw-toolbar a {
-        background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/images/spritesheet.png') !important;
-        background-repeat: no-repeat;
-    }
-    
-    /* Wersja high-res dla ekranów retina */
-    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-        .leaflet-draw-toolbar a {
-            background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/images/spritesheet-2x.png') !important;
-            background-size: 300px 30px;
-        }
-    }
-    
-    /* ✅ Enhanced popup styles */
-    .iiif-annotation-popup .leaflet-popup-content-wrapper {
-        border-radius: 8px;
-        box-shadow: 0 3px 14px rgba(0,0,0,0.2);
-    }
-    
-    .iiif-annotation-popup .leaflet-popup-content {
-        margin: 10px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
-    
-    .iiif-annotation-popup .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-        color: white;
-        transition: all 0.2s;
-    }
-    
-    .iiif-annotation-popup .btn-danger:hover {
-        background-color: #c82333;
-        border-color: #bd2130;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
-    }
-</style>

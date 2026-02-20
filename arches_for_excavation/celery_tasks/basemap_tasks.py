@@ -12,6 +12,7 @@ class ConversionError(Exception):
 def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
     print(f"Converting {src_path} -> {dst_path}...")
     try:
+        logger.info(f"[COG TASK] Starting COG conversion with driver='COG', compress='DEFLATE'")
         copy(
             src_path,
             dst_path,
@@ -21,9 +22,11 @@ def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
             blocksize=512,
             BIGTIFF='IF_NEEDED'
         )
+        logger.info("[COG TASK] Conversion Complete.")
         print("Conversion Complete.")
         return register_basemap_in_db(basemap_metadata)
     except Exception as e:
+        logger.error(f"[COG TASK] Error during conversion: {e}", exc_info=True)
         print(f"Error during conversion: {e}")
         raise ConversionError(f"Failed to convert GeoTIFF to COG: {str(e)}")
 

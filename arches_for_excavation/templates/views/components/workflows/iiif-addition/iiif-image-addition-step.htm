@@ -6,18 +6,43 @@
         -o-animation: spin 2s linear infinite;
         animation: spin 2s linear infinite;
     }
-
     @-webkit-keyframes spin {
         0% { -webkit-transform: rotate(0deg); }
         100% { -webkit-transform: rotate(360deg); }
     }
-
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
- 
+
+    .iiif-preview-wrap {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        margin-top: 10px;
+    }
+    .iiif-preview-thumb {
+        width: 220px;
+        height: 220px;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 6px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.03);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .iiif-preview-thumb img {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+    }
+    .iiif-preview-meta code {
+        word-break: break-all;
+        display: inline-block;
+    }
 </style>
+
 <section class="workflow-step">
     <h3 data-bind="text: stepTitle"></h3>
     <p class="text-muted" data-bind="visible: stepDescription, text: stepDescription"></p>
@@ -33,40 +58,97 @@
     </div>
 
 
-    <div class="text-center">upload images to create a manifest:</div>
+    <!-- Nazwa zasobu -->
+    <div class="form-group" style="margin-top:10px;">
+        <label for="iiif-resource-name-input">Resource name</label>
+        <input id="iiif-resource-name-input"
+               type="text"
+               class="form-control"
+               placeholder="e.g., 'Aerial Photos 2024'"
+               data-bind="value: resourceName">
+        <small class="text-muted">Used to organize files in folder structure</small>
+    </div>
 
     <div class="panel panel-default" style="margin-top:10px;">
         <div class="panel-body"
              style="border:1px dashed #999; padding:20px; text-align:center;"
              data-bind="dropzone: dropzoneOptionsCreate">
             <button type="button" class="btn btn-default fileinput-create-button">
-                Choose files…
+                Choose file…
             </button>
             <div id="hidden-dz-create-previews" style="display:none;"></div>
         </div>
     </div>
 
-    <div data-bind="visible: loading" class="text-center">
-        <span class="glyphicon glyphicon-refresh spinning"></span> Loading IIIF data…
+    <!-- NOWE: tabela plików -->
+    <div class="panel panel-default" style="margin-top:10px;" data-bind="visible: queue().length > 0">
+      <div class="panel-heading"><strong>Selected files</strong></div>
+      <div class="panel-body" style="padding:0;">
+        <table class="table table-striped table-condensed" style="margin:0;">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th style="width:120px;">Is DEM</th>
+              <th style="width:110px;">Action</th>
+            </tr>
+          </thead>
+          <tbody data-bind="foreach: queue">
+            <tr>
+              <td data-bind="text: name"></td>
+              <td data-bind="text: $parent.humanSize(file && file.size)"></td>
+              <td><span class="label label-default" data-bind="text: statusObs()"></span></td>
+              <td>
+                <button type="button"
+                        class="btn btn-xs"
+                        data-bind="
+                          css: isDemObs() ? 'btn-primary' : 'btn-default',
+                          text: isDemObs() ? 'DEM' : 'Ortho',
+                          click: function(){ $parent.toggleDem($data); },
+                          enable: $parent.canToggleDem($data)">
+                </button>
+              </td>
+              <td>
+                <button type="button"
+                        class="btn btn-xs btn-danger"
+                        data-bind="click: function(){ $parent.removeFileRow($data); }, enable: $parent.canRemoveFile($data)">
+                  Remove
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <div data-bind="visible: errorMessage" class="alert alert-danger">
-        <span data-bind="text: errorMessage"></span>
+    <!-- Status i przycisk upload -->
+    <div data-bind="visible: progressPhase() === 'ready'" style="margin-top:10px; text-align:center;">
+        <p style="color: #5cb85c; font-weight: bold;" data-bind="text: progressStatus"></p>
+        <button type="button" class="btn btn-success" data-bind="click: startUpload">
+            Start Upload
+        </button>
     </div>
 
-    <h4 data-bind="visible: availableImages().length">2. Select image</h4>
-
-    <div class="row" data-bind="foreach: availableImages">
-        <div class="col-sm-4" style="margin-bottom:10px;">
-            <div class="thumbnail"
-                 data-bind="css: { 'selected': $parent.selectedImageIndex() === $index() },
-                            click: function(){ $parent.selectImage($data, $index()); }">
-                <img data-bind="attr: { src: thumbnail, alt: label }">
-                <div class="caption">
-                    <strong data-bind="text: label"></strong>
-                    <div class="small" data-bind="text: serviceUrl"></div>
-                </div>
+    <div data-bind="visible: progressPhase() === 'uploading' || progressPhase() === 'processing'" style="margin-top:10px;">
+        <p data-bind="text: progressStatus"></p>
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped active" role="progressbar" style="width: 100%">
+                <span class="glyphicon glyphicon-refresh spinning"></span> Processing...
             </div>
         </div>
     </div>
+
+    <!-- Potwierdzenie sukcesu -->
+    <div data-bind="visible: progressPhase() === 'complete'" class="alert alert-success" style="margin-top:10px;">
+        <span class="glyphicon glyphicon-ok"></span>
+        <strong>Success!</strong> All files processed and manifest created.
+        <p style="margin-top:8px;" data-bind="text: progressStatus"></p>
+    </div>
+
+    <!-- Błędy -->
+    <div data-bind="visible: errorMessage" class="alert alert-danger" style="margin-top:10px;">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+
 </section>
