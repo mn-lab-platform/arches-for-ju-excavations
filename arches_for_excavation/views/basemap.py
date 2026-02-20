@@ -9,7 +9,7 @@ from uuid import uuid4
 import rasterio
 from pyproj import Transformer
 
-from ..celery_tasks.basemap_tasks import convert_geotiff_to_cog
+from ..celery_tasks.basemap_tasks import create_basemap
 
 class BasemapView(View):
     def post(self, request):
@@ -50,7 +50,7 @@ class BasemapView(View):
             basemap_metadata['center_coordinates'] = raster_data['center']
             basemap_metadata['bounds'] = raster_data['bounds']
 
-            task = convert_geotiff_to_cog.delay(original_path, cog_path, basemap_metadata)
+            task = create_basemap.delay(original_path, cog_path, basemap_metadata)
             return JsonResponse({
                 'status': 'processing',
                 'task_id': task.id

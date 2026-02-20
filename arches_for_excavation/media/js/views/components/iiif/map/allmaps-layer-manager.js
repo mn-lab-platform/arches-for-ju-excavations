@@ -24,6 +24,16 @@ async function loadWarpedCtor(setStatus) {
 }
 
 // ---------------- metadata helpers ----------------
+
+function ensureAbsoluteUrl(url) {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  try {
+    return new URL(url, window.location.origin).toString();
+  } catch (e) {
+    return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+  }
+}
 function mdValue(canvas, key) {
   const md = canvas && canvas.metadata;
   if (!Array.isArray(md)) return null;
@@ -132,7 +142,7 @@ function extractServiceUrlFromCanvas(canvas) {
     const id = s?.id || s?.['@id'];
     if (!id) return null;
 
-    return forceDoubleSlashAfterIiif(id);
+    return forceHttpsUrl(ensureAbsoluteUrl(forceDoubleSlashAfterIiif(id)));
   } catch (e) {
     return null;
   }
@@ -161,10 +171,24 @@ function boundsFromCorners(cornersLonLat) {
   return [[minLon, minLat], [maxLon, maxLat]];
 }
 
+function forceHttpsUrl(url) {
+  if (!url) return url;
+  try {
+    const u = new URL(url, window.location.origin);
+    if (window.location.protocol === 'https:' && u.protocol === 'http:' && u.host === window.location.host) {
+      u.protocol = 'https:';
+      return u.toString();
+    }
+    return u.toString();
+  } catch (_) {
+    return String(url).replace(/^http:\/\//i, 'https://');
+  }
+}
+
 function buildGeorefAnnotation(serviceUrl, width, height, cornersLonLat) {
   const w = Math.round(width);
   const h = Math.round(height);
-
+  const absoluteServiceUrl = forceHttpsUrl(ensureAbsoluteUrl(serviceUrl));
   const svg =
     `<svg width="${w}" height="${h}">` +
     `<polygon points="0,0 ${w},0 ${w},${h} 0,${h}" />` +
@@ -176,7 +200,7 @@ function buildGeorefAnnotation(serviceUrl, width, height, cornersLonLat) {
     motivation: 'georeference',
     target: {
       type: 'SpecificResource',
-      source: { id: serviceUrl, type: 'ImageService3' },
+      source: { id: absoluteServiceUrl, type: 'ImageService3' },
       selector: { type: 'SvgSelector', value: svg }
     },
     body: {
@@ -440,7 +464,7 @@ export function createAllmapsLayerManager(opts = {}) {
       }
 
       const anno = buildGeorefAnnotation(p.serviceUrl, w, h, cornersLonLat);
-
+      console.log(LOG, anno);
       let mapIds = [];
       try {
         const res = await warpedLayer.addGeoreferenceAnnotation(anno);

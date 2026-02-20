@@ -41,6 +41,32 @@ export function forceDoubleSlashAfterIiif(url) {
   return s;
 }
 
+function forceHttpsUrl(u) {
+  if (!u || typeof u !== 'string') return u;
+  try {
+    const x = new URL(u, window.location.origin);
+    if (window.location.protocol === 'https:') x.protocol = 'https:';
+    return x.toString();
+  } catch (_) {
+    return u.replace(/^http:\/\//i, 'https://');
+  }
+}
+
+function patchInfoJsonProtocol(data) {
+  if (!data || typeof data !== 'object') return data;
+
+  if (typeof data.id === 'string') data.id = forceHttpsUrl(data.id);
+  if (typeof data['@id'] === 'string') data['@id'] = forceHttpsUrl(data['@id']);
+
+  if (Array.isArray(data.tiles)) {
+    data.tiles.forEach((t) => {
+      if (t && typeof t.id === 'string') t.id = forceHttpsUrl(t.id);
+      if (t && typeof t['@id'] === 'string') t['@id'] = forceHttpsUrl(t['@id']);
+    });
+  }
+  return data;
+}
+
 let _installed = false;
 
 /**
@@ -49,6 +75,25 @@ let _installed = false;
  * - type: ImageService3
  * - @context: IIIF Image API 3
  */
+function rewriteToHttpsIfSameHost(urlLike) {
+  try {
+    console.log(LOG, 'Rewriting URL if needed:', urlLike);
+    const u = new URL(urlLike, window.location.origin);
+    const isPageHttps = window.location.protocol === 'https:';
+    const sameHost = u.host === window.location.host;
+    if (isPageHttps && sameHost && u.protocol === 'http:') {
+      u.protocol = 'https:';
+      return u.toString();
+    }
+    return typeof urlLike === 'string' ? urlLike : u.toString();
+  } catch (_) {
+    if (typeof urlLike === 'string') {
+      return urlLike.replace(/^http:\/\//i, 'https://');
+    }
+    return urlLike;
+  }
+}
+
 export function installIiifInfoJsonPatch() {
   if (_installed) return;
   if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
@@ -56,11 +101,22 @@ export function installIiifInfoJsonPatch() {
   const nativeFetch = window.fetch.bind(window);
 
   window.fetch = async function(input, init) {
-    const reqUrl =
-      typeof input === 'string' ? input :
-      (input && input.url ? input.url : '');
+    let rewrittenInput = input;
+    console.log(LOG, 'Fetch called with:', input, init);
+    if (typeof input === 'string') {
+      rewrittenInput = rewriteToHttpsIfSameHost(input);
+    } else if (input instanceof Request) {
+      const rewrittenUrl = rewriteToHttpsIfSameHost(input.url);
+      if (rewrittenUrl !== input.url) {
+        rewrittenInput = new Request(rewrittenUrl, input);
+      }
+    }
 
-    const res = await nativeFetch(input, init);
+    const reqUrl =
+      typeof rewrittenInput === 'string' ? rewrittenInput :
+      (rewrittenInput && rewrittenInput.url ? rewrittenInput.url : '');
+
+    const res = await nativeFetch(rewrittenInput, init);
 
     try {
       const abs = new URL(reqUrl, window.location.origin);
@@ -88,19 +144,19 @@ export function installIiifInfoJsonPatch() {
 
       if (!needsPatch) return res;
 
-      const patched = {
+      const patched = patchInfoJsonProtocol({
         ...json,
         id: fixedId,
         type: 'ImageService3',
         '@context': 'http://iiif.io/api/image/3/context.json'
-      };
+      });
       delete patched['@id'];
-
+      console.log(LOG, 'Original info.json:', rawId, '=>', fixedId, 'Needs patch:', patched);
       const headers = new Headers(res.headers);
       headers.set('content-type', 'application/json');
       headers.delete('content-length');
 
-      console.warn(LOG, 'Patched info.json:', rawId, '=>', fixedId);
+      console.log(LOG, 'Patched info.json:', rawId, '=>', fixedId);
 
       return new Response(JSON.stringify(patched), {
         status: res.status,

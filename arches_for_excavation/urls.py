@@ -11,6 +11,7 @@ from .views.geotiif_handler import RasterUploadView
 from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView
 from .views.geotiff_files import GeoTiffFileView
 from .views.dem_pixel_sample import dem_pixel_sample
+from .views.iiif_titler_proxy import titiler_iiif_proxy
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
@@ -25,7 +26,7 @@ urlpatterns = [
     path("api/iiif/geotiff-manifest/<uuid:resource_id>", GetGeoTiffManifestView.as_view()),
     path("api/iiif/geotiff-file/<uuid:job_id>/<str:kind>", GeoTiffFileView.as_view()),
     path("api/iiif/dem/pixel", dem_pixel_sample, name="dem_pixel_sample"),    
-
+    path("iiif/api/iiif/titiler-proxy", titiler_iiif_proxy, name="titiler-iiif-proxy"),
 ]
 
 

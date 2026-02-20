@@ -43,6 +43,15 @@ function pickDemCanvasFromManifest(manifest) {
   const items = Array.isArray(manifest?.items) ? manifest.items : [];
   return items.find((c) => mdBool(c, 'is_dem_hint')) || null;
 }
+function ensureAbsoluteUrl(url) {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  try {
+    return new URL(url, window.location.origin).toString();
+  } catch (e) {
+    return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+  }
+}
 
 function extractServiceUrlFromCanvas(canvas) {
   try {
@@ -52,7 +61,9 @@ function extractServiceUrlFromCanvas(canvas) {
     if (!body) return null;
     const svc = body.service;
     const s = Array.isArray(svc) ? svc[0] : svc;
-    return s?.id || s?.['@id'] || null;
+    const id = s?.id || s?.['@id'];
+    if (!id) return null;
+    return ensureAbsoluteUrl(id);
   } catch (_) {
     return null;
   }

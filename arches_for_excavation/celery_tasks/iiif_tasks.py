@@ -6,6 +6,8 @@ from typing import Any, Dict
 
 from celery import shared_task
 from django.conf import settings
+from django.urls import reverse
+from urllib.parse import urlencode
 
 from ..views.services.raster_metadata import _read_geotiff_metadata
 import numpy as np
@@ -13,6 +15,7 @@ import rasterio
 from rasterio.transform import Affine
 from rasterio.shutil import copy as rio_copy
 logger = logging.getLogger(__name__)
+from ..views.iiif_titler_proxy import titiler_iiif_proxy
 
 
 def _ensure_dir(p: Path) -> None:
@@ -41,7 +44,6 @@ def _map_arche_path_to_titiler_path(p: Path) -> str:
 
     rel = s[idx + len(marker):]  # e.g. "rasters/data/<id>/file.tif"
     return f"{_titiler_mount()}/{rel}"
-
 
 
 def _normalize_dem_to_unit_interval(dem: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, float, float]:
@@ -166,7 +168,7 @@ def process_geotiff_metadata_task(self, payload: Dict[str, Any]) -> Dict[str, An
 
     # map path for TiTiler
     titiler_cog_path = _map_arche_path_to_titiler_path(cog)
-    titiler_service_url = f"{getattr(settings, 'TITILER_PUBLIC_BASE_URL', 'http://localhost:8081').rstrip('/')}/iiif{titiler_cog_path}"
+    titiler_service_url = reverse("titiler-iiif-proxy") + "?" + urlencode({"path": titiler_cog_path})
     options = payload.get("options") or {}
     return {
         "job_id": job_id,
@@ -255,7 +257,7 @@ def generate_hillshade_task(self, result):
         pass
 
     hs_titiler_path = _map_arche_path_to_titiler_path(hs_cog)
-    hs_service_url = f"{getattr(settings, 'TITILER_PUBLIC_BASE_URL', 'http://localhost:8081').rstrip('/')}/iiif{hs_titiler_path}"
+    hs_service_url = reverse("titiler-iiif-proxy") + "?" + urlencode({"path": hs_titiler_path})
 
     result.setdefault("derived", {})
     result["derived"].setdefault("hillshade", {})
@@ -341,8 +343,7 @@ def generate_color_relief_task(self, result: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     cr_titiler_path = _map_arche_path_to_titiler_path(cr_cog)
-    base_url = getattr(settings, "TITILER_PUBLIC_BASE_URL", "http://localhost:8081").rstrip("/")
-    cr_service_url = f"{base_url}/iiif{cr_titiler_path}"
+    cr_service_url = reverse("titiler-iiif-proxy") + "?" + urlencode({"path": cr_titiler_path})
 
     result.setdefault("derived", {})
     result["derived"].setdefault("color_relief", {})
