@@ -22,7 +22,14 @@ def _read_geotiff_metadata(src_path: str) -> dict:
             # prosta heurystyka DEM
             is_dem_hint = (ds.count == 1 and (dtype or "").startswith("float"))
 
-            has_georef = (crs is not None and transform is not None and not transform.is_identity)
+            crs_str = crs.to_string() if crs is not None else None
+
+            # georeferencja "mapowa" tylko jeśli znamy EPSG (Allmaps tego potrzebuje)
+            has_georef = (
+                epsg is not None and
+                transform is not None and
+                not transform.is_identity
+            )
 
             return {
                 "driver": ds.driver,
@@ -31,7 +38,8 @@ def _read_geotiff_metadata(src_path: str) -> dict:
                 "count": ds.count,
                 "dtype": dtype,
                 "nodata": nodata,
-                "crs": crs.to_string() if crs is not None else None,
+                "crs": crs_str,
+                "has_georef": bool(has_georef),
                 "epsg": epsg,
                 "transform": [transform.a, transform.b, transform.c, transform.d, transform.e, transform.f],
                 "bounds": [bounds.left, bounds.bottom, bounds.right, bounds.top],

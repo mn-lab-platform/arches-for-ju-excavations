@@ -10,7 +10,7 @@ from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif
 from .views.geotiif_handler import RasterUploadView
 from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView
 from .views.geotiff_files import GeoTiffFileView
-
+from .views.dem_pixel_sample import dem_pixel_sample
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
@@ -22,7 +22,8 @@ urlpatterns = [
     path('api/iiif/geotiff-upload', RasterUploadView.as_view(), name='geotiff_process'),
     path("api/iiif/build-geotiff-manifest", BuildGeoTiffManifestView.as_view()),
     path("api/iiif/geotiff-manifest/<uuid:resource_id>", GetGeoTiffManifestView.as_view()),
-    path("api/iiif/geotiff-file/<uuid:job_id>/<str:kind>", GeoTiffFileView.as_view()),    
+    path("api/iiif/geotiff-file/<uuid:job_id>/<str:kind>", GeoTiffFileView.as_view()),
+    path("api/iiif/dem/pixel", dem_pixel_sample, name="dem_pixel_sample"),    
 
 ]
 
