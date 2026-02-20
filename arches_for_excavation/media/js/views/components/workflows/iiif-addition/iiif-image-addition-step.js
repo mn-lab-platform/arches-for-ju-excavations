@@ -1,514 +1,502 @@
 define([
-    'knockout',
-    'arches',
-    'templates/views/components/workflows/iiif-addition/iiif-image-addition-step.htm',
-    'bindings/dropzone'
-], function(ko, arches, template) {
-    'use strict';
+  'knockout',
+  'arches',
+  'templates/views/components/workflows/iiif-addition/iiif-image-addition-step.htm',
+  'bindings/dropzone',
+  'utils/iiif-addition-utils',
+  'services/iiif-addition-api',
+  'utils/iiif-file-entries-store',
+  'services/iiif-queue-runner',
+  '../../../../services/service-utils'
+], function(ko, arches, template, _dropzone, utils, iiifApi, FileEntriesStore, QueueRunner, serviceUtils) {
+  'use strict';
 
-    console.log('[WF LOG][image-select] Module loaded');
+  var NODE_IIIF_LABEL = '78422c09-4994-4eff-b764-60f21f3290cd';
+  var NODE_IIIF_URL = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
+  var NODE_RELATED_RESOURCE = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
+  var NODE_USED_FILES = 'b1947f78-f339-4e32-b24d-11f78a2b52bd';
 
-    // ==== KONSTANTY Z GRAFU "iiif-digital" ====
-    var IIIF_DIGITAL_GRAPH_ID = 'd948ccf4-bfb7-4dd6-b691-4050e3e0a19d';
-    var DIGITAL_RES_NODEGROUP_ID = '04271267-d0a3-4930-8be3-0e8a2a34a735';
+  var REL_ONTOLOGY_PROPERTY_ID = "";
+  var REL_INVERSE_PROPERTY_ID = "";
 
-    var DIGITAL_RES_LABEL_NODE_ID = '78422c09-4994-4eff-b764-60f21f3290cd';
-    var DIGITAL_RES_URL_NODE_ID   = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
-    var DIGITAL_RES_REL_NODE_ID   = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
+  function viewModel(params) {
+    var self = this;
 
-    var REL_ONTOLOGY_PROPERTY_ID = null;
-    var REL_INVERSE_PROPERTY_ID  = null;
+    var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+    var csrftoken = serviceUtils.getCookie('csrftoken');
 
-    // ====== HELPERS ======
-    function uuidv4() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0;
-            var v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
+    self.stepTitle = ko.observable(params.stepTitle || 'Add IIIF Image');
+    self.stepDescription = ko.observable(params.stepDescription || 'Upload GeoTIFF files to create an IIIF resource');
+
+    self.resourceName = ko.observable('');
+
+    // Ustaw domyślnie na false – inaczej znowu wrócisz do “zawsze robi hillshade”
+    self.forceDem = ko.observable(false);
+    self.makeHillshade = ko.observable(false);
+
+    self.loading = ko.observable(false);
+    self.errorMessage = ko.observable('');
+
+    self.progressStatus = ko.observable('');
+    self.progressPhase = ko.observable('idle'); // idle | ready | uploading | processing | complete | error
+    self.canStartUpload = ko.observable(false);
+
+    self.digitalResourceId = ko.observable(null);
+
+    self.tiles = {
+      labelTileId: ko.observable(null),
+      urlTileId: ko.observable(null),
+      relTileId: ko.observable(null),
+      fileListTileId: ko.observable(null)
+    };
+
+    // host resource
+    self.targetResourceId = ko.observable(null);
+    var hostParam = params.hostResourceId;
+    if (typeof hostParam === 'function') {
+      self.targetResourceId(ko.unwrap(hostParam) || null);
+      ko.computed(function() { self.targetResourceId(ko.unwrap(hostParam) || null); });
+    } else if (hostParam) {
+      self.targetResourceId(hostParam);
+    } else if (params.form && params.form.resourceid) {
+      self.targetResourceId(params.form.resourceid);
     }
 
-    function getCookie(name) {
-        var cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            var cookies = document.cookie.split(';');
-            for (var i = 0; i < cookies.length; i++) {
-                var cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
+    // queue
+    self.maxParallel = ko.observable(1); // was 3
+    self.queue = ko.observableArray([]); // [{ file, name, statusObs, isDemObs, makeHillshadeObs, ... }]
+    self.isFinalizing = ko.observable(false);
+
+    self.humanSize = utils.humanSize;
+
+    self.canRemoveFile = function(row) {
+      if (!row || !row.statusObs) return false;
+      return ['selected', 'queued', 'failed'].includes(row.statusObs());
+    };
+
+    self.removeFileRow = function(row) {
+      if (!row || !self.canRemoveFile(row)) return;
+
+      self.queue.remove(row);
+      try {
+        if (self.dropzone && row.file) self.dropzone.removeFile(row.file);
+      } catch (e) {
+        console.warn('[IIIF-STEP] dropzone.removeFile failed:', e);
+      }
+      _refreshReadyState();
+    };
+    self.canToggleDem = function(row) {
+      if (!row || !row.statusObs || !row.isDemObs) return false;
+      return ['selected', 'failed'].includes(row.statusObs());
+    };
+
+    self.toggleDem = function(row) {
+      if (!self.canToggleDem(row)) return;
+      var nowDem = !row.isDemObs();
+      row.isDemObs(nowDem);
+      if (row.makeHillshadeObs) row.makeHillshadeObs(nowDem);
+    };
+    // USED_FILES store
+    self.fileStore = new FileEntriesStore({ arches: arches });
+
+    self.saveUsedFilesTile = function() {
+      var tileid = self.tiles.fileListTileId();
+      self.fileStore.tileId(tileid);
+
+      return self.fileStore.saveToTile(NODE_USED_FILES, self.digitalResourceId())
+        .then(function(t) {
+          if (t && t.tileid) self.tiles.fileListTileId(t.tileid);
+          return t;
+        });
+    };
+
+    function _refreshReadyState() {
+      var count = self.queue().filter(function(it) {
+        return it && it.statusObs && it.statusObs() === 'selected';
+      }).length;
+
+      if (count > 0) {
+        self.canStartUpload(true);
+        self.progressStatus('Ready to upload ' + count + ' file(s)');
+        self.progressPhase('ready');
+      } else {
+        self.canStartUpload(false);
+        self.progressStatus('');
+        if (!self.queue().some(function(it) {
+          var st = it && it.statusObs ? it.statusObs() : '';
+          return (st === 'queued' || st === 'uploading' || st === 'processing');
+        })) {
+          self.progressPhase('idle');
         }
-        return cookieValue;
+      }
     }
 
-    function makeLangValue(value) {
-        var lang = (arches && arches.activeLanguage) ? arches.activeLanguage : 'en';
-        var obj = {};
-        obj[lang] = { value: value, direction: 'ltr' };
-        return obj;
-    }
+    // dropzone
+    self.dropzone = null;
+    self.dropzoneOptionsCreate = {
+      url: baseUrl,
+      dictDefaultMessage: '',
+      maxFilesize: 4096,
+      autoProcessQueue: false,
+      uploadMultiple: true,
+      autoQueue: false,
+      clickable: '.fileinput-create-button',
+      previewsContainer: '#hidden-dz-create-previews',
+      init: function() {
+        var dz = this;
+        self.dropzone = dz;
 
-    function normalizeHost(url) {
-        if (!url) { return url; }
-        return url
-            .replace('cantaloupe_arches_slocal:8182', 'localhost:8183')
-            .replace('cantaloupe_arches_slocal', 'localhost');
-    }
+        function addToQueue(file) {
+          if (!file) return;
+          var exists = self.queue().some(function(it) { return it.file === file; });
+          if (exists) return;
 
-    function serviceFromTile(url) {
-        var idx = url.indexOf('/full/');
-        return idx > -1 ? url.substring(0, idx) : url;
-    }
+          self.queue.push({
+            localId: utils.uuidv4(),
+            file: file,
+            name: file.name || 'unnamed',
+            statusObs: ko.observable('selected'),
 
-    function imagesFromCanvases(canvases) {
-        var images = [];
-        (canvases || []).forEach(function(canvas) {
-            try {
-                var img = canvas.images && canvas.images[0];
-                var svc = img && img.resource && img.resource.service &&
-                    (img.resource.service['@id'] || img.resource.service.id);
-                if (svc) {
-                    svc = normalizeHost(svc);
-                    images.push({
-                        label: canvas.label || 'Untitled',
-                        serviceUrl: svc,
-                        thumbnail: svc.replace(/\/$/, '') + '/full/200,/0/default.jpg'
-                    });
-                }
-            } catch (e) {
-                console.log('[WF LOG][image-select] imagesFromCanvases error:', e, canvas);
-            }
+            isDemObs: ko.observable(!!self.forceDem()),
+            makeHillshadeObs: ko.observable(!!self.forceDem()),
+
+            // backend ids
+            task_id: null,
+            job_id: null,
+            file_id: null,
+
+            // iiif urls
+            iiif_service_url: null,
+            derivedItems: [] // [{ kind, label, iiif_service_url }]
+          });
+        }
+
+        dz.on('addedfiles', function(files) {
+          utils.normalizeFiles(files).forEach(addToQueue);
+          _refreshReadyState();
         });
-        return images;
-    }
 
-    // =============================================================
-    function viewModel(params) {
-        var self = this;
+        dz.on('addedfile', function(file) {
+          addToQueue(file);
+          _refreshReadyState();
+        });
 
-        console.log('[WF LOG][image-select] ========== INIT ==========');
-        console.log('[WF LOG][image-select] params:', params);
+        dz.on('removedfile', function(file) {
+          self.queue.remove(function(it) {
+            return it.file === file && it.statusObs && ['selected', 'queued', 'failed'].includes(it.statusObs());
+          });
+          _refreshReadyState();
+        });
 
+        dz.on('error', function(file, error) {
+          console.error('[IIIF-STEP] Dropzone error:', error);
+          file.error = error;
+        });
+      }
+    };
 
-        // ===== step configuration =====
-        // assetType: 'iiif' (default) | 'dem' | ...
-        var assetParam = params.assetType || params.asset_type || 'iiif';
-        self.assetType = ko.observable(ko.unwrap(assetParam) || assetParam || 'iiif');
-        if (typeof assetParam === 'function') {
-            ko.computed(function() {
-                self.assetType(ko.unwrap(assetParam) || 'iiif');
+    // STEP 1: init resource + tiles
+    self.ensureDigitalResource = function() {
+      if (self.digitalResourceId()) return Promise.resolve(self.digitalResourceId());
+
+      self.loading(true);
+      self.errorMessage('');
+      self.progressPhase('uploading');
+      self.progressStatus('Initializing resource...');
+
+      var rid = utils.uuidv4();
+      self.digitalResourceId(rid);
+
+      var labelData = utils.makeLangValue(self.resourceName() || '', arches);
+      var urlData = utils.makeLangValue('', arches);
+
+      var relTargets = [{
+        resourceId: self.targetResourceId(),
+        ontologyProperty: REL_ONTOLOGY_PROPERTY_ID,
+        inverseOntologyProperty: REL_INVERSE_PROPERTY_ID,
+        resourceXresourceId: ""
+      }];
+
+      self.fileStore.clear();
+
+      return utils.createOrUpdateTile(NODE_IIIF_LABEL, rid, '', labelData)
+        .then(function(t) { self.tiles.labelTileId(t.tileid); return utils.createOrUpdateTile(NODE_IIIF_URL, rid, '', urlData); })
+        .then(function(t) { self.tiles.urlTileId(t.tileid); return utils.createOrUpdateTile(NODE_RELATED_RESOURCE, rid, '', relTargets); })
+        .then(function(t) { self.tiles.relTileId(t.tileid); return utils.createOrUpdateTile(NODE_USED_FILES, rid, '', []); })
+        .then(function(t) { self.tiles.fileListTileId(t.tileid); return rid; })
+        .finally(function() { self.loading(false); });
+    };
+
+    // Queue runner
+    self.queueRunner = new QueueRunner({
+      queue: self.queue,
+      maxParallel: self.maxParallel,
+      processItem: function(item) { return self.processOne(item); },
+      onDrain: function() { return self.finalizeManifest(); }
+    });
+
+    // STEP 2: start upload
+    self.startUpload = function() {
+      var toQueue = self.queue().filter(function(it) { return it.statusObs() === 'selected'; });
+      if (!toQueue.length) {
+        self.errorMessage('No new files to upload');
+        return;
+      }
+
+      self.errorMessage('');
+      self.queueRunner.resetDrain();
+
+      self.ensureDigitalResource()
+        .then(function() {
+          toQueue.forEach(function(it) { it.statusObs('queued'); });
+          self.progressPhase('uploading');
+          self.progressStatus('Uploading ' + toQueue.length + ' file(s)...');
+          self.queueRunner.run();
+        })
+        .catch(function(err) {
+          self.progressPhase('error');
+          self.progressStatus('Init failed');
+          self.errorMessage('Failed to init resource: ' + (err && err.message ? err.message : String(err)));
+        });
+    };
+
+    // STEP 3: upload + poll celery + update USED_FILES
+    self.processOne = function(item) {
+      item.statusObs('uploading');
+      self.progressStatus('Uploading ' + item.name + '...');
+
+      var fd = new FormData();
+      fd.append('file', item.file, item.file.name);
+
+      var baseName = utils.stripExt(item.file.name);
+      fd.append('base_name', baseName);
+
+      var forceDem = !!(item.isDemObs && item.isDemObs());
+      var makeHillshade = forceDem && (!item.makeHillshadeObs || item.makeHillshadeObs());
+
+      fd.append('role', forceDem ? 'dem' : 'ortho');
+      fd.append('force_dem', forceDem ? '1' : '0');
+      fd.append('make_hillshade', makeHillshade ? '1' : '0');
+
+      fd.append('resource_id', self.digitalResourceId());
+      fd.append('resource_name', self.resourceName() || baseName);
+
+      return iiifApi.uploadGeotiff(baseUrl, csrftoken, { formData: fd })
+        .then(function(r) {
+          // ids
+          item.task_id = r.task_id || r.job_id;
+          item.job_id = r.job_id || null;
+          item.file_id = r.job_id || item.file_id || utils.uuidv4();
+
+          // initial file entries (original + whatever endpoints są dostępne od razu)
+          var entries = [{
+            file_id: item.file_id,
+            name: item.name,
+            type: 'image/tiff',
+            size: item.file && item.file.size,
+            status: 'uploaded',
+            url: utils.toAbsoluteUrl(r.download_url_original),
+            description: ''
+          }];
+
+          if (r.download_url_cog) {
+            entries.push({
+              file_id: item.file_id + '_cog',
+              name: baseName + '_COG.tif',
+              type: 'image/tiff',
+              status: 'uploaded',
+              url: utils.toAbsoluteUrl(r.download_url_cog)
             });
-        }
-
-        // optional step support (e.g. DEM step)
-        var optionalParam = (params.optional !== undefined) ? params.optional : false;
-        self.optional = ko.observable(!!ko.unwrap(optionalParam));
-        if (typeof optionalParam === 'function') {
-            ko.computed(function() {
-                self.optional(!!ko.unwrap(optionalParam));
+          }
+          if (r.download_url_hillshade) {
+            entries.push({
+              file_id: item.file_id + '_hillshade',
+              name: baseName + '_hillshade.tif',
+              type: 'image/tiff',
+              status: 'uploaded',
+              url: utils.toAbsoluteUrl(r.download_url_hillshade)
             });
-        }
-
-        // UI texts (can be overridden from workflow step parameters)
-        var titleParam = params.stepTitle || params.title;
-        self.stepTitle = ko.pureComputed(function() {
-            var t = ko.unwrap(titleParam);
-            if (t) return t;
-            return (self.assetType() === 'dem') ? 'Add DEM (optional)' : 'Add IIIF image (digital resource: iiif)';
-        });
-
-        var descParam = params.stepDescription || params.description;
-        self.stepDescription = ko.pureComputed(function() {
-            var d = ko.unwrap(descParam);
-            if (d !== undefined && d !== null && String(d).trim() !== '') return d;
-            return (self.assetType() === 'dem')
-                ? 'Upload a DEM-derived visualization (recommended: hillshade / color relief) and link it to the selected resource.'
-                : '';
-        });
-
-        self.manifestDescription = ko.pureComputed(function() {
-            return ko.unwrap(params.manifestDescription) ||
-                ((self.assetType() === 'dem') ? 'DEM uploaded via geotiff workflow' : 'Processed via geotiff workflow');
-        });
-
-        self.labelPrefix = ko.pureComputed(function() {
-            return ko.unwrap(params.labelPrefix) || ((self.assetType() === 'dem') ? 'DEM: ' : '');
-        });
-
-        // ===== host resource z kroku 1 =====
-        self.targetResourceId = ko.observable(null);
-        var hostParam = params.hostResourceId;
-
-        if (typeof hostParam === 'function') {
-            self.targetResourceId(ko.unwrap(hostParam) || null);
-            ko.computed(function() {
-                self.targetResourceId(ko.unwrap(hostParam) || null);
+          }
+          if (r.download_url_colorrelief) {
+            entries.push({
+              file_id: item.file_id + '_colorrelief',
+              name: baseName + '_colorrelief.tif',
+              type: 'image/tiff',
+              status: 'uploaded',
+              url: utils.toAbsoluteUrl(r.download_url_colorrelief)
             });
-        } else if (hostParam) {
-            self.targetResourceId(hostParam);
-        } else if (params.form && params.form.resourceid) {
-            self.targetResourceId(params.form.resourceid);
+          }
+
+          self.fileStore.upsert(entries);
+          item.statusObs('processing');
+          self.progressStatus('Processing ' + item.name + '...');
+
+          return self.saveUsedFilesTile()
+            .then(function() { return iiifApi.pollTaskStatus(baseUrl, item.task_id, { pollInterval: 2000, maxAttempts: 600 }); });
+        })
+        .then(function(st) {
+          var state = st.state || st.status || 'UNKNOWN';
+
+          if (state === 'FAILURE') {
+            var failMsg =
+              (st && st.result && (st.result.exc_message || st.result.error)) ||
+              st.error ||
+              'Celery: FAILURE';
+
+            item.statusObs('failed');
+            self.errorMessage((self.errorMessage() ? (self.errorMessage() + '\n') : '') + item.name + ': ' + failMsg);
+
+            self.fileStore.upsert([{
+              file_id: item.file_id,
+              status: 'failed',
+              description: failMsg
+            }]);
+            return self.saveUsedFilesTile();
+          }
+
+          // SUCCESS
+          var result = st.result || st;
+
+          var svc = result && result.titiler && result.titiler.iiif_service_url;
+          item.iiif_service_url = svc || null;
+
+          // NEW: keep metadata from celery result (written also to separate json)
+          item.fileMetadata = (result && result.metadata) ? result.metadata : null;
+
+          // derived
+          var derivedItems = [];
+
+          var hsSvc = utils.getDerivedIiifServiceUrl(result, 'hillshade');
+          if (hsSvc) {
+            derivedItems.push({ kind: 'hillshade', label: item.name + ' (hillshade)', iiif_service_url: hsSvc });
+            self.fileStore.upsert([{ file_id: item.file_id + '_hillshade', description: 'IIIF: ' + hsSvc }]);
+          }
+
+          var crSvc = utils.getDerivedIiifServiceUrl(result, 'color_relief');
+          if (crSvc) {
+            derivedItems.push({ kind: 'colorrelief', label: item.name + ' (color relief)', iiif_service_url: crSvc });
+            self.fileStore.upsert([{ file_id: item.file_id + '_colorrelief', description: 'IIIF: ' + crSvc }]);
+          }
+
+          item.derivedItems = derivedItems;
+          item.statusObs('ready');
+
+          self.fileStore.upsert([{
+            file_id: item.file_id,
+            status: 'uploaded',
+            description: svc ? ('IIIF: ' + svc) : ''
+          }]);
+
+          return self.saveUsedFilesTile();
+        })
+        .catch(function(err) {
+          item.statusObs('failed');
+          self.errorMessage((self.errorMessage() ? (self.errorMessage() + '\n') : '') + (err && err.message ? err.message : String(err)));
+
+          if (item.file_id) {
+            self.fileStore.upsert([{
+              file_id: item.file_id,
+              status: 'failed',
+              description: 'Upload/poll error'
+            }]);
+            return self.saveUsedFilesTile();
+          }
+        });
+    };
+
+    // FINALIZE: build manifest from successful services + update iiif_url tile
+    self.finalizeManifest = function() {
+      if (self.isFinalizing()) return;
+      self.isFinalizing(true);
+
+      var services = [];
+      self.queue().forEach(function(it) {
+        if (!it || !it.statusObs || it.statusObs() !== 'ready') return;
+
+        if (it.iiif_service_url) {
+          services.push({
+            label: it.name,
+            iiif_service_url: it.iiif_service_url,
+            file_id: it.file_id,
+            metadata: it.fileMetadata || {} // NEW
+          });
         }
 
-        // ===== UI state =====
-        self.manifestUrl        = ko.observable('');
-        self.imageServiceUrl    = ko.observable('');
-        self.selectedImageIndex = ko.observable(null);
-        self.loading            = ko.observable(false);
-        self.errorMessage       = ko.observable('');
-        self.availableImages    = ko.observableArray([]);
+        (it.derivedItems || []).forEach(function(d) {
+          if (!d || !d.iiif_service_url) return;
+          services.push({
+            label: d.label || (it.name + ' (derived)'),
+            iiif_service_url: d.iiif_service_url,
+            file_id: (it.file_id || '') + '_' + (d.kind || 'derived')
+          });
+        });
+      });
 
-        if (typeof params.value !== 'function') {
-            params.value = ko.observable();
-        }
+      if (!services.length) {
+        self.progressPhase('error');
+        self.progressStatus('No successful files');
+        self.errorMessage(self.errorMessage() || 'No GeoTIFF processed successfully, cannot build manifest.');
+        self.isFinalizing(false);
+        return;
+      }
 
-        self.digitalResourceId = ko.observable(null);
-        self.formData = new window.FormData();
-        self.dropzone = null;
-        self.lastManifestGlobalId = null;
+      self.progressPhase('processing');
+      self.progressStatus('Building manifest...');
 
-        // ✅ ADD THIS: track related manifest (for DEM -> Ortho)
-        self.relatedManifestGlobalId = ko.observable(null);
-        var relatedParam = params.relatedManifestGlobalId;
-        if (typeof relatedParam === 'function') {
-            self.relatedManifestGlobalId(ko.unwrap(relatedParam) || null);
-            ko.computed(function() {
-                self.relatedManifestGlobalId(ko.unwrap(relatedParam) || null);
-            });
-        } else if (relatedParam) {
-            self.relatedManifestGlobalId(relatedParam);
-        }
+      return iiifApi.buildManifest(baseUrl, csrftoken, {
+        resource_id: self.digitalResourceId(),
+        label: 'GeoTIFF manifest',
+        iiif_version: 3,
+        items: services,
+        resource_name: self.resourceName()
+      })
+      .then(function(r) {
+        var manifestUrl = r.manifest_url;
+        if (!manifestUrl) throw new Error('No manifest_url returned');
 
-        var csrftoken = getCookie('csrftoken');
-        var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-        
-        // NOWY ENDPOINT - Python view który przetwarza i tworzy manifest
-        var geotiffProcessUrl = baseUrl + 'api/iiif/geotiff-reencode-test';
+        var data = utils.makeLangValue(manifestUrl, arches);
+        return utils.createOrUpdateTile(NODE_IIIF_URL, self.digitalResourceId(), self.tiles.urlTileId(), data)
+          .then(function(t) {
+            if (t && t.tileid) self.tiles.urlTileId(t.tileid);
 
-        // ===================== CREATE digital resource: iiif =====================
-        function postTile(nodegroupId, data, resourceId) {
-            var payload = {
-                tileid: '',
-                nodegroup_id: nodegroupId,
-                parenttile_id: null,
-                resourceinstance_id: resourceId,
-                sortorder: 0,
-                tiles: {},
-                data: data
+            self.progressPhase('complete');
+            self.progressStatus('Done');
+
+            var valueData = {
+              digitalResourceId: self.digitalResourceId(),
+              targetResourceId: self.targetResourceId(),
+              manifestUrl: manifestUrl
             };
 
-            var formData = new window.FormData();
-            formData.append('data', JSON.stringify(payload));
+            if (typeof params.value === 'function') params.value(valueData);
+            if (params.form && params.form.value) params.form.value(valueData);
 
-            var url = (arches.urls && typeof arches.urls.api_tile === 'string')
-                ? arches.urls.api_tile
-                : baseUrl + 'tile';
+            setTimeout(function() { self.progressStatus(''); }, 800);
+            return manifestUrl;
+          });
+      })
+      .catch(function(err) {
+        self.progressPhase('error');
+        self.progressStatus('Manifest failed');
+        self.errorMessage('Failed to build/update manifest: ' + (err && err.message ? err.message : String(err)));
+      })
+      .finally(function() {
+        self.isFinalizing(false);
+      });
+    };
 
-            return fetch(url, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                body: formData
-            }).then(function(resp) {
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                return resp.json ? resp.json() : {};
-            });
-        }
-
-        self.createDigitalResource = function(serviceUrl, labelText, manifestGlobalId) {
-            var resourceId = manifestGlobalId || uuidv4();
-            var label = labelText || serviceUrl || ('digital resource: ' + self.assetType() + ' ' + new Date().toISOString());
-            var _pfx = self.labelPrefix && self.labelPrefix() ? String(self.labelPrefix()) : '';
-            if (_pfx && label.indexOf(_pfx) !== 0) label = _pfx + label;
-
-            console.log('[WF LOG][image-select] Creating digital resource with ID:', resourceId);
-
-            // Create resource by posting the first tile with graph metadata
-            var labelData = {};
-            labelData[DIGITAL_RES_LABEL_NODE_ID] = makeLangValue(label);
-
-            var urlData = {};
-            urlData[DIGITAL_RES_URL_NODE_ID] = makeLangValue(serviceUrl);
-            
-            var relData = {};
-            relData[DIGITAL_RES_REL_NODE_ID] = [{
-                resourceId: self.targetResourceId(),
-                ontologyProperty: REL_ONTOLOGY_PROPERTY_ID || "",
-                inverseOntologyProperty: REL_INVERSE_PROPERTY_ID || "",
-                resourceXresourceId: ""
-            }];
-            
-            return postTile(DIGITAL_RES_LABEL_NODE_ID, labelData, resourceId)
-                .then(function() {
-                    return postTile(DIGITAL_RES_URL_NODE_ID, urlData, resourceId);
-                })
-                .then(function() {
-                    return postTile(DIGITAL_RES_REL_NODE_ID, relData, resourceId);
-                })
-                .then(function() {
-                    self.digitalResourceId(resourceId);
-                    params.value({
-                        imageServiceUrl: serviceUrl,
-                        digitalResourceId: resourceId,
-                        targetResourceId: self.targetResourceId(),
-                        manifestGlobalId: resourceId
-                    });
-                    console.log('[WF LOG][image-select] Digital resource created:', resourceId);
-                    return resourceId;
-                });
-        }
-
-        // ========== SOURCE A: manifest / info.json (bez zmian) ==========
-        self.manifestUrl.subscribe(function(url) {
-            self.errorMessage('');
-            if (!url) return;
-            self.loadManifest(url.trim());
-        });
-
-        self.loadManifest = function(url) {
-            console.log('[WF LOG][image-select] loadManifest:', url);
-            self.loading(true);
-            self.availableImages.removeAll();
-            self.imageServiceUrl('');
-            params.value(undefined);
-            self.digitalResourceId(null);
-
-            if (/\/full\/.+\/default\.(jpg|png)(?:$|\?)/i.test(url)) {
-                url = serviceFromTile(url).replace(/\/$/, '') + '/info.json';
-            }
-
-            fetch(url, { credentials: 'include' })
-                .then(function(resp) {
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    return resp.json();
-                })
-                .then(function(data) {
-                    if (data['@type'] === 'sc:Manifest' && Array.isArray(data.sequences)) {
-                        var images = [];
-                        (data.sequences || []).forEach(function(seq) {
-                            images = images.concat(imagesFromCanvases(seq.canvases || []));
-                        });
-                        if (!images.length) throw new Error('No canvases with IIIF Image services found.');
-
-                        self.availableImages(images);
-                        self.loading(false);
-                        return;
-                    }
-
-                    // info.json (Image API)
-                    if ((data['@context'] && String(data['@context']).indexOf('iiif.io/api/image') !== -1) ||
-                        (data['protocol'] && String(data['protocol']).indexOf('iiif.io/api/image') !== -1)) {
-
-                        var svcId = normalizeHost(data['@id'] || data['id']);
-                        if (!svcId) throw new Error('Missing service @id/id in info.json');
-
-                        self.availableImages([{
-                            label: data['@id'] || data['id'] || 'Image',
-                            serviceUrl: svcId,
-                            thumbnail: svcId.replace(/\/$/, '') + '/full/200,/0/default.jpg'
-                        }]);
-                        self.loading(false);
-                        return;
-                    }
-
-                    throw new Error('Unsupported IIIF payload (not Manifest or Image API info.json).');
-                })
-                .catch(function(err) {
-                    self.errorMessage('Failed to load IIIF resource: ' + err.message);
-                    self.loading(false);
-                });
-        };
-
-        // ========== SOURCE B: upload -> Python przetwarza i tworzy manifest ==========
-        self.dropzoneOptionsCreate = {
-            url: baseUrl,
-            dictDefaultMessage: '',
-            maxFilesize: 4096,  // 4 GB
-            autoProcessQueue: false,
-            uploadMultiple: false,  // pojedynczo dla prostoty
-            autoQueue: false,
-            clickable: '.fileinput-create-button',
-            previewsContainer: '#hidden-dz-create-previews',
-            init: function() {
-                var dz = this;
-                self.dropzone = dz;
-                dz.on('addedfiles', function(files) {
-                    self.uploadAndProcessFile(files[0]);
-                });
-                dz.on('error', function(file, error) {
-                    console.log('[WF LOG][image-select] dropzone error:', error);
-                    file.error = error;
-                });
-            }
-        };
-
-        self.uploadAndProcessFile = function(file) {
-            if (!file) return;
-
-            self.errorMessage('');
-            self.loading(true);
-            self.availableImages.removeAll();
-            self.imageServiceUrl('');
-            params.value(undefined);
-            self.digitalResourceId(null);
-            self.lastManifestGlobalId = null;
-
-            self.formData = new window.FormData();
-            self.formData.append('files', file, file.name);
-
-            var title = ((self.assetType() === 'dem') ? 'Workflow DEM upload ' : 'Workflow upload ') + new Date().toISOString();
-            self.formData.append('manifest_title', title);
-            self.formData.append('manifest_description', self.manifestDescription());
-            self.formData.append('asset_type', self.assetType());
-            self.formData.append('transaction_id', params.form && params.form.workflowId || 'iiif-image-workflow');
-
-            if (self.relatedManifestGlobalId()) {
-                self.formData.append('related_manifest_id', self.relatedManifestGlobalId());
-                console.log('[WF LOG][image-select] Related manifest globalid:', self.relatedManifestGlobalId());
-            }
-
-            console.log('[WF LOG][image-select] Uploading to Python processor:', geotiffProcessUrl);
-
-            fetch(geotiffProcessUrl, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'Accept': 'application/json'
-                },
-                body: self.formData
-            })
-                .then(function(resp) {
-                    console.log('[WF LOG][image-select] Python processor status:', resp.status);
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    return resp.json();
-                })
-                .then(function(response) {
-                    console.log('[WF LOG][image-select] Upload response:', response);
-                    
-                    if (!response.ok) {
-                        throw new Error(response.error || 'Upload failed');
-                    }
-                    
-                    // Start polling for task status
-                    if (response.task_id) {
-                        self.pollTaskStatus(response.task_id);
-                    } else {
-                        throw new Error('No task_id returned');
-                    }
-                })
-                .catch(function(err) {
-                    console.log('[WF LOG][image-select] Upload error:', err);
-                    self.errorMessage('Failed to upload file: ' + err.message);
-                    self.loading(false);
-                })
-                .finally(function() {
-                    if (self.dropzone) {
-                        self.dropzone.removeAllFiles(true);
-                    }
-                });
-        };
-
-        self.pollTaskStatus = function(taskId) {
-            console.log('[WF LOG][image-select] Polling task status:', taskId);
-            
-            var statusUrl = baseUrl + 'api/iiif/geotiff-task-status/' + taskId;
-            var pollInterval = 10*1000; // 10 seconds
-            var maxAttempts = 100; // 10 minutes max
-            var attempts = 0;
-
-            function checkStatus() {
-                attempts++;
-                
-                fetch(statusUrl, { credentials: 'include' })
-                    .then(function(resp) {
-                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                        return resp.json();
-                    })
-                    .then(function(status) {
-                        console.log('[WF LOG][image-select] Task status:', status.state);
-                        
-                        if (status.state === 'SUCCESS') {
-                            // Processing complete
-                            console.log('[WF LOG][image-select] Processing complete:', status.result);
-                            
-                            if (status.result.globalid) {
-                                self.lastManifestGlobalId = status.result.globalid;
-                            }
-                            
-                            if (status.result.manifest_url) {
-                                self.loadManifest(status.result.manifest_url);
-                            } else {
-                                throw new Error('No manifest URL in result');
-                            }
-                        } else if (status.state === 'FAILURE') {
-                            throw new Error(status.error || 'Processing failed');
-                        } else if (status.state === 'PROCESSING' || status.state === 'PENDING') {
-                            // Still processing, continue polling
-                            if (attempts < maxAttempts) {
-                                setTimeout(checkStatus, pollInterval);
-                            } else {
-                                throw new Error('Processing timeout');
-                            }
-                        } else {
-                            // Unknown state
-                            if (attempts < maxAttempts) {
-                                setTimeout(checkStatus, pollInterval);
-                            } else {
-                                throw new Error('Processing timeout');
-                            }
-                        }
-                    })
-                    .catch(function(err) {
-                        console.log('[WF LOG][image-select] Status check error:', err);
-                        self.errorMessage('Failed to check processing status: ' + err.message);
-                        self.loading(false);
-                    });
-            }
-            
-            checkStatus();
-        };
-
-        // ========== WYBÓR OBRAZU ==========
-        self.selectImage = function(image, index) {
-            self.selectedImageIndex(index);
-            self.imageServiceUrl(image.serviceUrl);
-            self.digitalResourceId(null);
-
-            var manifestGlobalId = self.lastManifestGlobalId || null;
-            self.createDigitalResource(image.serviceUrl, image.label, manifestGlobalId)
-                .catch(function(err) {
-                    console.error('[WF LOG][image-select] digital resource creation failed', err);
-                    self.errorMessage('Failed to create digital resource: ' + err.message);
-                });
-        };
-
-        // ========== GATING ==========
-        params.form.complete(ko.pureComputed(function() {
-            return self.optional() ? true : !!self.imageServiceUrl();
-        }));
-
-        var _origSave = params.form.save;
-        params.form.save = function() {
-            if (!self.imageServiceUrl()) {
-                if (self.optional()) {
-                    if (_origSave) return _origSave.apply(params.form, arguments);
-                    return Promise.resolve(true);
-                }
-                self.errorMessage('Please select an image before proceeding.');
-                return Promise.resolve(false);
-            }
-            if (_origSave) return _origSave.apply(params.form, arguments);
-            return Promise.resolve(true);
-        };
-
-        return self;
+    // Step complete gate
+    if (params.form && typeof params.form.complete === 'function') {
+      params.form.complete(ko.pureComputed(function() {
+        return !!self.digitalResourceId() && self.queue().length > 0;
+      }));
     }
 
-    return ko.components.register('iiif-image-addition-step', {
-        viewModel: viewModel,
-        template: template
-    });
+    return self;
+  }
+
+  return ko.components.register('iiif-image-addition-step', {
+    viewModel: viewModel,
+    template: template
+  });
 });

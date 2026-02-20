@@ -4,26 +4,18 @@ from arches.app.models.models import MapSource, MapLayer
 from django.contrib.auth.models import Group
 from guardian.shortcuts import assign_perm
 import uuid
-
+from .convert_task import convert_geotiff_to_cog
 class ConversionError(Exception):
     pass
 
 @shared_task
-def convert_geotiff_to_cog(src_path, dst_path, basemap_metadata):
+def create_basemap(src_path, dst_path, basemap_metadata):
     print(f"Converting {src_path} -> {dst_path}...")
     try:
-        copy(
-            src_path,
-            dst_path,
-            driver='COG',      
-            compress='ZSTD',
-            overview_resampling='BILINEAR',
-            blocksize=512,
-            BIGTIFF='IF_NEEDED'
-        )
-        print("Conversion Complete.")
-        return register_basemap_in_db(basemap_metadata)
+            task = convert_geotiff_to_cog.delay(src_path, dst_path)
+            return register_basemap_in_db(basemap_metadata)
     except Exception as e:
+        logger.error(f"[COG TASK] Error during conversion: {e}", exc_info=True)
         print(f"Error during conversion: {e}")
         raise ConversionError(f"Failed to convert GeoTIFF to COG: {str(e)}")
 

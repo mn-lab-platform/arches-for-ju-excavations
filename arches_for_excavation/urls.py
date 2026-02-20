@@ -7,14 +7,11 @@ from .views.basemap import BasemapView, BasemapCheckView
 from .views.tile_proxy import titiler_tile_proxy
 from .views.celery_utils import get_celery_task_status
 from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif_annotation
-from .views.geotiif_handler import (
-    geotiff_reencode_test, 
-    geotiff_meta, 
-    geotiff_task_status,
-    dem_file, 
-    dem_elevation
-)
-
+from .views.geotiif_handler import RasterUploadView
+from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView
+from .views.geotiff_files import GeoTiffFileView
+from .views.dem_pixel_sample import dem_pixel_sample
+from .views.iiif_titler_proxy import titiler_iiif_proxy
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
@@ -24,14 +21,12 @@ urlpatterns = [
     path('api/celery/task-status/<str:task_id>', get_celery_task_status, name='celery_task_status'),
     path('api/manifest/update_db', save_iiif_annotation_db, name='save_iiif_annotation_db'),
     path('api/manifest/delete_annotation', delete_iiif_annotation, name='delete_iiif_annotation'),
-    path("api/iiif/geotiff-reencode-test", geotiff_reencode_test, name="geotiff_reencode"),
-    path("api/iiif/geotiff-task-status/<str:task_id>", geotiff_task_status, name="geotiff_task_status"),
-    path("api/iiif/geotiff-meta/<str:globalid>", geotiff_meta, name="geotiff_meta"),
-    path("files/dem/<uuid:globalid>.tif", dem_file, name="iiif_dem_file"),
-    path("api/iiif/dem-elevation/<str:globalid>", dem_elevation, name="iiif_dem_elevation"),
-
-    
-
+    path('api/iiif/geotiff-upload', RasterUploadView.as_view(), name='geotiff_process'),
+    path("api/iiif/build-geotiff-manifest", BuildGeoTiffManifestView.as_view()),
+    path("api/iiif/geotiff-manifest/<uuid:resource_id>", GetGeoTiffManifestView.as_view()),
+    path("api/iiif/geotiff-file/<uuid:job_id>/<str:kind>", GeoTiffFileView.as_view()),
+    path("api/iiif/dem/pixel", dem_pixel_sample, name="dem_pixel_sample"),    
+    path("iiif/api/iiif/titiler-proxy", titiler_iiif_proxy, name="titiler-iiif-proxy"),
 ]
 
 
