@@ -348,9 +348,6 @@ CELERY_BEAT_SCHEDULE = {
 # way of monitoring celery so you can detect the background task not being available.
 CELERY_CHECK_ONLY_INSPECT_BROKER = False
 
-CANTALOUPE_DIR = os.path.join(ROOT_DIR, UPLOADED_FILES_DIR)
-CANTALOUPE_HTTP_ENDPOINT = "http://localhost:8182/"
-
 ACCESSIBILITY_MODE = False
 
 RENDERERS = [
