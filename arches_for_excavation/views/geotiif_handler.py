@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from ..celery_tasks.iiif_tasks import process_geotiff_metadata_task, generate_hillshade_task, generate_color_relief_task
-from ..celery_tasks.basemap_tasks import convert_geotiff_to_cog
+from ..celery_tasks.convert_task import convert_geotiff_to_cog, convert_dem_geotiff_to_cog
 from .services.raster_metadata import _read_geotiff_metadata
 
 logger = logging.getLogger(__name__)
@@ -170,13 +170,17 @@ class RasterUploadView(APIView):
             }
         }
         job_index_path = _write_job_index(file_folder, job_id, job_index)
-
-        tasks = [
-            convert_geotiff_to_cog.s(str(original_path), str(cog_path)),
-            process_geotiff_metadata_task.si(payload),
-        ]
+        if not make_hillshade:
+            tasks = [
+                convert_geotiff_to_cog.s(str(original_path), str(cog_path)),
+                process_geotiff_metadata_task.si(payload),
+            ]
 
         if make_hillshade:
+            tasks = [
+                convert_dem_geotiff_to_cog.s(str(original_path), str(cog_path)),
+                process_geotiff_metadata_task.si(payload),
+            ]            
             tasks.append(generate_hillshade_task.s())
             tasks.append(generate_color_relief_task.s())
 

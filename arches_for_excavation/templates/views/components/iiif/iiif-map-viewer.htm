@@ -28,7 +28,7 @@
     </div>
 
     <!-- ONE CONTROL PANEL (ALWAYS ON TOP) -->
-    <div style="position:absolute; z-index:50; left:10px; bottom:10px; background:#fff; border:1px solid #ddd; padding:8px 10px; border-radius:8px; max-width:380px; pointer-events:auto;">
+    <div style="position:absolute; z-index:600; left:10px; top:10px; background:#fff; border:1px solid #ddd; padding:8px 10px; border-radius:8px; max-width:380px; pointer-events:auto;">
       <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
         <div style="font-size:12px; font-weight:700;">
           <span data-bind="text: renderMode() === 'map' ? 'Map mode (georeferenced)' : 'Image-only mode (Leaflet CRS.Simple)'"></span>
@@ -113,7 +113,21 @@
 
       <!-- ================= IMAGE CONTROLS ================= -->
       <!-- ko if: renderMode() === 'image' -->
-        <div style="font-size:12px; z-index:50; font-weight:600; margin:10px 0 6px;">Reference canvas (locked)</div>
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; margin:10px 0 6px;">
+          <div style="font-size:12px; font-weight:600;">
+            <span data-bind="text: imageGroup() === 'dem' ? 'Reference canvas (DEM family, locked)' : 'Reference canvas (Ortho, locked)'"></span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-xs btn-default"
+                    data-bind="click: () => setImageGroup('ortho'), css: { active: imageGroup() === 'ortho' }">
+              ORTO
+            </button>
+            <button class="btn btn-xs btn-default"
+                    data-bind="click: () => setImageGroup('dem'), css: { active: imageGroup() === 'dem' }">
+              DEM
+            </button>
+          </div>
+        </div>
 
         <select class="form-control input-sm"
                 style="width:100%; max-width:360px; background:#f5f5f5;"
@@ -126,9 +140,6 @@
                 ">
         </select>
 
-        <div style="font-size:12px; margin-top:6px; color:#666;">
-          Base jest ustawiana automatycznie na największy canvas i pozostaje pusta (EMPTY BASE).
-        </div>
 
         <div style="font-size:12px; margin-top:4px; color:#333;"
              data-bind="text: 'Overlays: ' + leafletLayers().length + ' total'">
@@ -144,7 +155,7 @@
         </div>
         <!-- /ko -->
 
-        <!-- ko foreach: leafletLayers -->
+        <!-- ko foreach: leafletLayers -->  
           <div style="display:flex; gap:8px; align-items:center; margin:4px 0;">
             <label style="margin:0; font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
               <input type="checkbox" data-bind="checked: visible" />
@@ -164,9 +175,6 @@
           Leaflet CRS.Simple: współrzędne pikselowe (bez georeferencji).
         </div>
 
-        <div style="font-size:12px; margin-top:6px;">
-          Kliknij obraz, aby odczytać wartość DEM dla piksela.
-        </div>
 
 
       <!-- /ko -->

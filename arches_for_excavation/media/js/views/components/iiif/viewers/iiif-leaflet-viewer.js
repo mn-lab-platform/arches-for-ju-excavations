@@ -83,7 +83,31 @@ function mdValue(canvas, key) {
   }
   return null;
 }
+function canvasLabelStr(canvas) {
+  return (
+    canvas?.label?.en?.[0] ||
+    canvas?.label?.none?.[0] ||
+    ''
+  );
+}
 
+function isDemCanvas(canvas) {
+  const v = mdValue(canvas, 'is_dem_hint');
+  return String(v).trim().toLowerCase() === 'true';
+}
+
+// hack: produkty DEM po suffixach w label
+function isDemProductCanvas(canvas) {
+  const label = canvasLabelStr(canvas).toLowerCase();
+  // dopisz tu wszystkie swoje konwencje nazw
+  return (
+    label.includes('(hillshade)') ||
+    label.includes('(color relief)') ||
+    label.includes('(colorrelief)') ||
+    label.includes('(slope)') ||
+    label.includes('(aspect)')
+  );
+}
 function canvasLabel(canvas, fallback) {
   return (
     canvas?.label?.en?.[0] ||
@@ -146,7 +170,7 @@ export function createLeafletViewer(opts = {}) {
   const onMapClick = typeof opts.onMapClick === 'function' ? opts.onMapClick : null;
 
   const api = {};
-
+  api.group = ko.observable('ortho');
   api.ready = ko.observable(false);
   api.error = ko.observable('');
 
@@ -363,6 +387,14 @@ export function createLeafletViewer(opts = {}) {
   api.setManifest = async (manifest) => {
     api._manifest = manifest;
     api.error('');
+    const all = manifest.items || [];
+
+    function inGroup(canvas) {
+      const dem = isDemCanvas(canvas);
+      const prod = isDemProductCanvas(canvas);
+      const demFamily = dem || prod;
+      return api.group() === 'dem' ? demFamily : !demFamily;
+    }
 
     dbg('setManifest()', {
       hasManifest: !!manifest,
@@ -380,7 +412,7 @@ export function createLeafletViewer(opts = {}) {
     disposeSubs();
     api._canvasIndex.clear();
 
-    const canvases = manifest.items || [];
+    let canvases = all.filter(inGroup);
     canvases.forEach((canvas, idx) => {
       const id = canvas?.id || canvas?.['@id'] || `canvas-${idx + 1}`;
       const label = canvasLabel(canvas, `Canvas ${idx + 1}`);
@@ -438,6 +470,10 @@ export function createLeafletViewer(opts = {}) {
     if (api._map) {
       await rebuildBaseAndOverlays();
     }
+    api.setGroup = async (group) => {
+      api.group(group === 'dem' ? 'dem' : 'ortho');
+      if (api._manifest) await api.setManifest(api._manifest);
+    };
   };
 
   api.fitToBase = () => {

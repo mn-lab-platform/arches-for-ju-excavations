@@ -16,7 +16,7 @@ define([
             const CONTEXT_FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
             const CONTEXT_MEASURED_GEOJSON_NODE_ID = 'bd290f65-b2fe-4de2-a9b6-fa056036facb';
             const TRENCH_FOOTPRINT_NODE_ID = '3a9f46c0-f538-11ea-ac6d-9fb7e90de197';
-            const TRENCH_MEASURED_GEOJSON_NODE_ID = '5d81185e-81ed-48a8-86f7-01a387e58e00';
+            const TRENCH_MEASURED_GEOJSON_NODE_ID = '6d6accec-cde3-4a6d-b10b-ea217a01c6e7';
 
             self.inputData = ko.unwrap(params.coordinatesData);
             self.graphId = ko.unwrap(params.graphId);

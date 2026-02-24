@@ -151,7 +151,18 @@ ko.components.register('iiif-map-viewer', {
 
       self.status = ko.observable('');
       self.error = ko.observable('');
-
+      self.imageGroup = ko.observable('ortho'); // 'ortho' | 'dem'
+      self.setImageGroup = async (g) => {
+        const group = (g === 'dem') ? 'dem' : 'ortho';
+        self.imageGroup(group);
+        if (self.renderMode() === 'image') {
+          await leafletViewer.setGroup(group);
+          // zsynchronizuj UI po rebuild
+          self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
+          self.leafletCanvasOptions(leafletViewer.canvasOptions());
+          self.leafletLayers(leafletViewer.layers());
+        }
+      };
       // Unified UI
       self.renderMode = ko.observable('map'); // 'map' | 'image'
       self.fallbackReason = ko.observable('');
@@ -195,11 +206,6 @@ ko.components.register('iiif-map-viewer', {
       const leafletViewer = createLeafletViewer({
         setStatus: self.status,
         setError: self.error,
-        onMapClick: async ({ x, y }) => {
-          if (self.renderMode() !== 'image') return;
-          if (!self.elevationMode()) return;
-          await fetchLeafletPixelElevation(x, y);
-        }
       });
 
       self._map = null;
@@ -257,7 +263,12 @@ ko.components.register('iiif-map-viewer', {
         if (!leafletViewer.ready()) {
           await leafletViewer.init(self._leafletDiv);
         }
-        await leafletViewer.setManifest(manifest);
+        if (typeof leafletViewer.setGroup === 'function') {
+          await leafletViewer.setGroup(self.imageGroup());
+        } else {
+          await leafletViewer.setManifest(manifest);
+        }
+
 
         self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
         self.leafletCanvasOptions(leafletViewer.canvasOptions());
@@ -323,6 +334,9 @@ ko.components.register('iiif-map-viewer', {
         // AUTO mode decision: if no georef -> Leaflet image-only
         if (!hasGeoref) {
           setMode('image', 'No georeference metadata (has_georef=false). Showing raster as image layers.');
+          self.elevationMode(false);
+          self.elevationError('');
+          self.elevationValue('');          
           await ensureLeafletReady(m);
           return;
         }
