@@ -227,6 +227,8 @@ ko.components.register('iiif-map-viewer', {
       self.leafletMeasureMode = ko.observable(false);
       self.leafletMeasurePoints = ko.observableArray([]);
       self.leafletMeasureDistance = ko.observable('');
+      self._leafletMeasureLine = null;
+      self._leafletMeasureMarkers = [];
 
       const layerManager = createAllmapsLayerManager({
         setStatus: self.status,
@@ -290,20 +292,20 @@ ko.components.register('iiif-map-viewer', {
               self.leafletMeasurePoints([]);
               self.leafletMeasureDistance('');
             }
-            // Użyj X, Y wyliczonych wyżej (z affineForward)
+            // Zawsze licz affineForward ejeśli jst transformacja
+            let X = info.x, Y = info.y;
             if (tr) {
-              const [X, Y] = affineForward(tr, info.X, info.y, info.s);
-              self.leafletMeasurePoints([...pts, { X, Y }]);
-            } else {
-              self.leafletMeasurePoints([...pts, { X: info.x, Y: info.y }]);
+              [X, Y] = affineForward(tr, info.x, info.y, info.s);
             }
+            // Zapisz oba zestawy współrzędnych
+            self.leafletMeasurePoints([...pts, { x: info.x, y: info.y, X, Y }]);
             console.log('Current measure points:', self.leafletMeasurePoints());
             if (self.leafletMeasurePoints().length === 2) {
               const [p1, p2] = self.leafletMeasurePoints();
               const dx = p2.X - p1.X;
               const dy = p2.Y - p1.Y;
               const d = Math.sqrt(dx * dx + dy * dy);
-              self.leafletMeasureDistance(`${d.toFixed(2)} units`);
+              self.leafletMeasureDistance(`${d.toFixed(2)} meters`);
             }
             return;
           }
@@ -405,34 +407,31 @@ ko.components.register('iiif-map-viewer', {
 
         self._map.on('click', async (e) => {
           self.measureCoords(measure.formatCoords(e.lngLat));
-
-          // --- NOWY KOD: oblicz współrzędne lokalne (X,Y) ---
-          const m = ko.unwrap(self.manifest);
-          console.log(LOG, 'Map click at', e.lngLat, 'Manifest:', m);
-          // znajdź canvas referencyjny (np. pierwszy z georeferencją)
-          const refCanvas = Array.isArray(m?.items) ? m.items.find(canvasHasGeoref) : null;
-          if (refCanvas) {
-            const tr = parseTransformFromCanvas(refCanvas);
-            if (tr) {
-              const X = e.lngLat.lng;
-              const Y = e.lngLat.lat;
-              // Zamiana współrzędnych mapy na pikselowe (x, y) w obrazie
-              const px = affineInverse(tr, X, Y);
-              console.log(LOG, 'Affine transform:', tr, 'Pixel coords:', px);
-              if (px) {
-                self.clickedCoords(
-                  `Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: ${px[0].toFixed(2)}, ${px[1].toFixed(2)}`
-                );
-              } else {
-                self.clickedCoords(`Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: brak danych`);
-              }
-            } else {
-              self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
-            }
-          } else {
-            self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
-          }
-          // --- KONIEC NOWEGO KODU ---
+          // const m = ko.unwrap(self.manifest);
+          // console.log(LOG, 'Map click at', e.lngLat, 'Manifest:', m);
+          // // znajdź canvas referencyjny (np. pierwszy z georeferencją)
+          // const refCanvas = Array.isArray(m?.items) ? m.items.find(canvasHasGeoref) : null;
+          // if (refCanvas) {
+          //   const tr = parseTransformFromCanvas(refCanvas);
+          //   if (tr) {
+          //     const X = e.lngLat.lng;
+          //     const Y = e.lngLat.lat;
+          //     // Zamiana współrzędnych mapy na pikselowe (x, y) w obrazie
+          //     const px = affineInverse(tr, X, Y);
+          //     console.log(LOG, 'Affine transform:', tr, 'Pixel coords:', px);
+          //     if (px) {
+          //       self.clickedCoords(
+          //         `Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: ${px[0].toFixed(2)}, ${px[1].toFixed(2)}`
+          //       );
+          //     } else {
+          //       self.clickedCoords(`Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: brak danych`);
+          //     }
+          //   } else {
+          //     self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
+          //   }
+          // } else {
+          //   self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
+          // }
 
           if (self.measureMode()) return measure.onClick(e);
           if (!self.elevationMode()) return;
@@ -530,11 +529,95 @@ ko.components.register('iiif-map-viewer', {
         self.leafletMeasureMode(on);
         self.leafletMeasurePoints([]);
         self.leafletMeasureDistance('');
+        if (self._leafletMeasureLine && leafletViewer._map) {
+          leafletViewer._map.removeLayer(self._leafletMeasureLine);
+          self._leafletMeasureLine = null;
+        }
+        // Usuń markery
+        if (self._leafletMeasureMarkers && leafletViewer._map) {
+          self._leafletMeasureMarkers.forEach(m => leafletViewer._map.removeLayer(m));
+          self._leafletMeasureMarkers = [];
+        }
       };
       self.clearLeafletMeasure = () => {
         self.leafletMeasurePoints([]);
         self.leafletMeasureDistance('');
+        if (self._leafletMeasureLine && leafletViewer._map) {
+          leafletViewer._map.removeLayer(self._leafletMeasureLine);
+          self._leafletMeasureLine = null;
+        }
+        // Usuń markery
+        if (self._leafletMeasureMarkers && leafletViewer._map) {
+          self._leafletMeasureMarkers.forEach(m => leafletViewer._map.removeLayer(m));
+          self._leafletMeasureMarkers = [];
+        }
       };
+
+      // Subskrypcja do leafletMeasurePoints
+      self.leafletMeasurePoints.subscribe((pts) => {
+        console.log('[LeafletMeasure] SUB: points changed', pts, 'map:', leafletViewer._map);
+
+        if (!leafletViewer._map) {
+          console.warn('[LeafletMeasure] Map is not ready!');
+          return;
+        }
+
+        // Usuń stare markery
+        if (self._leafletMeasureMarkers) {
+          console.log('[LeafletMeasure] Removing old markers:', self._leafletMeasureMarkers.length);
+          self._leafletMeasureMarkers.forEach(m => {
+            try {
+              leafletViewer._map.removeLayer(m);
+            } catch (e) {
+              console.warn('[LeafletMeasure] Failed to remove marker:', e);
+            }
+          });
+          self._leafletMeasureMarkers = [];
+        }
+
+        // Dodaj markery dla każdego punktu
+        pts.forEach((pt, idx) => {
+          console.log(`[LeafletMeasure] Drawing marker ${idx}:`, pt);
+          if (!Number.isFinite(pt.X) || !Number.isFinite(pt.Y)) {
+            console.warn('[LeafletMeasure] Invalid marker coords:', pt);
+            return;
+          }
+          try {
+            const marker = window.L.circleMarker([-pt.y, pt.x], {
+              radius: 6,
+              color: idx === 0 ? 'blue' : 'red',
+              fillColor: idx === 0 ? 'blue' : 'red',
+              fillOpacity: 0.8,
+              weight: 2
+            }).addTo(leafletViewer._map);
+            self._leafletMeasureMarkers.push(marker);
+            console.log('[LeafletMeasure] Marker added:', marker);
+          } catch (e) {
+            console.error('[LeafletMeasure] Failed to add marker:', e);
+          }
+        });
+
+        // Rysuj linię jeśli są dwa punkty
+        if (pts.length === 2) {
+          const latlngs = [
+            [-pts[0].y, pts[0].x],
+            [-pts[1].y, pts[1].x]
+          ];
+          if (
+            Number.isFinite(pts[0].X) && Number.isFinite(pts[0].Y) &&
+            Number.isFinite(pts[1].X) && Number.isFinite(pts[1].Y)
+          ) {
+            try {
+              self._leafletMeasureLine = window.L.polyline(latlngs, { color: 'red', weight: 3 }).addTo(leafletViewer._map);
+
+            } catch (e) {
+              console.error('[LeafletMeasure] Failed to draw line:', e);
+            }
+          } else {
+            console.warn('[LeafletMeasure] Invalid line coords:', latlngs);
+          }
+        }
+      });
 
       self.toggleRenderMode = async () => {
         const m = ko.unwrap(self.manifest);
