@@ -42,7 +42,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             if can_view is None:
                 print(f"Checking permissions for user {user.username} (id={user.id})")
                 print(f"User groups: {[group.name for group in user.groups.all()]}")
-                if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded
+                if user.groups.filter(name='Restricted Basemap Access').exists(): #IMPORTANT: Hardcoded
                     can_view = True
                 else:
                     can_view = False
