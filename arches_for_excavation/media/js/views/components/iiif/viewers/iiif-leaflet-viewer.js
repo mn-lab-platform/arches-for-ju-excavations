@@ -268,7 +268,6 @@ export function createLeafletViewer(opts = {}) {
         rec.w = w;
         rec.h = h;
       }
-      dbg('dims from info.json', { id: rec.id, w: rec.w, h: rec.h, infoJsonUrl });
     } catch (e) {
       dbg('dims load failed', { id: rec?.id, err: String(e?.message || e) });
     }
@@ -285,8 +284,6 @@ export function createLeafletViewer(opts = {}) {
 
     const infoJsonUrl = rec.serviceUrl.replace(/\/+$/, '') + '/info.json';
     const paneName = rec.isBase ? 'iiif-base' : 'iiif-overlays';
-
-    dbg('ensureLayer()', { id: rec.id, label: rec.label, pane: paneName, w: rec.w, h: rec.h, infoJsonUrl });
 
     rec._layer = api._L.tileLayer.iiif(infoJsonUrl, {
       opacity: 1,
@@ -430,12 +427,6 @@ export function createLeafletViewer(opts = {}) {
       const demFamily = dem || prod;
       return api.group() === 'dem' ? demFamily : !demFamily;
     }
-
-    dbg('setManifest()', {
-      hasManifest: !!manifest,
-      items: Array.isArray(manifest?.items) ? manifest.items.length : 0
-    });
-
     if (!manifest?.items?.length) {
       disposeSubs();
       api.canvasOptions([]);
@@ -454,7 +445,6 @@ export function createLeafletViewer(opts = {}) {
       const serviceUrl = extractServiceUrlFromCanvas(canvas);
       const { w, h } = canvasDims(canvas);
 
-      dbg('canvas parsed', { idx, id, label, w, h, serviceUrl });
 
       api._canvasIndex.set(id, {
         id,
@@ -544,7 +534,6 @@ export function createLeafletViewer(opts = {}) {
       api._map.invalidateSize(false);
 
       if (typeof layer._fitBounds === 'function') {
-        console.log('Using leaflet-iiif _fitBounds()');
         layer._fitBounds();     // używa poprawnych imageSizes + zoom logic pluginu
         return;
       }
@@ -555,7 +544,6 @@ export function createLeafletViewer(opts = {}) {
 
       const sw = api._map.options.crs.pointToLatLng(L.point(0, h), 0);
       const ne = api._map.options.crs.pointToLatLng(L.point(w, 0), 0);
-      console.log('Fitting to base canvas with bounds', { sw, ne, w, h });
       api._map.fitBounds(L.latLngBounds(sw, ne), { animate: false });
     } catch (e) {
       setError(`Leaflet fit failed: ${String(e?.message || e)}`);

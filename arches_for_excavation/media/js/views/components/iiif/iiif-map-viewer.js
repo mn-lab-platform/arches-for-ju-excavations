@@ -133,55 +133,6 @@ ko.components.register('iiif-map-viewer', {
     createViewModel: function (params) {
       const self = {};
       installIiifInfoJsonPatch();
-      async function fetchLeafletPixelElevation(x, y) {
-        const m = ko.unwrap(self.manifest);
-        const demCanvas = pickDemCanvasFromManifest(m);
-
-        if (!demCanvas) {
-          self.elevationError('Brak canvas DEM (is_dem_hint=true).');
-          self.elevationValue('');
-          return;
-        }
-
-        const serviceUrl = extractServiceUrlFromCanvas(demCanvas);
-        const filePath =
-          mdValue(demCanvas, 'titiler.file_path') ||
-          mdValue(demCanvas, 'file_path') ||
-          extractTitilerFilePathFromServiceUrl(serviceUrl);
-
-        if (!filePath) {
-          self.elevationError('Brak file_path dla DEM (metadata + service URL).');
-          self.elevationValue('');
-          return;
-        }
-
-        const band = Number(mdValue(demCanvas, 'dem_band') || 1);
-        const unit = mdValue(demCanvas, 'vertical_units') || 'm';
-
-        self.elevationLoading(true);
-        self.elevationError('');
-        self.elevationValue('');
-
-        try {
-          const url =
-            `/api/iiif/dem/pixel?file_path=${encodeURIComponent(filePath)}&x=${encodeURIComponent(x)}&y=${encodeURIComponent(y)}&band=${encodeURIComponent(band)}`;
-
-          const res = await fetch(url, { credentials: 'same-origin' });
-          const json = await res.json().catch(() => ({}));
-
-          if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
-          if (!Number.isFinite(json?.value)) {
-            self.elevationError('Brak wartości (NoData) dla tego piksela.');
-            return;
-          }
-
-          self.elevationValue(`${Number(json.value).toFixed(2)} ${unit}`);
-        } catch (err) {
-          self.elevationError(`Błąd odczytu piksela DEM: ${String(err?.message || err)}`);
-        } finally {
-          self.elevationLoading(false);
-        }
-      }
       self.manifest = params.manifest;
 
       self.status = ko.observable('');
@@ -263,11 +214,7 @@ ko.components.register('iiif-map-viewer', {
           const mapBounds = leafletViewer._map?.getBounds?.();
           const mapZoom = leafletViewer._map?.getZoom?.();
           const mapSize = leafletViewer._map?.getSize?.();
-          console.log('Leaflet map click:', info, 'Base canvas:', canvas);
-          console.log('Container size:', container?.offsetWidth, container?.offsetHeight);
-          console.log('Map bounds:', mapBounds, 'Zoom:', mapZoom, 'Map size:', mapSize);
-          console.log('Affine transform:', tr);
-          console.log('Canvas width/height:', canvas?.width, canvas?.height);
+
 
           // Jeśli chcesz zobaczyć event kliknięcia:
           // (dodaj do createLeafletViewer przekazywanie e.originalEvent)
@@ -275,9 +222,8 @@ ko.components.register('iiif-map-viewer', {
 
           if (tr) {
             const [X, Y] = affineForward(tr, info.x, info.y, info.s);
-            console.log('AffineForward:', { x: info.x, y: info.y, X, Y });
             self.clickedCoords(
-              `Pixel: ${info.x}, ${info.y} / ${info.width}x${info.height} | Map: ${X.toFixed(6)}, ${Y.toFixed(6)}`
+              `Pixel: ${info.x *2**info.s}, ${info.y *2**info.s} / ${info.width}x${info.height} | Map: ${X.toFixed(6)}, ${Y.toFixed(6)}`
             );
           } else {
             self.clickedCoords(
@@ -286,7 +232,6 @@ ko.components.register('iiif-map-viewer', {
           }
 
           if (self.leafletMeasureMode && self.leafletMeasureMode()) {
-            console.log('Leaflet measure click at', info);
             const pts = self.leafletMeasurePoints();
             if (pts.length >= 2) {
               self.leafletMeasurePoints([]);
@@ -299,7 +244,6 @@ ko.components.register('iiif-map-viewer', {
             }
             // Zapisz oba zestawy współrzędnych
             self.leafletMeasurePoints([...pts, { x: info.x, y: info.y, X, Y }]);
-            console.log('Current measure points:', self.leafletMeasurePoints());
             if (self.leafletMeasurePoints().length === 2) {
               const [p1, p2] = self.leafletMeasurePoints();
               const dx = p2.X - p1.X;
@@ -407,32 +351,6 @@ ko.components.register('iiif-map-viewer', {
 
         self._map.on('click', async (e) => {
           self.measureCoords(measure.formatCoords(e.lngLat));
-          // const m = ko.unwrap(self.manifest);
-          // console.log(LOG, 'Map click at', e.lngLat, 'Manifest:', m);
-          // // znajdź canvas referencyjny (np. pierwszy z georeferencją)
-          // const refCanvas = Array.isArray(m?.items) ? m.items.find(canvasHasGeoref) : null;
-          // if (refCanvas) {
-          //   const tr = parseTransformFromCanvas(refCanvas);
-          //   if (tr) {
-          //     const X = e.lngLat.lng;
-          //     const Y = e.lngLat.lat;
-          //     // Zamiana współrzędnych mapy na pikselowe (x, y) w obrazie
-          //     const px = affineInverse(tr, X, Y);
-          //     console.log(LOG, 'Affine transform:', tr, 'Pixel coords:', px);
-          //     if (px) {
-          //       self.clickedCoords(
-          //         `Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: ${px[0].toFixed(2)}, ${px[1].toFixed(2)}`
-          //       );
-          //     } else {
-          //       self.clickedCoords(`Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: brak danych`);
-          //     }
-          //   } else {
-          //     self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
-          //   }
-          // } else {
-          //   self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
-          // }
-
           if (self.measureMode()) return measure.onClick(e);
           if (!self.elevationMode()) return;
 
@@ -555,7 +473,6 @@ ko.components.register('iiif-map-viewer', {
 
       // Subskrypcja do leafletMeasurePoints
       self.leafletMeasurePoints.subscribe((pts) => {
-        console.log('[LeafletMeasure] SUB: points changed', pts, 'map:', leafletViewer._map);
 
         if (!leafletViewer._map) {
           console.warn('[LeafletMeasure] Map is not ready!');
@@ -564,7 +481,6 @@ ko.components.register('iiif-map-viewer', {
 
         // Usuń stare markery
         if (self._leafletMeasureMarkers) {
-          console.log('[LeafletMeasure] Removing old markers:', self._leafletMeasureMarkers.length);
           self._leafletMeasureMarkers.forEach(m => {
             try {
               leafletViewer._map.removeLayer(m);
@@ -577,7 +493,6 @@ ko.components.register('iiif-map-viewer', {
 
         // Dodaj markery dla każdego punktu
         pts.forEach((pt, idx) => {
-          console.log(`[LeafletMeasure] Drawing marker ${idx}:`, pt);
           if (!Number.isFinite(pt.X) || !Number.isFinite(pt.Y)) {
             console.warn('[LeafletMeasure] Invalid marker coords:', pt);
             return;
@@ -591,7 +506,6 @@ ko.components.register('iiif-map-viewer', {
               weight: 2
             }).addTo(leafletViewer._map);
             self._leafletMeasureMarkers.push(marker);
-            console.log('[LeafletMeasure] Marker added:', marker);
           } catch (e) {
             console.error('[LeafletMeasure] Failed to add marker:', e);
           }
@@ -663,6 +577,85 @@ ko.components.register('iiif-map-viewer', {
         self._map = null;
         self._mapDiv = null;
         self._leafletDiv = null;
+      };
+
+      // Nowa funkcja do pomiaru wartości piksela DEM
+      self.measureDemPixel = async () => {
+        const m = ko.unwrap(self.manifest);
+        const coords = self.clickedCoords();
+        if (!coords) {
+          self.elevationError('Najpierw kliknij na mapie, aby pobrać współrzędne.');
+          return;
+        }
+
+        // Sprawdź, czy jesteśmy na warstwie DEM (imageGroup === 'dem')
+        if (self.imageGroup && self.imageGroup() === 'dem') {
+          // Wyciągnij pixel x, y z tekstu np. "Pixel: 123, 456 / ..."
+          const match = coords.match(/Pixel:\s*(\d+),\s*(\d+)/);
+          if (!match) {
+            self.elevationError('Nie można odczytać współrzędnych piksela.');
+            return;
+          }
+          const x = parseInt(match[1], 10);
+          const y = parseInt(match[2], 10);
+          console.log('Pixel coords for DEM sampling:', { x, y });
+          try {
+            self.elevationLoading(true);
+            self.elevationError('');
+            const resp = await fetch('/api/iiif/dem/pixel-value', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ manifest: m, x, y })
+            });
+            const json = await resp.json();
+            if (!resp.ok) throw new Error(json?.error || 'HTTP ' + resp.status);
+            self.elevationValue(`${json.value} m`);
+          } catch (err) {
+            self.elevationError('DEM pixel error: ' + String(err?.message || err));
+          } finally {
+            self.elevationLoading(false);
+          }
+          return;
+        }
+
+        // W przeciwnym razie (np. orto) użyj transformacji afinicznej
+        const match = coords.match(/Map:\s*([-\d.]+),\s*([-\d.]+)/);
+        if (!match) {
+          self.elevationError('Nie można odczytać współrzędnych mapy.');
+          return;
+        }
+        const X = parseFloat(match[1]);
+        const Y = parseFloat(match[2]);
+        const demCanvas = pickDemCanvasFromManifest(m);
+        if (!demCanvas) {
+          self.elevationError('Brak canvas DEM.');
+          return;
+        }
+        const tr = parseTransformFromCanvas(demCanvas);
+        if (!tr) {
+          self.elevationError('Brak transformacji DEM.');
+          return;
+        }
+        const [demX, demY] = affineInverse(tr, X, Y);
+        console.log('Affine inverse coords:', { X, Y, demX, demY });
+        try {
+          self.elevationLoading(true);
+          self.elevationError('');
+          const resp = await fetch('/api/iiif/dem/pixel-value', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ manifest: m, x: demX, y: demY })
+          });
+          const json = await resp.json();
+          if (!resp.ok) throw new Error(json?.error || 'HTTP ' + resp.status);
+          self.elevationValue(`${json.value} m`);
+        } catch (err) {
+          self.elevationError('DEM pixel error: ' + String(err?.message || err));
+        } finally {
+          self.elevationLoading(false);
+        }
       };
 
       return self;
