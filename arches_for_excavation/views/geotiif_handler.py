@@ -2,18 +2,22 @@
 import os
 import uuid
 import json
+import rasterio
+from rasterio.windows import Window
 import hashlib
 import logging
 from pathlib import Path
 from celery import chain
-
+import numpy as np
+import urllib.parse
 from django.conf import settings
 from django.utils.text import get_valid_filename
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework import status
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from ..celery_tasks.iiif_tasks import process_geotiff_metadata_task, generate_hillshade_task, generate_color_relief_task
 from ..celery_tasks.convert_task import convert_geotiff_to_cog, convert_dem_geotiff_to_cog
 from .services.raster_metadata import _read_geotiff_metadata
@@ -215,3 +219,56 @@ class RasterUploadView(APIView):
             resp["download_url_colorrelief"] = f"/api/iiif/geotiff-file/{job_id}/colorrelief"
 
         return Response(resp, status=status.HTTP_202_ACCEPTED)
+@csrf_exempt
+def dem_pixel_value(request):
+    try:
+        data = json.loads(request.body)
+        manifest = data.get("manifest") or {}
+        x = int(data.get("x"))  # col
+        y = int(data.get("y"))  # row
+    except Exception as e:
+        return JsonResponse({"error": f"Invalid input: {e}"}, status=400)
+    print(f"Received DEM pixel value request for x={x}, y={y} on manifest {manifest.get('id')}")
+    dem_canvas = next(
+        (
+            c for c in manifest.get("items", [])
+            if any(
+                m.get("label", {}).get("en", [None])[0] == "is_dem_hint"
+                and str(m.get("value", {}).get("en", ["false"])[0]).lower() == "true"
+                for m in c.get("metadata", [])
+            )
+        ),
+        None,
+    )
+    if not dem_canvas:
+        return JsonResponse({"error": "DEM canvas not found"}, status=404)
+    print(f"Found DEM canvas: {dem_canvas.get('id')} with metadata {dem_canvas.get('metadata')}")
+    try:
+        service_id = dem_canvas["items"][0]["items"][0]["body"]["service"][0]["id"]
+        parsed = urllib.parse.urlparse(service_id)
+        path = urllib.parse.parse_qs(parsed.query).get("path", [None])[0]
+        if not path:
+            return JsonResponse({"error": "DEM file path not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": f"Cannot extract DEM file path: {e}"}, status=400)
+    print(f"Extracted DEM file path: {path}")
+    if path.startswith("/data/"):
+        arches_data_dir = str(_get_data_root())
+        path = arches_data_dir + path[len("/data/iiif_raster/")-1:]  # dodaj "/" na początku
+        print(f"Converted DEM file path for Arches: {path}")    
+    try:
+        with rasterio.open(path) as src:
+            # granice
+            if x < 0 or y < 0 or x >= src.width or y >= src.height:
+                return JsonResponse({"error": "Pixel out of bounds"}, status=400)
+
+            w = Window(x, y, 1, 1)
+            arr = src.read(1, window=w, boundless=False, masked=True)
+
+            v = arr[0, 0]
+            # masked/nodata handling
+            if np.ma.is_masked(v):
+                return JsonResponse({"value": None, "nodata": True})
+            return JsonResponse({"value": float(v), "nodata": False})
+    except Exception as e:
+        return JsonResponse({"error": f"Raster read error: {e}"}, status=500)

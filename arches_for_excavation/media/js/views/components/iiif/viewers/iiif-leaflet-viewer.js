@@ -4,7 +4,7 @@ import $ from 'jquery';
 import { forceDoubleSlashAfterIiif } from '../lib/iiif-infojson-patch';
 
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-const LEAFLET_IIIF_JS = 'https://unpkg.com/leaflet-iiif@2.0.0/leaflet-iiif.js';
+const LEAFLET_IIIF_JS = 'https://unpkg.com/leaflet-iiif@3.0.0/leaflet-iiif.js';
 
 const LOG = '[iiif-leaflet-viewer]';
 const DEBUG_FLAG = 'iiif.leaflet.debug';
@@ -41,7 +41,27 @@ function ensureScript(url) {
   _scriptOnce.set(url, p);
   return p;
 }
+function getIiifLayerMaxZoom(layer) {
+  if (!layer) return null;
 
+  // 1) najczęściej w options
+  const a = layer.options?.maxNativeZoom;
+  if (Number.isFinite(a)) return a;
+
+  // 2) czasem trzymane wewnętrznie
+  const b = layer._maxZoom;
+  if (Number.isFinite(b)) return b;
+
+  // 3) jeśli są tiery, policz sam
+  const tiers = layer._tiers || layer._tileTiers || null;
+  if (Array.isArray(tiers) && tiers.length) {
+    // zwykle tiers są w kolejności od najmniejszego do największego
+    // maxZoom to tiers.length - 1
+    return tiers.length - 1;
+  }
+
+  return null;
+}
 async function ensureLeaflet() {
   // make jQuery visible for non-webpack CDN scripts (leaflet-iiif)
   if (typeof window !== 'undefined') {
@@ -133,11 +153,17 @@ function extractServiceUrlFromCanvas(canvas) {
 }
 
 function canvasDims(canvas) {
-  const w = Number(canvas?.width || mdValue(canvas, 'width') || 0);
-  const h = Number(canvas?.height || mdValue(canvas, 'height') || 0);
+  // canvas.width/height mogą być 1 (placeholder) — fallback do metadata
+  const wCanvas = Number(canvas?.width || 0);
+  const hCanvas = Number(canvas?.height || 0);
+  const wMeta = Number(mdValue(canvas, 'width') || 0);
+  const hMeta = Number(mdValue(canvas, 'height') || 0);
+
+  // preferuj większą wartość (metadata > placeholder)
+  const w = wMeta > 1 ? wMeta : wCanvas;
+  const h = hMeta > 1 ? hMeta : hCanvas;
   return { w, h };
 }
-
 function pickLargestCanvas(canvases) {
   let best = null;
   let bestArea = -1;
@@ -242,7 +268,6 @@ export function createLeafletViewer(opts = {}) {
         rec.w = w;
         rec.h = h;
       }
-      dbg('dims from info.json', { id: rec.id, w: rec.w, h: rec.h, infoJsonUrl });
     } catch (e) {
       dbg('dims load failed', { id: rec?.id, err: String(e?.message || e) });
     }
@@ -259,8 +284,6 @@ export function createLeafletViewer(opts = {}) {
 
     const infoJsonUrl = rec.serviceUrl.replace(/\/+$/, '') + '/info.json';
     const paneName = rec.isBase ? 'iiif-base' : 'iiif-overlays';
-
-    dbg('ensureLayer()', { id: rec.id, label: rec.label, pane: paneName, w: rec.w, h: rec.h, infoJsonUrl });
 
     rec._layer = api._L.tileLayer.iiif(infoJsonUrl, {
       opacity: 1,
@@ -330,7 +353,7 @@ export function createLeafletViewer(opts = {}) {
       layer.addTo(api._map);
     }
 
-    api.fitToBase();
+    await api.fitToBase();
     setStatus('Leaflet: ready');
   }
 
@@ -351,28 +374,37 @@ export function createLeafletViewer(opts = {}) {
 
       // Sensible default
       api._map.setView([0, 0], 0);
-
       api._map.on('click', (e) => {
-        if (!onMapClick) return;
-
         const baseId = api._lockedBaseId || api.baseCanvasId();
         const rec = baseId ? api._canvasIndex.get(baseId) : null;
         if (!rec) return;
-
+        const layer = rec?._layer;
+        const maxZ = getIiifLayerMaxZoom(layer);
+        console.log(LOG, 'IIIF layer maxZoom:', maxZ, 'leaflet map maxZoom:', api._map.getMaxZoom?.(), api._map.options?.maxZoom);
         const w = Number(rec.w || 0);
         const h = Number(rec.h || 0);
+        if (!(w > 1 && h > 1)) return;
 
-        const x = Math.round(Number(e?.latlng?.lng));
-        const y = Math.round(Number(e?.latlng?.lat));
-        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+        // ✅ klucz: CRS -> point na zoom=0 (czyli "piksele obrazu")
+        const p = api._map.options.crs.latLngToPoint(e.latlng, 0);
+        if (!p) return;
 
+        // Leaflet w CRS.Simple ma (x=lng, y=lat) po transformacji; tutaj dostajesz point w "image units"
+        const x = Math.round(p.x);
+        const y = Math.round(p.y);
+
+        const xc = Math.max(0, Math.min(w - 1, x));
+        const yc = Math.max(0, Math.min(h - 1, y));
+        
         onMapClick({
-          x,
-          y,
+          s:maxZ,
+          x: xc,
+          y: yc,
           width: w,
           height: h,
           baseCanvasId: baseId,
-          canvas: rec.canvas
+          canvas: rec.canvas,
+          originalEvent: e.originalEvent
         });
       });
 
@@ -395,12 +427,6 @@ export function createLeafletViewer(opts = {}) {
       const demFamily = dem || prod;
       return api.group() === 'dem' ? demFamily : !demFamily;
     }
-
-    dbg('setManifest()', {
-      hasManifest: !!manifest,
-      items: Array.isArray(manifest?.items) ? manifest.items.length : 0
-    });
-
     if (!manifest?.items?.length) {
       disposeSubs();
       api.canvasOptions([]);
@@ -419,7 +445,6 @@ export function createLeafletViewer(opts = {}) {
       const serviceUrl = extractServiceUrlFromCanvas(canvas);
       const { w, h } = canvasDims(canvas);
 
-      dbg('canvas parsed', { idx, id, label, w, h, serviceUrl });
 
       api._canvasIndex.set(id, {
         id,
@@ -475,37 +500,56 @@ export function createLeafletViewer(opts = {}) {
       if (api._manifest) await api.setManifest(api._manifest);
     };
   };
+  function raf() {
+    return new Promise((r) => requestAnimationFrame(() => r()));
+  }
 
-  api.fitToBase = () => {
+  api.fitToBase = async () => {
     if (!api._map || !api._manifest || !api._container) return;
 
     const wpx = api._container.offsetWidth;
     const hpx = api._container.offsetHeight;
-    if (!(wpx > 0 && hpx > 0)) {
-      dbg('fitToBase() skipped: hidden container', { wpx, hpx });
+    if (!(wpx > 0 && hpx > 0)) return; // ukryty kontener
+
+    const baseId = api._lockedBaseId || api.baseCanvasId();
+    const rec = baseId ? api._canvasIndex.get(baseId) : null;
+    if (!rec || !rec._layer) return;
+
+    const layer = rec._layer;
+
+    // KLUCZ: poczekaj aż leaflet-iiif skończy _getInfo() i policzy tierSizes
+    try {
+      if (layer._infoPromise && typeof layer._infoPromise.then === 'function') {
+        await layer._infoPromise;
+      }
+    } catch (_) {
+      // jeśli infoPromise reject, i tak nie fituj
       return;
     }
 
-    const rec = api._lockedBaseId ? api._canvasIndex.get(api._lockedBaseId) : null;
-    if (!rec) return;
-
-    const w = Number(rec.w);
-    const h = Number(rec.h);
-
-    // do not fit for invalid/tiny dims
-    if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 1 || h <= 1) {
-      dbg('fitToBase() skipped: tiny/invalid base dims', { baseId: api._lockedBaseId, w, h });
-      return;
-    }
+    // daj przeglądarce 1 klatkę na layout + Leaflet na init tilepane
+    await raf();
 
     try {
-      dbg('fitToBase()', { baseId: api._lockedBaseId, w, h, containerW: wpx, containerH: hpx });
       api._map.invalidateSize(false);
-      api._map.fitBounds([[0, 0], [h, w]], { animate: false, padding: [8, 8] });
+
+      if (typeof layer._fitBounds === 'function') {
+        layer._fitBounds();     // używa poprawnych imageSizes + zoom logic pluginu
+        return;
+      }
+
+      // fallback: dopiero jakby _fitBounds nie istniało
+      const w = Number(rec.w), h = Number(rec.h);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 1 || h <= 1) return;
+
+      const sw = api._map.options.crs.pointToLatLng(L.point(0, h), 0);
+      const ne = api._map.options.crs.pointToLatLng(L.point(w, 0), 0);
+      api._map.fitBounds(L.latLngBounds(sw, ne), { animate: false });
     } catch (e) {
       setError(`Leaflet fit failed: ${String(e?.message || e)}`);
     }
   };
+
 
   api.dispose = () => {
     disposeSubs();
