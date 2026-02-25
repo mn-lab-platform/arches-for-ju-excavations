@@ -49,6 +49,7 @@ class BasemapView(View):
             raster_data = self._get_raster_info(original_path, to_wgs84=True)
             basemap_metadata['center_coordinates'] = raster_data['center']
             basemap_metadata['bounds'] = raster_data['bounds']
+            basemap_metadata['band_count'] = raster_data['band_count']
 
             task = create_basemap.delay(original_path, cog_path, basemap_metadata)
             return JsonResponse({
@@ -93,7 +94,8 @@ class BasemapView(View):
             
             return {
                 'center': (cx, cy),
-                'bounds': bounds
+                'bounds': bounds,
+                'band_count': ds.count,
             }
 
 

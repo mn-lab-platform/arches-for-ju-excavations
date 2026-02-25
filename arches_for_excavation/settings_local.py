@@ -50,13 +50,13 @@ if not DEBUG:
 # work correctly when running gunicorn.
 APP_NAME = get_env_variable("ARCHES_PROJECT")
 
-DEFAULT_FROM_EMAIL = "archesnoreply@cenagis.edu.pl"
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = True
-EMAIL_HOST = 'pw-mx1.cenagis.edu.pl'
-EMAIL_HOST_USER = "archesnoreply@cenagis.edu.pl"
+DEFAULT_FROM_EMAIL = get_env_variable("DEFAULT_FROM_EMAIL")
+EMAIL_USE_TLS = get_env_variable("EMAIL_USE_TLS").lower() in ['true', '1', 't']
+EMAIL_USE_SSL = get_env_variable("EMAIL_USE_SSL").lower() in ['true', '1', 't']
+EMAIL_HOST = get_env_variable("EMAIL_HOST")
+EMAIL_HOST_USER = get_env_variable("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_PASSWORD")
-EMAIL_PORT = 465
+EMAIL_PORT = int(get_env_variable("EMAIL_PORT"))
 
 
 _DEPLOY_HOST = get_env_variable('DEPLOY_HOST')
@@ -123,25 +123,6 @@ CELERY_BROKER_URL = "redis://@arches_redis:6379/0"
 # the CELERY_BROKER_URL as follows:
 #
 # CELERY_BROKER_URL = ""
-
-# ✅ FIX: Use correct protocol based on deployment mode
-CANTALOUPE_PROTOCOL = "https" if not is_localhost else "http"
-CANTALOUPE_HTTP_ENDPOINT = "{}://{}:{}".format(
-    CANTALOUPE_PROTOCOL,
-    get_env_variable("CANTALOUPE_HOST"), 
-    get_env_variable("CANTALOUPE_PORT")
-)
-
-# ✅ FIXED: Path from Arches container's perspective (not Cantaloupe's)
-# This is the shared volume that both containers can access
-CANTALOUPE_DIR = os.path.join(
-    get_env_variable("APP_COMP_FOLDER"),  # /arches_app/arches_slocal/arches_slocal
-    'uploadedfiles',
-    'imageroot'
-)
-
-# ✅ Ensure the directory exists at startup
-os.makedirs(CANTALOUPE_DIR, exist_ok=True)
 
 ELASTICSEARCH_HTTP_PORT = get_env_variable("ESPORT")
 ELASTICSEARCH_HOSTS = [
