@@ -28,7 +28,7 @@
     </div>
 
     <!-- ONE CONTROL PANEL (ALWAYS ON TOP) -->
-    <div style="position:absolute; z-index:600; left:10px; top:10px; background:#fff; border:1px solid #ddd; padding:8px 10px; border-radius:8px; max-width:380px; pointer-events:auto;">
+    <div style="position:absolute; z-index:600; left:10px; bottom:10px; background:#fff; border:1px solid #ddd; padding:8px 10px; border-radius:8px; max-width:380px; pointer-events:auto;">
       <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
         <div style="font-size:12px; font-weight:700;">
           <span data-bind="text: renderMode() === 'map' ? 'Map mode (georeferenced)' : 'Image-only mode (Leaflet CRS.Simple)'"></span>
@@ -109,6 +109,12 @@
         <!-- ko if: elevationError -->
         <div style="font-size:12px; margin-top:4px; color:#b00020;" data-bind="text: elevationError"></div>
         <!-- /ko -->
+
+        <!-- ko if: clickedCoords -->
+          <div style="font-size:12px; margin-top:4px;">
+            Clicked coords: <b data-bind="text: clickedCoords"></b>
+          </div>
+        <!-- /ko -->
       <!-- /ko -->
 
       <!-- ================= IMAGE CONTROLS ================= -->
@@ -171,12 +177,29 @@
           </div>
         <!-- /ko -->
 
+        <!-- ko if: clickedCoords -->
+        <div style="font-size:12px; margin-top:4px;">
+          Clicked coords: <b data-bind="text: clickedCoords"></b>
+        </div>
+        <!-- /ko -->
+        <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+          <button class="btn btn-xs btn-default"
+                  data-bind="click: toggleLeafletMeasure, css: { active: leafletMeasureMode }">
+            <span data-bind="text: leafletMeasureMode() ? 'Disable Measure' : 'Measure Distance'"></span>
+          </button>
+          <button class="btn btn-xs btn-default"
+                  data-bind="click: clearLeafletMeasure, enable: leafletMeasureMode">
+            Clear
+          </button>
+        </div>
+        <!-- ko if: leafletMeasureDistance -->
+        <div style="font-size:12px; margin-top:6px;">
+          Pixel distance: <b data-bind="text: leafletMeasureDistance"></b>
+        </div>
+        <!-- /ko -->
         <div style="font-size:12px; margin-top:8px; color:#333;">
           Leaflet CRS.Simple: współrzędne pikselowe (bez georeferencji).
         </div>
-
-
-
       <!-- /ko -->
     </div>
   </div>

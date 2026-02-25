@@ -21,6 +21,41 @@ ko.bindingHandlers.iiifMapInit = {
 };
 
 // ---- Manifest helpers ----
+function parseTransformFromCanvas(canvas) {
+  const trRaw = mdValue(canvas, 'transform');
+  if (!trRaw) return null;
+  try {
+    const tr = JSON.parse(trRaw);
+    return (Array.isArray(tr) && tr.length === 6) ? tr : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// pixel (col=x, row=y) -> local (X,Y)
+function affineForward(tr, x, y,s) {
+  // console.log("affine tr", tr);
+  // console.log("x,y", x, y);
+  x=x*(2**s);
+  y=y*(2**s);
+  const [a,b,c,d,e,f] = tr;
+  return [a*x + b*y + c, d*x + e*y + f];
+}
+
+// local (X,Y) -> pixel (x,y)
+function affineInverse(tr, X, Y) {
+  const [a,b,c,d,e,f] = tr;
+  const det = a*e - b*d;
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-12) return null;
+
+  const dx = X - c;
+  const dy = Y - f;
+  const x = ( e*dx - b*dy) / det;
+  const y = (-d*dx + a*dy) / det;
+  return [x, y];
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function mdValue(canvas, key) {
   const md = canvas && canvas.metadata;
   if (!Array.isArray(md)) return null;
@@ -186,6 +221,13 @@ ko.components.register('iiif-map-viewer', {
       self.elevationValue = ko.observable('');
       self.elevationError = ko.observable('');
 
+      self.clickedCoords = ko.observable(''); // Dodaj observable na współrzędne
+
+      // Leaflet measure
+      self.leafletMeasureMode = ko.observable(false);
+      self.leafletMeasurePoints = ko.observableArray([]);
+      self.leafletMeasureDistance = ko.observable('');
+
       const layerManager = createAllmapsLayerManager({
         setStatus: self.status,
         setError: self.error
@@ -206,6 +248,66 @@ ko.components.register('iiif-map-viewer', {
       const leafletViewer = createLeafletViewer({
         setStatus: self.status,
         setError: self.error,
+        onMapClick: (info) => {
+          const m = ko.unwrap(self.manifest);
+          const baseId = self.leafletBaseCanvasId();
+          const canvas = Array.isArray(m?.items)
+            ? m.items.find(c => (c.id || c['@id']) === baseId)
+            : null;
+          const tr = parseTransformFromCanvas(canvas);
+
+          // DODATKOWE LOGI
+          const container = self._leafletDiv;
+          const mapBounds = leafletViewer._map?.getBounds?.();
+          const mapZoom = leafletViewer._map?.getZoom?.();
+          const mapSize = leafletViewer._map?.getSize?.();
+          console.log('Leaflet map click:', info, 'Base canvas:', canvas);
+          console.log('Container size:', container?.offsetWidth, container?.offsetHeight);
+          console.log('Map bounds:', mapBounds, 'Zoom:', mapZoom, 'Map size:', mapSize);
+          console.log('Affine transform:', tr);
+          console.log('Canvas width/height:', canvas?.width, canvas?.height);
+
+          // Jeśli chcesz zobaczyć event kliknięcia:
+          // (dodaj do createLeafletViewer przekazywanie e.originalEvent)
+          // console.log('Original event:', info.originalEvent);
+
+          if (tr) {
+            const [X, Y] = affineForward(tr, info.x, info.y, info.s);
+            console.log('AffineForward:', { x: info.x, y: info.y, X, Y });
+            self.clickedCoords(
+              `Pixel: ${info.x}, ${info.y} / ${info.width}x${info.height} | Map: ${X.toFixed(6)}, ${Y.toFixed(6)}`
+            );
+          } else {
+            self.clickedCoords(
+              `Pixel: ${info.x}, ${info.y} / ${info.width}x${info.height}`
+            );
+          }
+
+          if (self.leafletMeasureMode && self.leafletMeasureMode()) {
+            console.log('Leaflet measure click at', info);
+            const pts = self.leafletMeasurePoints();
+            if (pts.length >= 2) {
+              self.leafletMeasurePoints([]);
+              self.leafletMeasureDistance('');
+            }
+            // Użyj X, Y wyliczonych wyżej (z affineForward)
+            if (tr) {
+              const [X, Y] = affineForward(tr, info.X, info.y, info.s);
+              self.leafletMeasurePoints([...pts, { X, Y }]);
+            } else {
+              self.leafletMeasurePoints([...pts, { X: info.x, Y: info.y }]);
+            }
+            console.log('Current measure points:', self.leafletMeasurePoints());
+            if (self.leafletMeasurePoints().length === 2) {
+              const [p1, p2] = self.leafletMeasurePoints();
+              const dx = p2.X - p1.X;
+              const dy = p2.Y - p1.Y;
+              const d = Math.sqrt(dx * dx + dy * dy);
+              self.leafletMeasureDistance(`${d.toFixed(2)} units`);
+            }
+            return;
+          }
+        }
       });
 
       self._map = null;
@@ -304,6 +406,34 @@ ko.components.register('iiif-map-viewer', {
         self._map.on('click', async (e) => {
           self.measureCoords(measure.formatCoords(e.lngLat));
 
+          // --- NOWY KOD: oblicz współrzędne lokalne (X,Y) ---
+          const m = ko.unwrap(self.manifest);
+          console.log(LOG, 'Map click at', e.lngLat, 'Manifest:', m);
+          // znajdź canvas referencyjny (np. pierwszy z georeferencją)
+          const refCanvas = Array.isArray(m?.items) ? m.items.find(canvasHasGeoref) : null;
+          if (refCanvas) {
+            const tr = parseTransformFromCanvas(refCanvas);
+            if (tr) {
+              const X = e.lngLat.lng;
+              const Y = e.lngLat.lat;
+              // Zamiana współrzędnych mapy na pikselowe (x, y) w obrazie
+              const px = affineInverse(tr, X, Y);
+              console.log(LOG, 'Affine transform:', tr, 'Pixel coords:', px);
+              if (px) {
+                self.clickedCoords(
+                  `Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: ${px[0].toFixed(2)}, ${px[1].toFixed(2)}`
+                );
+              } else {
+                self.clickedCoords(`Map: ${X.toFixed(6)}, ${Y.toFixed(6)} | Pixel: brak danych`);
+              }
+            } else {
+              self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
+            }
+          } else {
+            self.clickedCoords(`Map: ${e.lngLat.lng.toFixed(6)}, ${e.lngLat.lat.toFixed(6)}`);
+          }
+          // --- KONIEC NOWEGO KODU ---
+
           if (self.measureMode()) return measure.onClick(e);
           if (!self.elevationMode()) return;
 
@@ -393,6 +523,17 @@ ko.components.register('iiif-map-viewer', {
         self.elevationMode(on);
         self.elevationError('');
         if (!on) self.elevationValue('');
+      };
+
+      self.toggleLeafletMeasure = () => {
+        const on = !self.leafletMeasureMode();
+        self.leafletMeasureMode(on);
+        self.leafletMeasurePoints([]);
+        self.leafletMeasureDistance('');
+      };
+      self.clearLeafletMeasure = () => {
+        self.leafletMeasurePoints([]);
+        self.leafletMeasureDistance('');
       };
 
       self.toggleRenderMode = async () => {
