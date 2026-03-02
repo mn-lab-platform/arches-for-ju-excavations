@@ -220,13 +220,14 @@ export function createLeafletViewer(opts = {}) {
   }
 
   function makeLayerVm(rec) {
-    // Overlay toggle + opacity for this canvas
-    // IMPORTANT: default visible = true, otherwise user will think "only 1 layer works"
+    // Ustaw opacity tylko dla warstwy colorrelief
+    const label = rec.label.toLowerCase();
+    const isColorRelief = label.includes('(colorrelief)') || label.includes('(color relief)') || label.includes('hillshade');
     const vm = {
       id: rec.id,
       label: rec.label,
       visible: ko.observable(true),
-      opacity: ko.observable(1),
+      opacity: ko.observable(isColorRelief ? 0.5 : 1),
       _ensureLayer: () => ensureLayer(rec),
       _setVisible: async (v) => setLayerVisible(rec, v),
       _setOpacity: async (o) => setLayerOpacity(rec, o),

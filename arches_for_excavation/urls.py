@@ -8,7 +8,7 @@ from .views.tile_proxy import titiler_tile_proxy
 from .views.celery_utils import get_celery_task_status
 from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif_annotation
 from .views.geotiif_handler import RasterUploadView ,dem_pixel_value
-from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView
+from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView, ManifestEditView
 from .views.geotiff_files import GeoTiffFileView
 from .views.dem_pixel_sample import dem_pixel_sample
 from .views.iiif_titler_proxy import titiler_iiif_proxy
@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/iiif/dem/pixel", dem_pixel_sample, name="dem_pixel_sample"),    
     path("iiif/api/iiif/titiler-proxy", titiler_iiif_proxy, name="titiler-iiif-proxy"),
     path("api/iiif/dem/pixel-value", dem_pixel_value, name="dem_pixel_value"),
+    path("api/iiif/geotiff-manifest/edit/<uuid:resource_id>", ManifestEditView.as_view(), name="manifest_edit"),
 ]
 
 
