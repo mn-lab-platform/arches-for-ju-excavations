@@ -2,9 +2,10 @@ define([
     'knockout',
     'arches',
     'maplibre-gl',
+    '../../../../services/basemap-service',
     'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
     'maplibre-gl/dist/maplibre-gl.css'
-], function(ko, arches, maplibreGl, template) {
+], function(ko, arches, maplibreGl, basemapServiceModule, template) {
     class Point {
         constructor(label, x, y, z) {
             this.label = label;
@@ -17,7 +18,12 @@ define([
     return ko.components.register('coordinates-map-display-step', {
         viewModel: function(params) {
             const self = this;
-            
+
+            const basemapService = basemapServiceModule.default || basemapServiceModule;
+            basemapService.getBasemapsAndOverlaysInfo().then(info => {
+                console.log("Basemap and Overlay Access Info:", info);
+            })
+
             if (params.value) {
                 params.value({
                     verified: true
@@ -153,7 +159,7 @@ define([
 
                     const bounds = new maplibreGl.LngLatBounds();
                     lngLats.forEach(coord => bounds.extend(coord));
-                    self.map.fitBounds(bounds, { padding: 20 });
+                    self.map.fitBounds(bounds, { padding: 30 });
                 } else {
                     const lngLats = points.map(pt => [pt.x, pt.y]);
                     const polygonCoords = [...lngLats, lngLats[0]];
@@ -191,7 +197,7 @@ define([
 
                     const bounds = new maplibreGl.LngLatBounds();
                     lngLats.forEach(coord => bounds.extend(coord));
-                    self.map.fitBounds(bounds, { padding: 20 });
+                    self.map.fitBounds(bounds, { padding: 30 });
                 }
             });
         },
