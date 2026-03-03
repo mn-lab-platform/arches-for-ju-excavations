@@ -5,7 +5,8 @@ define([
     '../../../../services/basemap-service',
     '../../../../maplibre_map_viewer/controls/basemapMenu',
     'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
-    'maplibre-gl/dist/maplibre-gl.css'
+    'maplibre-gl/dist/maplibre-gl.css',
+    '../../../../../css/components/maplibre_map_viewer/index.css' 
 ], function(ko, arches, maplibreGl, basemapServiceModule, basemapMenuModule, template) {
     class Point {
         constructor(label, x, y, z) {
@@ -210,7 +211,7 @@ define([
                     const basemapControl = new BasemapMenuControl({
                         layers: basemapInfo
                     });
-                    self.map.addControl(basemapControl);
+                    self.map.addControl(basemapControl, 'top-right');
 
                     self._generateMarkers(points);
                     self._drawFeatures(points);
