@@ -3,9 +3,10 @@ define([
     'arches',
     'maplibre-gl',
     '../../../../services/basemap-service',
+    '../../../../maplibre_map_viewer/controls/basemapMenu',
     'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
     'maplibre-gl/dist/maplibre-gl.css'
-], function(ko, arches, maplibreGl, basemapServiceModule, template) {
+], function(ko, arches, maplibreGl, basemapServiceModule, basemapMenuModule, template) {
     class Point {
         constructor(label, x, y, z) {
             this.label = label;
@@ -20,9 +21,7 @@ define([
             const self = this;
 
             const basemapService = basemapServiceModule.default || basemapServiceModule;
-            basemapService.getBasemapsAndOverlaysInfo().then(info => {
-                console.log("Basemap and Overlay Access Info:", info);
-            })
+            const BasemapMenuControl = basemapMenuModule.default || basemapMenuModule;
 
             if (params.value) {
                 params.value({
@@ -42,8 +41,6 @@ define([
 
             self.coordinatesText = ko.observable(rawText);
             self.ignoreLastLine = ko.observable(rawIgnore);
-
-            console.log("Ignore Last line: ", self.ignoreLastLine());
             
             self._extractPointsFromText = function(text) {
                 const points = [];
@@ -81,23 +78,7 @@ define([
                 return [xSum / points.length, ySum / points.length];
             };
 
-            const points = self._extractPointsFromText(self.coordinatesText());
-            const centroid = self._findCentroid(points) || [0, 0];
-
-            self.map = new maplibreGl.Map({
-                container: 'coordinates-map-display',
-                style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-                center: centroid,
-                zoom: 15,
-                maxZoom: 24,
-            });
-
-            self.map.on('load', () => {
-                if (points.length === 0) {
-                    return;
-                }
-
-                const markers = [];
+            self._generateMarkers = function(points) {
                 points.forEach(pt => {
                     const popupContent = `
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 200px; padding: 2px;">
@@ -120,20 +101,21 @@ define([
                         offset: [0, -20]
                     }).setHTML(popupContent);
 
-                    const marker = new maplibreGl.Marker({
+                    new maplibreGl.Marker({
                         color: "#4287f5",
                         draggable: false
                     })
                         .setLngLat([pt.x, pt.y])
                         .setPopup(popup)
                         .addTo(self.map);
-
-                    markers.push(marker);
                 });
+            }
 
+            self._drawFeatures = function(points) {
                 if (points.length === 1) {
                     self.map.setCenter([points[0].x, points[0].y]);
-                } else if (points.length === 2) {
+                } 
+                else if (points.length === 2) {
                     const lngLats = points.map(pt => [pt.x, pt.y]);
                     
                     self.map.addSource('line-source', {
@@ -199,6 +181,40 @@ define([
                     lngLats.forEach(coord => bounds.extend(coord));
                     self.map.fitBounds(bounds, { padding: 30 });
                 }
+            }
+
+            const points = self._extractPointsFromText(self.coordinatesText());
+            const centroid = self._findCentroid(points) || [0, 0];
+
+            self.map = new maplibreGl.Map({
+                container: 'coordinates-map-display',
+                style: {
+                    version: 8,
+                    sources: {},
+                    layers: [] 
+                },
+                center: centroid,
+                zoom: 15,
+                maxZoom: 23,
+            });
+
+            self.map.on('load', () => {
+                if (points.length === 0) {
+                    return;
+                }
+
+                basemapService.getBasemapsAndOverlaysInfo().then(info => {
+                    const basemapInfo = info.basemaps;
+                    const overlayInfo = info.overlays;
+
+                    const basemapControl = new BasemapMenuControl({
+                        layers: basemapInfo
+                    });
+                    self.map.addControl(basemapControl);
+
+                    self._generateMarkers(points);
+                    self._drawFeatures(points);
+                });
             });
         },
         template: template
