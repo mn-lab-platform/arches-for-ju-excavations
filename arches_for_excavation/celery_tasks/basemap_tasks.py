@@ -28,7 +28,7 @@ def register_basemap_in_db(basemap_metadata):
         source={
             'type': 'raster',
             'tiles': [f'/api/titiler/tiles/{basemap_metadata["id"]}/{{z}}/{{x}}/{{y}}'],
-            'tileSize': 512,
+            'tileSize': 256,
             'bounds': basemap_metadata['bounds']
         }
     )
