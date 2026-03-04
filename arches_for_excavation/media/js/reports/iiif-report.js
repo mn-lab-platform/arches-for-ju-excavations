@@ -17,7 +17,7 @@ export default ko.components.register('iiif-report', {
 
     params.configKeys = params.configKeys || [];
     ReportViewModel.apply(self, [params]);
-
+    
     function baseRoot() {
       const root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
       return root.replace(/\/+$/, '') + '/';

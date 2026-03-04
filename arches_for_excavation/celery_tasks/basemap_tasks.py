@@ -12,7 +12,7 @@ class ConversionError(Exception):
 def create_basemap(src_path, dst_path, basemap_metadata):
     print(f"Converting {src_path} -> {dst_path}...")
     try:
-            task = convert_geotiff_to_cog.delay(src_path, dst_path)
+            result = convert_geotiff_to_cog.apply((src_path, dst_path))
             return register_basemap_in_db(basemap_metadata)
     except Exception as e:
         logger.error(f"[COG TASK] Error during conversion: {e}", exc_info=True)
@@ -41,7 +41,8 @@ def register_basemap_in_db(basemap_metadata):
             'id': basemap_metadata['id'],
             'type': 'raster',
             'source': basemap_metadata['id'],
-            'basemap_dir': basemap_metadata['sanitized_name']
+            'basemap_dir': basemap_metadata['sanitized_name'],
+            'band_count': basemap_metadata['band_count']
         }],
         isoverlay=basemap_metadata['isoverlay'],
         activated=basemap_metadata['activated'],

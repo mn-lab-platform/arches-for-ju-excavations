@@ -123,7 +123,7 @@ export default ko.components.register('context-tabbed-report', {
         const iiifResourceList = Object.entries(relatedResources)
             .filter(([_, value]) => {
                 const name = (value.name || '').toLowerCase();
-                return name.includes('digital') || name.includes('iiif');
+                return name.includes('iiif');
             })
             .map(([_, value]) => value);
  
