@@ -18,7 +18,7 @@ def convert_geotiff_to_cog(src_path, dst_path):
             driver='COG',      
             compress='JPEG',
             overview_resampling='BILINEAR',
-            blocksize=512,
+            blocksize=256,
             bigtiff='YES'
         )
         logger.info("[COG TASK] Conversion Complete.")
@@ -40,7 +40,7 @@ def convert_dem_geotiff_to_cog(src_path, dst_path):
             driver='COG',      
             compress='DEFLATE',
             overview_resampling='BILINEAR',
-            blocksize=512,
+            blocksize=256,
             bigtiff='YES'
         )
         logger.info("[COG TASK] Conversion Complete.")
