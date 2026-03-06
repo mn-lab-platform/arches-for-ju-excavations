@@ -1,5 +1,5 @@
 from django.views import View
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.text import get_valid_filename
 
 from arches.app.models.models import Resource
@@ -127,9 +127,13 @@ class LocalCoordinateSystemDefineView(View):
             self._populate_resource_tiles(resource, local_crs_resource_data)
 
         except Exception as e:
-            return HttpResponse(f"Error creating resource: {e}", status=500)
+            return JsonResponse({"error": str(e)}, status=500)
 
-        return HttpResponse(f"Created resource name {name}. WKT2: {wkt2}, ESRI WKT: {esri_wkt}, PROJ4: {proj4}", status=201)
+        return JsonResponse({
+            "status": "success",
+            "resource_id": resource_id,
+            "message": f"Created CRS: {name}"
+        }, status=201)
         
 class LocalCoordinateSystemDownloadView(View):
     def _get_node_id_for_definition_type(self, definition_type: str):
