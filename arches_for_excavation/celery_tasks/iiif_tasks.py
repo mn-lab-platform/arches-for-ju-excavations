@@ -249,7 +249,7 @@ def generate_hillshade_task(self, result):
         driver="COG",
         compress="DEFLATE",
         overview_resampling="NEAREST",
-        blocksize=512
+        blocksize=256
     )
     try:
         hs_tmp.unlink(missing_ok=True)
@@ -314,8 +314,8 @@ def generate_color_relief_task(self, result: Dict[str, Any]) -> Dict[str, Any]:
             "compress": "DEFLATE",
             "predictor": 2,
             "tiled": True,
-            "blockxsize": 512,
-            "blockysize": 512,
+            "blockxsize": 256,
+            "blockysize": 256,
             "nodata": 0,
             "photometric": "RGB",
             "interleave": "pixel",
@@ -334,7 +334,7 @@ def generate_color_relief_task(self, result: Dict[str, Any]) -> Dict[str, Any]:
         driver="COG",
         compress="DEFLATE",
         overview_resampling="NEAREST",
-        blocksize=512,
+        blocksize=256,
     )
 
     try:

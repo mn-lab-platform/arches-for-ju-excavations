@@ -18,7 +18,18 @@ const checkIfBasemapNameExists = (name) => {
     })
 }
 
+const getBasemapsAndOverlaysInfo = () => {
+    const url = `/api/basemap/access-info`;
+    return fetch(url, {
+        method: 'GET',
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    })
+}
+
 export default {
     getCeleryTaskStatus,
-    checkIfBasemapNameExists
+    checkIfBasemapNameExists,
+    getBasemapsAndOverlaysInfo
 }

@@ -25,7 +25,7 @@ define([
             map.addSource('basemap-preview-source', {
                 type: 'raster',
                 tiles: [`/api/titiler/tiles/${self.basemapId}/{z}/{x}/{y}`],
-                tileSize: 512,
+                tileSize: 256,
                 bounds: self.bounds
             });
 
