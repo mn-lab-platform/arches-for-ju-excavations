@@ -1,7 +1,8 @@
+import { BackToDefaultTool } from '../cesium/tools/BackToDefaultTool.js';
 import { DistanceTool } from '../cesium/tools/DistanceTool.js';
 import { AnnotationsTool } from '../cesium/tools/AnnotationsTool.js';
 import { PickerTool } from '../cesium/tools/PickerTool.js';
-import { TOOL_CALLBACKS, TOOL_NAMES } from '../const/const.js';
+import { TOOL_CALLBACKS, TOOL_NAMES, TOOL_TITLES } from '../const/const.js';
 import { createAnnotationModal } from './templates/AnnotationModal.js';
 
 export class UIController {
@@ -12,6 +13,9 @@ export class UIController {
         this.parentContainerId = scene.containerId;
         this.customCallbacks = externalCallbacks;
         this.tools = [
+            new BackToDefaultTool(scene, TOOL_NAMES.BACK_TO_DEFAULT, {
+                [TOOL_CALLBACKS.ON_TOOL_SELF_DEACTIVATE]: () => this._onToolSelfDeactivate(TOOL_NAMES.BACK_TO_DEFAULT)
+            }),
             new DistanceTool(scene, TOOL_NAMES.DISTANCE, {
                 [TOOL_CALLBACKS.ON_DISTANCE_UPDATE]: (distance) => this._updateDistanceDisplay(distance)
             }),
@@ -46,12 +50,13 @@ export class UIController {
     }
 
     _setupTools() {
-        this._initializeToolUi(this.tools[0], '/static/img/cesium_viewer/distance_icon.svg'); 
+        this._initializeToolUi(this.tools[0], '/static/img/cesium_viewer/back_to_default_icon.svg');
+        this._initializeToolUi(this.tools[1], '/static/img/cesium_viewer/distance_icon.svg'); 
         if (this.allowAnnotationsEdits) {
-            this._initializeToolUi(this.tools[1], '/static/img/cesium_viewer/annotations_icon.svg'); 
+            this._initializeToolUi(this.tools[2], '/static/img/cesium_viewer/annotations_icon.svg'); 
         }
         if (this.allowObjectPicking) {
-            this._initializeToolUi(this.tools[2], '/static/img/cesium_viewer/picker_icon.svg'); 
+            this._initializeToolUi(this.tools[3], '/static/img/cesium_viewer/picker_icon.svg'); 
         }
     }
 
@@ -75,6 +80,7 @@ export class UIController {
         button.id = `${tool.name}Button`;
         button.classList.add('toolButton');
         button.innerHTML = `<img src="${iconPath}" alt="${tool.name} Tool" />`;
+        button.title = TOOL_TITLES[tool.name] || tool.name;
         toolWrapper.appendChild(button);
 
         const toolInfoDisplay = document.createElement('div');
@@ -101,13 +107,17 @@ export class UIController {
     _deactivateUnusedTools(activeTool) {
         this.tools.forEach((tool) => {
             if (tool !== activeTool && tool.active) {
-                tool.deactivate();
-                const button = document.getElementById(`${tool.name}Button`);
-                if (button) {
-                    button.classList.remove('toolActive');
-                }
+                this._deactivateTool(tool);
             }
         });
+    }
+
+    _deactivateTool(tool) {
+        tool.deactivate();
+        const button = document.getElementById(`${tool.name}Button`);
+        if (button) {
+            button.classList.remove('toolActive');
+        }
     }
 
     _updateDistanceDisplay(distanceString) {
@@ -136,5 +146,14 @@ export class UIController {
         if (this.customCallbacks.onAnnotationDeleted) {
             this.customCallbacks.onAnnotationDeleted(annotationId);
         }
+    }
+
+    _onToolSelfDeactivate(toolName) {
+        setTimeout(() => {
+            const tool = this.tools.find(t => t.name === toolName);
+            if (tool) {
+                this._deactivateTool(tool);
+            }
+        }, 0);
     }
 }
