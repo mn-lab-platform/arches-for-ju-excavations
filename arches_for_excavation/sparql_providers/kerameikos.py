@@ -20,7 +20,7 @@ class Kerameikos_Provider(Abstract_Provider):
             "https://kerameikos.org/query", **kwargs
         )
 
-        self.name = _("Kerameikos (Greek Ceramics)")
+        self.name = _("Kerameikos")
         self.setReturnFormat(JSON)
 
     def get_concepts(self, uris):
