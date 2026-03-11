@@ -19,7 +19,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             layer_info = {
                 'name': layer.name,
                 'is_public': layer.ispublic,
-                'basemap_dir': layer.layerdefinitions[0].get('basemap_dir')
+                'basemap_dir': layer.layerdefinitions[0].get('basemap_dir'),
+                'band_count': layer.layerdefinitions[0].get('band_count', 3)
             }
             print(f"Caching layer {basemap_id} is_public={layer.ispublic}")
             cache.set(layer_cache_key, layer_info, 300) #cache for 5 minutes
@@ -28,6 +29,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
     
     is_public = layer_info['is_public']
     basename_dir = layer_info['basemap_dir']
+    band_count = layer_info['band_count']
+
     if not is_public:
         if not user.is_authenticated:
             return HttpResponseForbidden("Secure Layer: Login Required")
@@ -39,7 +42,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             if can_view is None:
                 print(f"Checking permissions for user {user.username} (id={user.id})")
                 print(f"User groups: {[group.name for group in user.groups.all()]}")
-                if user.groups.filter(name='TEST').exists(): #IMPORTANT: Hardcoded
+                if user.groups.filter(name='Restricted Basemap Access').exists(): #IMPORTANT: Hardcoded
                     can_view = True
                 else:
                     can_view = False
@@ -48,7 +51,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
                 return HttpResponseForbidden("Access Denied: Insufficient Permissions")
     
     try:
-        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{basename_dir}/{basemap_id}.tif&bidx=1&bidx=2&bidx=3"
+        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{basename_dir}/{basemap_id}.tif&{_craft_band_index_query(band_count)}"
 
         upstream_req = requests.get(titiler_url, stream=True, timeout=5)
 
@@ -66,3 +69,9 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
     
     except requests.exceptions.RequestException as e:
         return HttpResponse(status=502)
+
+def _craft_band_index_query(band_count):
+    if band_count >= 3:
+        return '&'.join([f'bidx={i}' for i in range(1, 4)])
+    else:
+        return '&'.join([f'bidx={i}' for i in range(1, band_count + 1)])

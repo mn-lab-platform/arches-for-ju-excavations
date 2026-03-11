@@ -9,6 +9,7 @@ export class Scene {
         this.existingAnnotations = existingAnnotations;
         this.scale = SCALE_FACTORS.METERS;
         this.containerId = containerId;
+        this.objectBoundingSphere = null;
         
         this.widget = new CesiumWidget(containerId, {
             creditContainer: document.createElement('div'),
@@ -91,17 +92,13 @@ export class Scene {
 
         tileset.modelMatrix = finalMatrix;
 
-        tileset.update(this.widget.scene.frameState);
-
         const newRadius = tileset.boundingSphere.radius;
         this.widget.scene.screenSpaceCameraController.minimumZoomDistance = newRadius * 0.1;
         
         this.widget.scene.screenSpaceCameraController.enableCollisionDetection = true;
 
-        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, {
-            duration: 1.0,
-            offset: new HeadingPitchRange(0.0, -Math.PI / 2.5, newRadius * 1.5) // approx 72 degrees tilt
-        });
+        this.objectBoundingSphere = tileset.boundingSphere;
+        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere);
     }
 
     _handleGeoreferencedTileset(tileset) {
@@ -110,9 +107,7 @@ export class Scene {
             tileset.modelMatrix = scaleMatrix;
         }
 
-        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere, {
-            duration: 1.5,
-            offset: new HeadingPitchRange(0.0, -Math.PI / 2, tileset.boundingSphere.radius * 2) // straight down
-        });
+        this.objectBoundingSphere = tileset.boundingSphere;
+        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere);
     }
 }

@@ -28,7 +28,7 @@ def register_basemap_in_db(basemap_metadata):
         source={
             'type': 'raster',
             'tiles': [f'/api/titiler/tiles/{basemap_metadata["id"]}/{{z}}/{{x}}/{{y}}'],
-            'tileSize': 512,
+            'tileSize': 256,
             'bounds': basemap_metadata['bounds']
         }
     )
@@ -41,7 +41,8 @@ def register_basemap_in_db(basemap_metadata):
             'id': basemap_metadata['id'],
             'type': 'raster',
             'source': basemap_metadata['id'],
-            'basemap_dir': basemap_metadata['sanitized_name']
+            'basemap_dir': basemap_metadata['sanitized_name'],
+            'band_count': basemap_metadata['band_count']
         }],
         isoverlay=basemap_metadata['isoverlay'],
         activated=basemap_metadata['activated'],
