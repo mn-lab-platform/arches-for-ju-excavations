@@ -50,17 +50,17 @@ export class UIController {
     }
 
     _setupTools() {
-        this._initializeToolUi(this.tools[0], '/static/img/cesium_viewer/back_to_default_icon.svg');
-        this._initializeToolUi(this.tools[1], '/static/img/cesium_viewer/distance_icon.svg'); 
+        this._initializeToolUi(this.tools[0], 'fa-undo');
+        this._initializeToolUi(this.tools[1], 'fa-arrows-h');
         if (this.allowAnnotationsEdits) {
-            this._initializeToolUi(this.tools[2], '/static/img/cesium_viewer/annotations_icon.svg'); 
+            this._initializeToolUi(this.tools[2], 'fa-pencil');
         }
         if (this.allowObjectPicking) {
-            this._initializeToolUi(this.tools[3], '/static/img/cesium_viewer/picker_icon.svg'); 
+            this._initializeToolUi(this.tools[3], 'fa-crosshairs');
         }
     }
 
-    _initializeToolUi(tool, iconPath) {
+    _initializeToolUi(tool, iconClass) {
         const container = document.getElementById(this.parentContainerId);
         if (!container) {
             console.error(`Container ${this.parentContainerId} not found`);
@@ -79,7 +79,7 @@ export class UIController {
         const button = document.createElement('button');
         button.id = `${tool.name}Button`;
         button.classList.add('toolButton');
-        button.innerHTML = `<img src="${iconPath}" alt="${tool.name} Tool" />`;
+        button.innerHTML = `<i class="fa ${iconClass}" aria-hidden="true"></i>`;
         button.title = TOOL_TITLES[tool.name] || tool.name;
         toolWrapper.appendChild(button);
 
