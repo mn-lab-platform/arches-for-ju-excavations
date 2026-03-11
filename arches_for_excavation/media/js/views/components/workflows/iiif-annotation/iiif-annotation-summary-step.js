@@ -281,55 +281,88 @@ define([
                 return resp.json ? resp.json() : {};
             });
         }    
-        self.updateManifestOnServer = function(annotationData, digitalResourceId) {
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-            var backendUrl = baseUrl + 'api/manifest/update_db'; 
+        function baseRoot() {
+            var root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            return root.replace(/\/+$/, '/');
+        }
 
-            // ✅ ADD: Debug logs
-            console.log('[WF LOG][summary] updateManifestOnServer called with:');
-            console.log('[WF LOG][summary] - annotationData:', annotationData);
-            console.log('[WF LOG][summary] - selector:', annotationData.selector);
-            console.log('[WF LOG][summary] - geometry:', annotationData.geometry);
+        function manifestEditUrl(resourceId) {
+            return baseRoot() + 'api/iiif/geotiff-manifest/edit/' + encodeURIComponent(resourceId);
+        }
 
-            // Używamy selektora z annotatora
-            var selector = annotationData.selector; // {type:..., value:...} (svg/xywh)
-            
-            // ✅ ADD: Validate selector
-            if (!selector || !selector.type || !selector.value) {
-                console.error('[WF LOG][summary] ❌ Invalid selector structure:', selector);
-                console.error('[WF LOG][summary] ❌ Full annotationData:', annotationData);
+        let overrideReadyFor = null;
+
+        function ensureManifestOverride(resourceId, manifest) {
+            return fetchResourceName(resourceId).then(function(resourceName) {
+                return $.ajax({
+                    type: 'POST',
+                    url: manifestEditUrl(resourceId),
+                    data: JSON.stringify({ mode: 'replace', manifest: manifest, resource_name: resourceName }),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                }).then(function() {
+                    overrideReadyFor = resourceId;
+                });
+            });
+        }
+
+        function normalizeSelector(selector) {
+            if (!selector || !selector.value) return null;
+            var t = String(selector.type || '').toLowerCase();
+            var v = String(selector.value || '');
+
+            if (t.indexOf('svg') >= 0) return { type: 'SvgSelector', value: v };
+            if (t.indexOf('xywh') >= 0 || t.indexOf('fragment') >= 0) {
+                return {
+                    type: 'FragmentSelector',
+                    conformsTo: 'http://www.w3.org/TR/media-frags/',
+                    value: /^xywh=/.test(v) ? v : ('xywh=' + v)
+                };
             }
-            
-            // Preferuj xywh z annotatora, jeśli brakuje
-            if (!selector && annotationData.geometry) {
-                console.warn('[WF LOG][summary] ⚠️ Selector missing, falling back to geometry');
-                // fallback (gdyby coś poszło nie tak, ale getIIIFSelectorFromLayer powinien to załatwić)
-                var xywhString = getXYWHFromGeoJSON(annotationData.geometry);
-                selector = { type: 'xywh', value: xywhString };
-            }
+            return selector;
+        }
 
-            var payload = {
-                digital_resource_id: digitalResourceId,
-                annotation: {
-                    label: self.annotationLabel() || 'Annotation',
-                    description: self.annotationNote() || '',
-                    selector: selector,
-                    geometry: annotationData.geometry
-                }
+        function buildV3Annotation(anno, label, description) {
+            var canvasId = anno.canvasId || (typeof anno.target === 'string' ? anno.target : null);
+            var selector = normalizeSelector(anno.selector);
+            var target = selector ? { source: canvasId, selector: selector } : canvasId;
+
+            return {
+                id: anno.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
+                type: 'Annotation',
+                motivation: 'commenting',
+                target: target,
+                body: [{
+                    type: 'TextualBody',
+                    value: (description || label || 'Annotation'),
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                }]
             };
+        }
 
-            console.log('[WF LOG][summary] Sending to backend:', payload);
-            console.log('[WF LOG][summary] Selector in payload:', payload.annotation.selector); // ✅ ADD: Specific check
+        self.updateManifestOnServer = function(annotationData, digitalResourceId, sourceManifest) {
+            var canvasId = annotationData.canvasId || (typeof annotationData.target === 'string' ? annotationData.target : null);
+            if (!canvasId) return Promise.reject(new Error('Missing canvasId for annotation upsert'));
 
-            return $.ajax({
-                type: "POST",
-                url: backendUrl,
-                data: JSON.stringify(payload),
-                contentType: "application/json",
-                headers: { 'X-CSRFToken': getCookie('csrftoken') }
-            }).then(function(res) {
-                console.log("[WF LOG][summary] Manifest updated:", res);
-                return res;
+            var v3Anno = buildV3Annotation(
+                annotationData,
+                self.annotationLabel() || 'Annotation',
+                self.annotationNote() || ''
+            );
+
+            return ensureManifestOverride(digitalResourceId, sourceManifest).then(function() {
+                return $.ajax({
+                    type: 'POST',
+                    url: manifestEditUrl(digitalResourceId),
+                    data: JSON.stringify({
+                        mode: 'upsert_annotation',
+                        canvas_id: canvasId,
+                        annotation: v3Anno
+                    }),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                });
             });
         };
 
@@ -453,6 +486,7 @@ define([
         self.saveAnnotationsWithTargetResource = function(payload, targetResourceId, targetResourceInfo) {
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
+            const sourceManifest = payload.manifest || null;
             
             console.log('[WF LOG][summary] Saving', annotations.length, 'annotations with target resource');
             console.log('[WF LOG][summary] Full annotations data:', annotations); // ✅ ADD: Debug log
@@ -478,19 +512,7 @@ define([
                 .then(function() {
                     // ✅ FIX: Pass the full annotation object with selector and geometry
                     const manifestPromises = annotations.map(function(anno) {
-                        console.log('[WF LOG][summary] Updating manifest with anno:', anno); // ✅ ADD: Debug
-                        
-                        // ✅ ENSURE selector and geometry are present
-                        if (!anno.selector || !anno.geometry) {
-                            console.error('[WF LOG][summary] ❌ Missing selector or geometry:', anno);
-                        }
-                        
-                        return self.updateManifestOnServer({
-                            label: self.annotationLabel(),
-                            description: self.annotationNote(),
-                            selector: anno.selector,      // ✅ This should contain {type: 'svg', value: '...'} or {type: 'xywh', value: '...'}
-                            geometry: anno.geometry       // ✅ This should contain the GeoJSON
-                        }, hostResourceId);
+                        return self.updateManifestOnServer(anno, hostResourceId, sourceManifest);
                     });
                     
                     return Promise.all(manifestPromises);
@@ -529,6 +551,7 @@ define([
         self.saveAnnotationsOnly = function(payload) {
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
+            const sourceManifest = payload.manifest || null;
             
             console.log('[WF LOG][summary] Saving', annotations.length, 'annotations only');
             
@@ -537,12 +560,7 @@ define([
                 return self.createAnnotationResource(anno, hostResourceId)
                     .then(function(annotationResourceId) {
                         // Zaktualizuj manifest
-                        return self.updateManifestOnServer({
-                            label: self.annotationLabel(),
-                            description: self.annotationNote(),
-                            selector: anno.selector,
-                            geometry: anno.geometry
-                        }, hostResourceId);
+                        return self.updateManifestOnServer(anno, hostResourceId, sourceManifest);
                     });
             });
             
@@ -705,6 +723,15 @@ define([
                     error: err.message
                 };
             });
+        }
+
+        function fetchResourceName(resourceId) {
+            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            var url = baseUrl + 'resource/' + encodeURIComponent(resourceId);
+            return fetch(url, { credentials: 'include', headers: { 'Accept': 'application/json' } })
+                .then(resp => resp.json())
+                .then(data => data.displayname || data.name || resourceId)
+                .catch(() => resourceId);
         }
 
         self.dispose = function() {

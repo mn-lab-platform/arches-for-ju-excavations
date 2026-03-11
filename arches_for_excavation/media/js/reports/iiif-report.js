@@ -97,6 +97,28 @@ export default ko.components.register('iiif-report', {
     self.error = ko.observable('');
     self.manifestUrl = ko.observable(null);
     self.manifest = ko.observable(null);
+    self.existingAnnotations = ko.observableArray([]); // ← DODAJ
+
+    function collectV3AnnotationsFromManifest(manifest) {
+      var out = [];
+      try {
+        var canvases = (manifest && Array.isArray(manifest.items)) ? manifest.items : [];
+        canvases.forEach(function(canvas) {
+          var canvasId = canvas && canvas.id ? canvas.id : null;
+          var pages = Array.isArray(canvas.annotations) ? canvas.annotations : [];
+          pages.forEach(function(page) {
+            if (page && Array.isArray(page.items)) {
+              page.items.forEach(function(anno) {
+                var a = Object.assign({}, anno);
+                if (!a.canvasId) a.canvasId = canvasId;
+                out.push(a);
+              });
+            }
+          });
+        });
+      } catch (e) {}
+      return out;
+    }
 
     function loadManifestFromUrl(url) {
       self.status('Loading manifest…');
@@ -106,6 +128,7 @@ export default ko.components.register('iiif-report', {
       return $.getJSON(url)
         .then(m => {
           self.manifest(m);
+          self.existingAnnotations(collectV3AnnotationsFromManifest(m)); // ← DODAJ
           self.status('');
           return m;
         })
