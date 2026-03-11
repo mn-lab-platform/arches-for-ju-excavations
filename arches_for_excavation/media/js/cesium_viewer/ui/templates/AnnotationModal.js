@@ -6,7 +6,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
 
     const closeButton = document.createElement('button');
     closeButton.id = 'modalCloseButton';
-    closeButton.innerHTML = '<img src="/static/img/cesium_viewer/cancel_icon.svg" alt="Close annotation modal" />';
+    closeButton.innerHTML = '<i class="fa fa-times" aria-hidden="true"></i>';
     closeButton.title = 'Cancel';
     closeButton.onclick = () => {
         parentElement.classList.remove('infoDisplayWithModal');
@@ -77,7 +77,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     controlPanel.classList.add('modalControlPanel');
 
     const saveButton = document.createElement('button');
-    saveButton.innerHTML =  '<img src="/static/img/cesium_viewer/save_icon.svg" alt="Save Annotation" />';
+    saveButton.innerHTML = '<i class="fa fa-floppy-o" aria-hidden="true"></i>';
     saveButton.classList.add('modalButton');
     saveButton.title = 'Save Annotation';
     saveButton.onclick = () => {
@@ -93,7 +93,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     };
 
     const deleteButton = document.createElement('button');
-    deleteButton.innerHTML = '<img src="/static/img/cesium_viewer/delete_icon.svg" alt="Delete Annotation" />';
+    deleteButton.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
     deleteButton.classList.add('modalButton');
     deleteButton.title = 'Delete Annotation';
     deleteButton.onclick = () => {
