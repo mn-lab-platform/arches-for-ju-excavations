@@ -21,7 +21,7 @@
       <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
         <div style="font-size:12px; font-weight:700;">
           <span data-bind="text: renderMode() === 'map' ? 'Map mode (georeferenced)' : 'Image-only mode (Leaflet CRS.Simple)'"></span>
-        </div>
+         </div>
         <button class="btn btn-xs btn-default"
                 data-bind="click: toggleRenderMode, enable: canToggleRenderMode">
           Toggle
@@ -171,25 +171,50 @@
           Clicked coords: <b data-bind="text: clickedCoords"></b>
         </div>
         <!-- /ko -->
+        <div style="font-size:12px; margin-top:6px; color:#333;">
+          Active tool:
+          <b data-bind="text: activeImageTool() === 'none' ? 'none' : activeImageTool()"></b>
+        </div>
         <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+          <!-- ko if: annotationEnabled -->
+          <button class="btn btn-xs btn-default"
+                  data-bind="click: toggleAnnotationMode, css: { active: annotationMode }">
+            <span data-bind="text: annotationMode() ? 'Disable Annotation' : 'Annotate'"></span>
+          </button>
+          <button class="btn btn-xs btn-success"
+                  data-bind="click: finishAnnotation, enable: annotationMode() && annotationCanFinish()">
+            Finish
+          </button>
+          <button class="btn btn-xs btn-default"
+                  data-bind="click: cancelAnnotation, enable: annotationMode()">
+            Cancel
+          </button>
+          <!-- /ko -->
           <button class="btn btn-xs btn-default"
                   data-bind="click: toggleLeafletMeasure, css: { active: leafletMeasureMode }">
             <span data-bind="text: leafletMeasureMode() ? 'Disable Measure' : 'Measure Distance'"></span>
+          </button>
+          <button class="btn btn-xs btn-primary"
+                  data-bind="click: toggleLeafletDemPick, css: { active: leafletDemPickMode }">
+            <span data-bind="text: leafletDemPickMode() ? 'Click on map to sample DEM' : 'Measure DEM value'"></span>
+          </button>
+          <button class="btn btn-xs btn-default"
+                  data-bind="click: disableActiveImageTool, enable: activeImageTool() !== 'none'">
+            Disable active tool
           </button>
           <button class="btn btn-xs btn-default"
                   data-bind="click: clearLeafletMeasure, enable: leafletMeasureMode">
             Clear
           </button>
         </div>
+        <!-- ko if: annotationStatus -->
+        <div style="font-size:12px; margin-top:6px; color:#333;" data-bind="text: annotationStatus"></div>
+        <!-- /ko -->
         <!-- ko if: leafletMeasureDistance -->
         <div style="font-size:12px; margin-top:6px;">
           Pixel distance: <b data-bind="text: leafletMeasureDistance"></b>
         </div>
         <!-- /ko -->
-        <button class="btn btn-xs btn-primary"
-                data-bind="click: measureDemPixel, enable: clickedCoords">
-          Measure DEM value 
-        </button>
         <!-- ko if: elevationValue -->
         <div style="font-size:12px; margin-top:4px;">
           Elevation: <b data-bind="text: elevationValue"></b>

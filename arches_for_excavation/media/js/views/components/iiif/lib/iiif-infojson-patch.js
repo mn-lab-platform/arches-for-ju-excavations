@@ -77,7 +77,7 @@ let _installed = false;
  */
 function rewriteToHttpsIfSameHost(urlLike) {
   try {
-    console.log(LOG, 'Rewriting URL if needed:', urlLike);
+    //console.log(LOG, 'Rewriting URL if needed:', urlLike);
     const u = new URL(urlLike, window.location.origin);
     const isPageHttps = window.location.protocol === 'https:';
     const sameHost = u.host === window.location.host;
@@ -102,7 +102,7 @@ export function installIiifInfoJsonPatch() {
 
   window.fetch = async function(input, init) {
     let rewrittenInput = input;
-    console.log(LOG, 'Fetch called with:', input, init);
+    //console.log(LOG, 'Fetch called with:', input, init);
     if (typeof input === 'string') {
       rewrittenInput = rewriteToHttpsIfSameHost(input);
     } else if (input instanceof Request) {
@@ -151,12 +151,12 @@ export function installIiifInfoJsonPatch() {
         '@context': 'http://iiif.io/api/image/3/context.json'
       });
       delete patched['@id'];
-      console.log(LOG, 'Original info.json:', rawId, '=>', fixedId, 'Needs patch:', patched);
+      //console.log(LOG, 'Original info.json:', rawId, '=>', fixedId, 'Needs patch:', patched);
       const headers = new Headers(res.headers);
       headers.set('content-type', 'application/json');
       headers.delete('content-length');
 
-      console.log(LOG, 'Patched info.json:', rawId, '=>', fixedId);
+      //console.log(LOG, 'Patched info.json:', rawId, '=>', fixedId);
 
       return new Response(JSON.stringify(patched), {
         status: res.status,
@@ -170,5 +170,5 @@ export function installIiifInfoJsonPatch() {
   };
 
   _installed = true;
-  console.log(LOG, 'Installed IIIF info.json fetch patch');
+  //console.log(LOG, 'Installed IIIF info.json fetch patch');
 }
