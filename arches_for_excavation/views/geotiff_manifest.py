@@ -275,6 +275,25 @@ def _delete_annotation_v3(manifest: dict, canvas_id: str, annotation_id: str) ->
 
     return {"action": "deleted" if deleted else "not_found", "annotation_id": annotation_id}
 
+def _delete_annotation_resource(annotation_resource_id: str) -> dict:
+    if not annotation_resource_id:
+        return {"resource_action": "skipped"}
+
+    try:
+        from arches.app.models.models import ResourceInstance
+        deleted_count, _ = ResourceInstance.objects.filter(
+            resourceinstanceid=annotation_resource_id
+        ).delete()
+        return {
+            "resource_action": "deleted" if deleted_count else "not_found",
+            "annotation_resource_id": annotation_resource_id
+        }
+    except Exception as e:
+        return {
+            "resource_action": "error",
+            "annotation_resource_id": annotation_resource_id,
+            "resource_error": str(e)
+        }
 
 class ManifestEditView(APIView):
     """
@@ -332,7 +351,6 @@ class ManifestEditView(APIView):
         path = _manifest_override_path(temp_resource_name, resource_id)
         print(f"  manifest path: {path}")
 
-        # Wczytaj aktualny manifest override z dysku
         current = None
         if path.exists():
             try:
@@ -340,17 +358,16 @@ class ManifestEditView(APIView):
             except Exception as e:
                 print(f"[ManifestEditView] ERROR reading manifest: {e}")
 
-        # Jeśli tryb upsert_annotation i nie ma manifestu w payloadzie ani pliku override, spróbuj pobrać manifest z wygenerowanego pliku
-        if mode == "upsert_annotation" and current is None:
+        if current is None and mode in ("upsert_annotation", "delete_annotation", "delete_annotation_everywhere"):
             gen_path = _generated_manifest_path(resource_id)
             if gen_path and gen_path.exists():
                 try:
                     current = json.loads(gen_path.read_text(encoding="utf-8"))
-                    print(f"[ManifestEditView] Loaded generated manifest for upsert_annotation")
+                    path = gen_path  # zapisuj z powrotem do realnej ścieżki, nie unnamed_*
+                    print(f"[ManifestEditView] Loaded generated manifest for mode={mode}: {gen_path}")
                 except Exception as e:
                     print(f"[ManifestEditView] ERROR reading generated manifest: {e}")
 
-        # Po załadowaniu manifestu wyciągnij resource_name z ścieżki w manifeście
         if not resource_name and isinstance(current, dict):
             # Wyciągnij nazwę z body.service[0].id (ścieżka TiTiler)
             try:
@@ -414,15 +431,27 @@ class ManifestEditView(APIView):
                 _atomic_write_json(path, current)
                 return Response({"ok": True, "mode": "upsert_annotation", **result}, status=status.HTTP_200_OK)
 
-            if mode == "delete_annotation":
+            if mode in ("delete_annotation", "delete_annotation_everywhere"):
                 canvas_id = request.data.get("canvas_id")
+                print(request.data)
                 annotation_id = request.data.get("annotation_id")
+                annotation_resource_id = request.data.get("annotation_resource_id")
+
                 if current is None:
                     return Response({"error": "override manifest does not exist; use mode=replace first"}, status=status.HTTP_400_BAD_REQUEST)
 
                 result = _delete_annotation_v3(current, canvas_id, annotation_id)
+                resource_result = {}
+
+                if mode == "delete_annotation_everywhere" and annotation_resource_id:
+                    print(f"[ManifestEditView] Deleting annotation resource: {annotation_resource_id}")
+                    resource_result = _delete_annotation_resource(annotation_resource_id)
+
                 _atomic_write_json(path, current)
-                return Response({"ok": True, "mode": "delete_annotation", **result}, status=status.HTTP_200_OK)
+                return Response(
+                    {"ok": True, "mode": mode, **result, **resource_result},
+                    status=status.HTTP_200_OK
+                )
 
             return Response({"error": f"unknown mode: {mode}"}, status=status.HTTP_400_BAD_REQUEST)
 

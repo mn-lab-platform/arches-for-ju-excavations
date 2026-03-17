@@ -599,7 +599,7 @@ export function createLeafletAnnotationController(opts = {}) {
           if (!shift) return;
           const ok = window.confirm('Delete this annotation?');
           if (!ok) return;
-          try { onAnnotationDeleted(idx); } catch (err) { console.error(LOG, err); }
+          try { onAnnotationDeleted(anno); } catch (err) { console.error(LOG, err); }
         }
       });
     });

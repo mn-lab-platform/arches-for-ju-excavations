@@ -354,7 +354,23 @@ define([
                     format: 'text/plain',
                     purpose: 'color'
                 });
-            }            
+            }
+
+            var annotationResourceId =
+                anno.annotationResourceId ||
+                anno.annotation_resource_id ||
+                null;
+
+            // redundancja: zapisz też w body
+            if (annotationResourceId) {
+                body.push({
+                    type: 'TextualBody',
+                    value: annotationResourceId,
+                    format: 'text/plain',
+                    purpose: 'resource-id'
+                });
+            }
+
             if (!body.length) {
                 body.push({
                     type: 'TextualBody',
@@ -372,11 +388,14 @@ define([
                 body: body
             };
 
-            if (title) {
-                // IIIF v3 label (language map)
-                out.label = { none: [title] };
+            if (annotationResourceId) {
+                out.annotationResourceId = annotationResourceId;   // główne pole
+                out.annotation_resource_id = annotationResourceId; // kompatybilność
             }
 
+            if (title) {
+                out.label = { none: [title] };
+            }
             return out;
         }
 
@@ -526,36 +545,23 @@ define([
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
             const sourceManifest = payload.manifest || null;
-            
-            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations with target resource');
-            console.log('[WF LOG][summary] Full annotations data:', annotations); // ✅ ADD: Debug log
-            
-            // Zapisz wszystkie adnotacje i zbierz ich ID
-            const annotationPromises = annotations.map(function(anno) {
+
+            return Promise.all(annotations.map(function(anno) {
                 return self.createAnnotationResource(anno, hostResourceId);
+            }))
+            .then(function(annotationResourceIds) {
+                if (targetResourceInfo.hasRelatedNode) {
+                    return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo)
+                        .then(function() { return annotationResourceIds; });
+                }
+                return annotationResourceIds;
+            })
+            .then(function(annotationResourceIds) {
+                return Promise.all(annotations.map(function(anno, i) {
+                    var withResourceId = Object.assign({}, anno, { annotationResourceId: annotationResourceIds[i] });
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest);
+                }));
             });
-            
-            return Promise.all(annotationPromises)
-                .then(function(annotationResourceIds) {
-                    console.log('[WF LOG][summary] Created annotation resources:', annotationResourceIds);
-                    console.log('[WF LOG][summary] hasRelatedNode:', targetResourceInfo.hasRelatedNode);
-                    console.log('[WF LOG][summary] canLinkToAnnotations:', targetResourceInfo.canLinkToAnnotations);
-                    // Teraz dodaj relacje do target resource'a
-                    if (targetResourceInfo.hasRelatedNode) {
-                        return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo);
-                    } else {
-                        console.log('[WF LOG][summary] Target resource cannot link to annotations, skipping relation');
-                        return Promise.resolve();
-                    }
-                })
-                .then(function() {
-                    // ✅ FIX: Pass the full annotation object with selector and geometry
-                    const manifestPromises = annotations.map(function(anno) {
-                        return self.updateManifestOnServer(anno, hostResourceId, sourceManifest);
-                    });
-                    
-                    return Promise.all(manifestPromises);
-                });
         };
 
         // Funkcja do dodawania relacji adnotacji do target resource'a
@@ -591,19 +597,15 @@ define([
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
             const sourceManifest = payload.manifest || null;
-            
-            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations only');
-            
-            const promises = annotations.map(function(anno) {
-                // Utwórz annotation resource
-                return self.createAnnotationResource(anno, hostResourceId)
-                    .then(function(annotationResourceId) {
-                        // Zaktualizuj manifest
-                        return self.updateManifestOnServer(anno, hostResourceId, sourceManifest);
-                    });
+
+            return Promise.all(annotations.map(function(anno) {
+                return self.createAnnotationResource(anno, hostResourceId);
+            })).then(function(annotationResourceIds) {
+                return Promise.all(annotations.map(function(anno, i) {
+                    var withResourceId = Object.assign({}, anno, { annotationResourceId: annotationResourceIds[i] });
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest);
+                }));
             });
-            
-            return Promise.all(promises);
         };
 
         // Dodaj nową funkcję do sprawdzania struktury wybranego/stworzonego resource'a

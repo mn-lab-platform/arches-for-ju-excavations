@@ -197,50 +197,82 @@ define([
         });
         };
 
-        // NOTE: your current delete endpoint deletes by index (fragile).
-        // This hook stays, but treat it as legacy until you switch to annotation_id.
-        self.handleAnnotationDeleted = function(annotationOrIndex) {
-        var annos = self.existingAnnotations().slice();
-        var anno = null;
+        function canvasIdFromAnnotation(annotation) {
+            if (!annotation) return null;
+            if (annotation.canvasId) return annotation.canvasId;
+            var t = annotation.target;
+            if (typeof t === 'string') return t;
+            if (t && typeof t === 'object') return t.source || t.id || null;
+            return null;
+        }
 
-        if (typeof annotationOrIndex === 'number') {
-            var idx = annotationOrIndex;
-            if (idx >= 0 && idx < annos.length) anno = annos[idx];
-            if (idx >= 0 && idx < annos.length) {
-            annos.splice(idx, 1);
-            self.existingAnnotations(annos);
+        function annotationResourceIdFromAnnotation(annotation) {
+            if (!annotation) return null;
+            if (annotation.annotationResourceId) return annotation.annotationResourceId;
+            if (annotation.annotation_resource_id) return annotation.annotation_resource_id;
+
+            var b = annotation.body;
+            if (Array.isArray(b)) {
+                var rid = b.find(function(x) {
+                    return x && typeof x === 'object' &&
+                           (x.purpose === 'resource-id' || x.purpose === 'arch-resource-id') &&
+                           typeof x.value === 'string' && x.value.trim();
+                });
+                if (rid) return rid.value.trim();
+            } else if (b && typeof b === 'object') {
+                if ((b.purpose === 'resource-id' || b.purpose === 'arch-resource-id') &&
+                    typeof b.value === 'string' && b.value.trim()) {
+                    return b.value.trim();
+                }
             }
-        } else if (annotationOrIndex && typeof annotationOrIndex === 'object') {
-            anno = annotationOrIndex;
-            self.existingAnnotations(annos.filter(function(a){ return a.id !== anno.id; }));
+            return null;
         }
 
-        if (anno && anno.id && (anno.canvasId || (anno.target && typeof anno.target === 'string'))) {
-            self.deleteAnnotationFromServer(anno);
-        }
+        self.handleAnnotationDeleted = function(annotationOrIndex) {
+            var annos = self.existingAnnotations().slice();
+            var anno = null;
+
+            if (typeof annotationOrIndex === 'number') {
+                var idx = annotationOrIndex;
+                if (idx >= 0 && idx < annos.length) anno = annos[idx];
+                if (idx >= 0 && idx < annos.length) {
+                    annos.splice(idx, 1);
+                    self.existingAnnotations(annos);
+                }
+            } else if (annotationOrIndex && typeof annotationOrIndex === 'object') {
+                anno = annotationOrIndex;
+                self.existingAnnotations(annos.filter(function(a){ return a.id !== anno.id; }));
+            }
+
+            var canvasId = canvasIdFromAnnotation(anno);
+            if (anno && anno.id && canvasId) {
+                self.deleteAnnotationFromServer(anno);
+            }
         };
 
         self.deleteAnnotationFromServer = function(annotation) {
-        var root = baseRoot();
-        var rid = self.hostResourceId();
-        var deleteUrl = root + 'api/iiif/geotiff-manifest/edit/' + encodeURIComponent(rid);
+            var root = baseRoot();
+            var rid = self.hostResourceId();
+            var deleteUrl = root + 'api/iiif/geotiff-manifest/edit/' + encodeURIComponent(rid);
 
-        var canvasId = annotation.canvasId || (typeof annotation.target === 'string' ? annotation.target : null);
+            var canvasId = canvasIdFromAnnotation(annotation);
+            var annotationResourceId = annotationResourceIdFromAnnotation(annotation);
 
-        return $.ajax({
-            url: deleteUrl,
-            method: 'POST',
-            contentType: 'application/json',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') },
-            data: JSON.stringify({
-            mode: 'delete_annotation',
-            canvas_id: canvasId,
-            annotation_id: annotation.id
-            })
-        }).fail(function(err) {
-            console.error('[iiif-annotator-step] Failed to delete annotation:', err);
-            alert('Failed to delete annotation from server (state may be inconsistent).');
-        });
+            return $.ajax({
+                url: deleteUrl,
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                data: JSON.stringify({
+                    mode: 'delete_annotation_everywhere',
+                    canvas_id: canvasId,
+                    annotation_id: annotation.id,
+                    annotation_resource_id: annotationResourceId
+                })
+            }).fail(function(err) {
+                console.error('[iiif-annotator-step] Failed to delete annotation:', err);
+                alert('Failed to delete annotation from server (state may be inconsistent).');
+            });
         };
 
         // =====================================================================
