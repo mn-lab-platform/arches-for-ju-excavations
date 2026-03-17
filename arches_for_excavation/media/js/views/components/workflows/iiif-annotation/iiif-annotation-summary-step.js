@@ -26,6 +26,10 @@ define([
         self.error = ko.observable('');
         self.isLoading = ko.observable(false);
 
+        // NEW
+        self.success = ko.observable('');
+        self.isSaved = ko.observable(false);
+
         self.annotationLabel = ko.observable('');
         self.annotationNote = ko.observable('');
 
@@ -207,16 +211,14 @@ define([
         });
 
         // Can continue?
-        self.canContinue = ko.pureComputed(function() {
+        self.canSave = ko.pureComputed(function() {
             const p = self.payload();
-            const canContinue = p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue()));
-            console.log('[DEBUG] canContinue:', canContinue, {
-                payload: !!p,
-                mode: self.mode(),
-                targetGraphId: self.targetGraphId(),
-                riValue: self.riValue()
-            });
-            return canContinue;
+            return !!(p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue())));
+        });
+
+        self.canContinue = ko.pureComputed(function() {
+            // workflow można zamknąć dopiero po udanym zapisie
+            return self.canSave() && self.isSaved() && !self.isLoading();
         });
 
         // Wire workflow step
@@ -224,6 +226,19 @@ define([
             params.form.complete = self.canContinue;
             console.log('[WF LOG][summary] Workflow step complete condition set.');
         }
+
+        // NEW: jeżeli user zmieni parametry po zapisie -> wymagaj ponownego save
+        function invalidateSavedState() {
+            if (self.isSaved()) {
+                self.isSaved(false);
+                self.success('');
+            }
+        }
+        self.annotationLabel.subscribe(invalidateSavedState);
+        self.annotationNote.subscribe(invalidateSavedState);
+        self.mode.subscribe(invalidateSavedState);
+        self.targetGraphId.subscribe(invalidateSavedState);
+        self.riValue.subscribe(invalidateSavedState);
 
         // ===================== HELPER FUNCTIONS =====================
         
@@ -493,11 +508,15 @@ define([
             const payload = self.payload();
             if (!payload || !payload.annotations || payload.annotations.length === 0) {
                 self.error('No annotations to save');
+                self.isSaved(false);
+                self.success('');
                 return;
             }
 
             self.isLoading(true);
             self.error('');
+            self.success('');
+            self.isSaved(false);
 
             console.log('[WF LOG][summary] Starting manual save...');
 
@@ -517,11 +536,12 @@ define([
                         return self.saveAnnotationsWithTargetResource(payload, targetResourceId, targetResourceInfo);
                     })
                     .then(function() {
-                        console.log('[WF LOG][summary] All annotations saved with target resource successfully');
+                        self.isSaved(true);
+                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
-                        console.error('[WF LOG][summary] Error in save with target resource:', err);
+                        self.isSaved(false);
                         self.error('Failed to save: ' + err.message);
                         self.isLoading(false);
                     });
@@ -529,11 +549,12 @@ define([
                 // Zwykły tryb - tylko adnotacje
                 self.saveAnnotationsOnly(payload)
                     .then(function() {
-                        console.log('[WF LOG][summary] All annotations saved successfully');
+                        self.isSaved(true);
+                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
-                        console.error('[WF LOG][summary] Error in save:', err);
+                        self.isSaved(false);
                         self.error('Failed to save: ' + err.message);
                         self.isLoading(false);
                     });
