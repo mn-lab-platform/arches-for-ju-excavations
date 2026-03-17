@@ -192,7 +192,8 @@ define([
             geometry: annoPayload.geometry || null,        // optional GeoJSON (pixel or local)
             localGeometry: annoPayload.localGeometry || null, // optional GeoJSON local CRS
             created: annoPayload.created || new Date().toISOString(),
-            body: annoPayload.body || null
+            body: annoPayload.body || null,
+            color: annoPayload.color || '#64ff64' 
         });
         };
 

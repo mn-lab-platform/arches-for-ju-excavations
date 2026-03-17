@@ -59,7 +59,19 @@ export function createLeafletAnnotationController(opts = {}) {
 
     return layerGroup;
   }
+  function annotationColorFromAnno(anno, fallback = '#64ff64') {
+    if (anno && typeof anno.color === 'string' && anno.color.trim()) return anno.color.trim();
 
+    const b = anno?.body;
+    if (Array.isArray(b)) {
+      const c = b.find(x => x && typeof x === 'object' && x.purpose === 'color' && typeof x.value === 'string' && x.value.trim());
+      if (c) return c.value.trim();
+    } else if (b && typeof b === 'object' && b.purpose === 'color' && typeof b.value === 'string' && b.value.trim()) {
+      return b.value.trim();
+    }
+
+    return fallback;
+  }
   function removeLayerSafe(map, layer) {
     if (!map || !layer) return;
     try { map.removeLayer(layer); } catch (_) {}
@@ -189,34 +201,79 @@ export function createLeafletAnnotationController(opts = {}) {
       .replace(/'/g, '&#039;');
   }
 
+  function firstText(v) {
+    if (typeof v === 'string' && v.trim()) return v.trim();
+    if (Array.isArray(v)) {
+      for (const x of v) {
+        if (typeof x === 'string' && x.trim()) return x.trim();
+      }
+    }
+    return '';
+  }
+
+  function annotationTitle(anno, idx) {
+    const label = anno?.label;
+
+    // IIIF v3 language map: { none: ["..."] } / { pl: ["..."] } / etc.
+    if (label && typeof label === 'object' && !Array.isArray(label)) {
+      const preferred = ['none', 'pl', 'en'];
+      for (const k of preferred) {
+        const t = firstText(label[k]);
+        if (t) return t;
+      }
+      for (const k of Object.keys(label)) {
+        const t = firstText(label[k]);
+        if (t) return t;
+      }
+    }
+
+    // legacy string label
+    if (typeof label === 'string' && label.trim()) return label.trim();
+
+    // fallback: body purpose=tagging
+    const b = anno?.body;
+    if (Array.isArray(b)) {
+      const tag = b.find(x => x && typeof x === 'object' && x.purpose === 'tagging' && typeof x.value === 'string' && x.value.trim());
+      if (tag) return tag.value.trim();
+    } else if (b && typeof b === 'object' && b.purpose === 'tagging' && typeof b.value === 'string' && b.value.trim()) {
+      return b.value.trim();
+    }
+
+    return `Adnotacja #${idx + 1}`;
+  }
+
   function annotationTextFromBody(anno) {
     const b = anno?.body;
 
     if (Array.isArray(b)) {
       const vals = b
-        .map((x) => (x && typeof x === 'object') ? (x.value || x.chars || '') : '')
-        .filter(Boolean);
+        .filter((x) => x && typeof x === 'object' && x.purpose !== 'tagging' && x.purpose!=='color') // <- kluczowa zmiana
+        .map((x) => x.value || x.chars || '')
+        .filter((v) => typeof v === 'string' && v.trim());
+
       if (vals.length) return vals.join('\n');
+      return '';
     }
 
     if (b && typeof b === 'object') {
+      if (b.purpose === 'tagging') return ''; // <- nie pokazuj tytułu jako opis
       if (typeof b.value === 'string' && b.value.trim()) return b.value;
       if (typeof b.chars === 'string' && b.chars.trim()) return b.chars;
     }
 
-    if (typeof anno?.label === 'string' && anno.label.trim()) return anno.label;
     return '';
   }
 
   function annotationPopupHtml(anno, idx) {
+    const title = annotationTitle(anno, idx);
     const txt = annotationTextFromBody(anno) || '(brak treści)';
-    return `
-      <div style="min-width:180px;max-width:320px;">
-        <div style="font-weight:600;margin-bottom:4px;">Adnotacja #${idx + 1}</div>
-        <div style="white-space:pre-wrap;word-break:break-word;">${escapeHtml(txt)}</div>
-        ${onAnnotationDeleted ? '<div style="margin-top:6px;color:#666;font-size:11px;">Shift+Click = usuń</div>' : ''}
-      </div>
-    `;
+  return `
+    <div style="min-width:180px;max-width:320px;font-size:14px;line-height:1.45;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:6px;">${escapeHtml(title)}</div>
+      <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;">${escapeHtml(txt)}</div>
+      ${onAnnotationDeleted ? '<div style="margin-top:8px;color:#666;font-size:12px;">Shift+Click = usuń</div>' : ''}
+    </div>
+  `;
   }
 
   function drawAnnotationPolygon(points, opts = {}) {
@@ -226,10 +283,14 @@ export function createLeafletAnnotationController(opts = {}) {
 
     ensureLayer();
 
+    const fillColor = opts.color || '#64ff64';
+
     const poly = L.polygon(pointsToLatLng(points), {
       pane: 'iiif-anno',
       weight: 2,
-      fillOpacity: 0.2
+      fillOpacity: 0.2,
+      color: fillColor,
+      fillColor: fillColor
     });
 
     if (opts.popupHtml) {
@@ -467,6 +528,8 @@ export function createLeafletAnnotationController(opts = {}) {
     const pixelGeom = geojsonPolygonFromPoints(points);
     const localGeom = geojsonPolygonLocal(points, canvas, sourceScale);
 
+    const color = state.annotationColor ? state.annotationColor() : '#64ff64';
+
     const payload = {
       id: `anno-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
       type: 'Polygon',
@@ -476,6 +539,7 @@ export function createLeafletAnnotationController(opts = {}) {
       geometry: pixelGeom,
       localGeometry: localGeom,
       created: new Date().toISOString(),
+      color,
       body: {
         type: 'TextualBody',
         purpose: 'commenting',
@@ -528,6 +592,7 @@ export function createLeafletAnnotationController(opts = {}) {
 
       drawAnnotationPolygon(pts, {
         popupHtml: annotationPopupHtml(anno, idx),
+        color: annotationColorFromAnno(anno),
         onClick: (e) => {
           if (!onAnnotationDeleted) return;
           const shift = !!e?.originalEvent?.shiftKey;
@@ -556,7 +621,8 @@ export function createLeafletAnnotationController(opts = {}) {
       if (!pts || pts.length < 3) return;
 
       drawAnnotationPolygon(pts, {
-        popupHtml: annotationPopupHtml(anno, idx)
+        popupHtml: annotationPopupHtml(anno, idx),
+        color: annotationColorFromAnno(anno)
       });
     });
 

@@ -63,6 +63,16 @@ ko.components.register('iiif-map-viewer', {
         annotationEnabled: !!self.onAnnotationCreated
       }));
 
+      // Annotation modal state
+      self.showAnnotationDialog = ko.observable(false);
+      self.openAnnotationDialog = () => {
+        if (!self.annotationEnabled || !self.annotationEnabled()) return;
+        self.showAnnotationDialog(true);
+      };
+      self.closeAnnotationDialog = () => {
+        self.showAnnotationDialog(false);
+      };
+
       self.setImageGroup = async (g) => {
         const group = (g === 'dem') ? 'dem' : 'ortho';
         self.imageGroup(group);
@@ -503,6 +513,7 @@ ko.components.register('iiif-map-viewer', {
       self.dispose = () => {
         self._disposed = true;
         self._renderNonce++;
+        self.showAnnotationDialog(false);
 
         try { if (self._renderSub) self._renderSub.dispose(); } catch (_) {}
         try { if (self._annoSyncSub) self._annoSyncSub.dispose(); } catch (_) {}

@@ -327,18 +327,57 @@ define([
             var selector = normalizeSelector(anno.selector);
             var target = selector ? { source: canvasId, selector: selector } : canvasId;
 
-            return {
+            var title = (label || '').trim();
+            var note = (description || '').trim();
+
+            var body = [];
+            if (title) {
+                body.push({
+                    type: 'TextualBody',
+                    value: title,
+                    format: 'text/plain',
+                    purpose: 'tagging'
+                });
+            }
+            if (note) {
+                body.push({
+                    type: 'TextualBody',
+                    value: note,
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                });
+            }
+            if (anno.color) {
+                body.push({
+                    type: 'TextualBody',
+                    value: anno.color,
+                    format: 'text/plain',
+                    purpose: 'color'
+                });
+            }            
+            if (!body.length) {
+                body.push({
+                    type: 'TextualBody',
+                    value: 'Annotation',
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                });
+            }
+
+            var out = {
                 id: anno.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
                 type: 'Annotation',
                 motivation: 'commenting',
                 target: target,
-                body: [{
-                    type: 'TextualBody',
-                    value: (description || label || 'Annotation'),
-                    format: 'text/plain',
-                    purpose: 'commenting'
-                }]
+                body: body
             };
+
+            if (title) {
+                // IIIF v3 label (language map)
+                out.label = { none: [title] };
+            }
+
+            return out;
         }
 
         self.updateManifestOnServer = function(annotationData, digitalResourceId, sourceManifest) {
