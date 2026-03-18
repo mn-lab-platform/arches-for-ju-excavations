@@ -209,12 +209,13 @@
   overflow-y: auto;
   padding: 0.5rem;
 
-  border: 1px solid var( --panel-border-soft);
+  border: 1px solid var(--panel-border-soft);
   border-radius: 4px;
 
   background: rgba(0, 0, 0, 0.1);
 
-  padding: 0.5rem;
+  align-content: start; 
+  align-items: start;   
 }
 
 .flyout-result-item {
@@ -265,6 +266,17 @@
   margin: 0.15rem 0 0 0;
   font-style: italic;
   display: block;
+}
+
+.flyout-result-title,
+.flyout-result-description {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.flyout-result-info {
+  min-width: 0;
 }
 
 .flyout-result-controls {

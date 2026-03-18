@@ -3,14 +3,14 @@ import { getAllResources } from '../api/archesService';
 
 export class FlyoutView {
     constructor(parentElement) {
+        this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
+
         this.container = document.createElement('div');
         this.container.className = 'flyout';
         parentElement.appendChild(this.container);
 
         this._buildLayout();
         this._fetchAllResources();
-
-        this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
     }
 
     _buildLayout() {
@@ -118,10 +118,10 @@ export class FlyoutView {
     _fetchAllResources() {
         getAllResources().then(resources => {
             const hits = resources.results.hits.hits;
-            console.log(hits);
-            
-            hits.forEach(hit => {
+            const mapHits = hits.filter(hit => hit._source.geometries && hit._source.geometries.length > 0);
+            mapHits.forEach(hit => {
                 const resourceInfo = hit._source;
+                console.log("resource info: ", resourceInfo);
                 const item = this._createResultItem(resourceInfo);
                 this.results.appendChild(item);
             });
@@ -141,6 +141,9 @@ export class FlyoutView {
         header.className = 'flyout-result-header';
         
         const icon = document.createElement('i');
+        console.log("resource dict: ", this.resourceTypeDicts);
+        console.log("resource type info: ", resourceTypeInfo);
+        
         icon.className = resourceTypeInfo && resourceTypeInfo.icon ? resourceTypeInfo.icon : 'fa fa-question';
 
         const title = document.createElement('p');
