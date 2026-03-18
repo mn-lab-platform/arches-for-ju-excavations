@@ -1,4 +1,5 @@
 // import arches from 'arches';
+import { getAllResources } from '../api/archesService';
 
 export class FlyoutView {
     constructor(parentElement) {
@@ -7,6 +8,9 @@ export class FlyoutView {
         parentElement.appendChild(this.container);
 
         this._buildLayout();
+        this._fetchAllResources();
+
+        this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
     }
 
     _buildLayout() {
@@ -39,21 +43,7 @@ export class FlyoutView {
         this.typeSelect = document.createElement('select');
         this.typeSelect.className = 'flyout-type-select';
         this.typeSelect.setAttribute('aria-label', 'Filter by resource type');
-
-        const options = [
-            { value: '', label: 'All types' },
-            { value: 'heritage-place', label: 'Heritage Places' },
-            { value: 'information-resource', label: 'Information Resources' },
-            { value: 'activity', label: 'Activities' },
-            { value: 'actor', label: 'Actors' }
-        ];
-
-        options.forEach(({ value, label }) => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = label;
-            this.typeSelect.appendChild(option);
-        });
+        this._fillTypeSelect();
 
         this.filters.appendChild(this.searchInput);
         this.filters.appendChild(this.typeSelect);
@@ -67,5 +57,143 @@ export class FlyoutView {
 
 
         this.container.appendChild(this.content);
+    }
+
+    _fillTypeSelect() {
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'All Resource Types';
+        this.typeSelect.appendChild(defaultOption);
+
+        // const resources = arches?.resources;
+        const resources = [
+    {
+        "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "name": "Digital Resource 3D",
+        "icon": "fa fa-cube"
+    },
+    {
+        "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "name": "Trench",
+        "icon": "fa fa-crop"
+    },
+    {
+        "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "name": "New Resource Model",
+        "icon": ""
+    },
+    {
+        "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "name": "Context ",
+        "icon": "fa fa-digg"
+    },
+    {
+        "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+        "name": "Coordinate System",
+        "icon": "fa fa-arrows-alt"
+    }
+]
+        resources.forEach(resource => {
+            const option = document.createElement('option');
+            option.value = resource.graphid;
+            option.textContent = resource.name;
+            this.typeSelect.appendChild(option);
+        });
+
+        this._createResourceTypeDict(resources);
+    }
+
+    _createResourceTypeDict(resources) {
+        this.resourceTypeDicts = {};
+        resources.forEach(resource => {
+            this.resourceTypeDicts[resource.graphid] = {name: resource.name, icon: resource.icon};
+        });
+    }
+
+    _fetchAllResources() {
+        getAllResources().then(resources => {
+            const hits = resources.results.hits.hits;
+            console.log(hits);
+            
+            hits.forEach(hit => {
+                const resourceInfo = hit._source;
+                const item = this._createResultItem(resourceInfo);
+                this.results.appendChild(item);
+            });
+        });
+    }
+
+    _createResultItem(resourceInfo) {
+        const resourceTypeInfo = this.resourceTypeDicts[resourceInfo.graph_id];
+
+        const item = document.createElement('div');
+        item.className = 'flyout-result-item';
+
+        const info = document.createElement('div');
+        info.className = 'flyout-result-info';
+
+        const header = document.createElement('div');
+        header.className = 'flyout-result-header';
+        
+        const icon = document.createElement('i');
+        icon.className = resourceTypeInfo && resourceTypeInfo.icon ? resourceTypeInfo.icon : 'fa fa-question';
+
+        const title = document.createElement('p');
+        title.className = 'flyout-result-title';
+        title.textContent = resourceInfo.displayname;
+
+        header.appendChild(icon);
+        header.appendChild(title);
+
+        const details = document.createElement('div');
+        details.className = 'flyout-result-details';
+        
+        const description = document.createElement('small');
+        description.className = 'flyout-result-description';
+        description.textContent = resourceInfo.displaydescription || 'No description available.';
+
+        details.appendChild(description);
+
+        const controls = document.createElement('div');
+        controls.className = 'flyout-result-controls';
+
+        const aggregateCheckbox = document.createElement('input');
+        aggregateCheckbox.type = 'checkbox';
+        aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';        aggregateCheckbox.id = `aggregate-${resourceInfo.id}`;
+        aggregateCheckbox.name = `aggregate-${resourceInfo.id}`;
+
+        aggregateCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                item.classList.add('aggregated');
+            } else {
+                item.classList.remove('aggregated');
+            }
+        });
+
+        const mapPreviewButton = document.createElement('button');
+        mapPreviewButton.innerHTML = '<i class="fa fa-map"></i>';
+        mapPreviewButton.title = 'Preview on map';
+
+        const reportLink = document.createElement('a');
+        reportLink.href = `/report/${resourceInfo.resourceinstanceid}`;
+        reportLink.target = '_blank';
+        reportLink.title = 'View resource report';
+        reportLink.innerHTML = '<i class="fa fa-bar-chart"></i>';
+
+        controls.appendChild(aggregateCheckbox);
+        controls.appendChild(mapPreviewButton);
+        controls.appendChild(reportLink);
+        
+        info.appendChild(header);
+        info.appendChild(details);
+
+        item.appendChild(info);
+        item.appendChild(controls);
+        return item;
     }
 }
