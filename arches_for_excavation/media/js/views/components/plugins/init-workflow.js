@@ -30,10 +30,17 @@ define([
             {
                 name: 'Add IIIF Resource',
                 slug: 'iiif-addition-workflow',
-                icon: 'fa fa-picture-o',
+                icon: 'fa fa-camera',
                 description: 'Create and link IIIF resources to a resource',
                 backgroundColor: '#e6fae6'
-            },               
+            },    
+            {
+                name: 'Add to existing IIIF Resource',
+                slug: 'iiif-append-workflow',
+                icon: 'fa fa-picture-o',
+                description: 'Add to existing IIIF resources',
+                backgroundColor: '#e6fae6'
+            },                                     
             {
                 name: 'Annotate IIIF Resource',
                 slug: 'iiif-annotation-workflow',

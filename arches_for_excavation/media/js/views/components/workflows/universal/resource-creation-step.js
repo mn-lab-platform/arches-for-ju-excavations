@@ -24,7 +24,7 @@ define([
             });
 
             //TODO: handle delete resource button
-            self.creatorParams().resourceid.subscribe(function(newResourceId) {
+            self.creatorParams().resourceid.subscribe(function(newResourceId) {a
                 if (newResourceId) {
                     console.log("created new resource: ", newResourceId);
                     

@@ -12,6 +12,8 @@ from django.http import JsonResponse, Http404
 from django.utils.text import get_valid_filename
 import re
 from urllib.parse import unquote
+from .services.iiif_utils import _resolve_manifest_path_and_current, _append_items_v3
+from arches.app.models.models import TileModel
 
 def _manifest_dir(resource_name: str, resource_id: str) -> Path:
     # Store inside: {resource_name}_{resource_id}/manifest/
@@ -299,77 +301,61 @@ class ManifestEditView(APIView):
     """
     Disk-backed override manifest editor.
 
-    Endpoints (example):
-      - GET  /api/iiif/manifest-override/<resource_id>
-      - POST /api/iiif/manifest-override/<resource_id>
-
     POST modes:
-      1) Replace:
-         { "mode": "replace", "manifest": {...} }
-
-      2) Upsert annotation:
-         {
-           "mode": "upsert_annotation",
-           "canvas_id": "<canvas id>",
-           "annotation": { ... IIIF v3 Annotation ... }
-         }
-
-      3) Delete annotation:
-         {
-           "mode": "delete_annotation",
-           "canvas_id": "<canvas id>",
-           "annotation_id": "<annotation id>"
-         }
+      1) replace
+      2) append_items
+      3) upsert_annotation
+      4) delete_annotation
+      5) delete_annotation_everywhere
     """
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, resource_id: str):
-        path = _manifest_override_path(resource_id)
-        if not path.exists():
-            return Response({"error": "override manifest not found", "resource_id": resource_id}, status=status.HTTP_404_NOT_FOUND)
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            return Response(data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": f"cannot read override manifest: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        path, current, _resolved_name = _resolve_manifest_path_and_current(
+            resource_id=resource_id,
+            resource_name=None,
+            current=None
+        )
+
+        if current is None:
+            return Response(
+                {"error": "override/generated manifest not found", "resource_id": resource_id},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response(current, status=status.HTTP_200_OK)
 
     def post(self, request, resource_id: str):
         manifest = request.data.get("manifest")
         resource_name = request.data.get("resource_name")
         mode = (request.data.get("mode") or "replace").strip().lower()
 
-        print(f"[ManifestEditView] POST called")
-        print(f"  mode: {mode}")
-        print(f"  resource_id: {resource_id}")
-        print(f"  resource_name: {resource_name}")
-        print(f"  manifest type: {type(manifest)}")
-        print(f"  manifest keys: {list(manifest.keys()) if isinstance(manifest, dict) else manifest}")
-
-        # Ustal ścieżkę na podstawie przekazanego resource_name (lub domyślnej wartości)
         temp_resource_name = resource_name or "unnamed"
         path = _manifest_override_path(temp_resource_name, resource_id)
-        print(f"  manifest path: {path}")
 
         current = None
         if path.exists():
             try:
                 current = json.loads(path.read_text(encoding="utf-8"))
-            except Exception as e:
-                print(f"[ManifestEditView] ERROR reading manifest: {e}")
+            except Exception:
+                current = None
 
-        if current is None and mode in ("upsert_annotation", "delete_annotation", "delete_annotation_everywhere"):
+        if current is None and mode in (
+            "append_items",
+            "upsert_annotation",
+            "delete_annotation",
+            "delete_annotation_everywhere"
+        ):
             gen_path = _generated_manifest_path(resource_id)
             if gen_path and gen_path.exists():
                 try:
                     current = json.loads(gen_path.read_text(encoding="utf-8"))
-                    path = gen_path  # zapisuj z powrotem do realnej ścieżki, nie unnamed_*
-                    print(f"[ManifestEditView] Loaded generated manifest for mode={mode}: {gen_path}")
-                except Exception as e:
-                    print(f"[ManifestEditView] ERROR reading generated manifest: {e}")
+                    path = gen_path
+                except Exception:
+                    current = None
 
         if not resource_name and isinstance(current, dict):
-            # Wyciągnij nazwę z body.service[0].id (ścieżka TiTiler)
             try:
                 first_canvas = current.get("items", [])[0] if current.get("items") else None
                 if first_canvas:
@@ -380,82 +366,201 @@ class ManifestEditView(APIView):
                         .get("service", [{}])[0]
                         .get("id", "")
                     )
-                    print(f"  service_id from manifest: {service_id}")
-                    
-                    # ✅ Dekoduj URL (zamień %2F na /)
                     decoded_service_id = unquote(service_id)
-                    print(f"  decoded service_id: {decoded_service_id}")
-                    
-                    # Regex: /iiif_raster/{resource_name}_{resource_id}/...
                     resource_id_str = str(resource_id)
-                    match = re.search(r'/iiif_raster/([^/]+)_' + re.escape(resource_id_str), decoded_service_id)
+                    match = re.search(
+                        r'/iiif_raster/([^/]+)_' + re.escape(resource_id_str),
+                        decoded_service_id
+                    )
                     if match:
                         resource_name = match.group(1)
-                        print(f"  extracted resource_name from service_id: {resource_name}")
-            except Exception as e:
-                print(f"[ManifestEditView] ERROR extracting resource_name from manifest: {e}")
+            except Exception:
+                pass
 
             if not resource_name:
-                # Fallback do labela (jeśli regex nie zadziałał)
                 label = current.get("label", {})
-                print(f"  loaded manifest label: {label}")
                 if isinstance(label, dict):
                     resource_name = label.get("en", ["unnamed"])[0]
                 else:
                     resource_name = str(label or "unnamed")
-                print(f"  resolved resource_name from label: {resource_name}")
-            
-            # Przeładuj ścieżkę jeśli nazwa się zmieniła
+
             path = _manifest_override_path(resource_name, resource_id)
-            print(f"  updated manifest path: {path}")
 
         try:
             if mode == "replace":
-                manifest = request.data.get("manifest")
-                if not isinstance(manifest, dict):  
-                    return Response({"error": "manifest must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+                if not isinstance(manifest, dict):
+                    return Response(
+                        {"error": "manifest must be an object"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 manifest.setdefault("metadata", [])
                 _atomic_write_json(path, manifest)
-                return Response({"ok": True, "mode": "replace", "path": str(path)}, status=status.HTTP_200_OK)
+
+                return Response(
+                    {"ok": True, "mode": "replace", "path": str(path)},
+                    status=status.HTTP_200_OK
+                )
+
+            if mode == "append_items":
+                items = request.data.get("items")
+                label = request.data.get("label") or "IIIF manifest"
+
+                path, current, resolved_resource_name = _resolve_manifest_path_and_current(
+                    resource_id=resource_id,
+                    resource_name=resource_name,
+                    current=current,
+                )
+
+                if current is None:
+                    return Response(
+                        {"error": "existing manifest not found for append_items"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                manifest_id = current.get("id") or _public_manifest_url(resource_id)
+                current.setdefault("@context", "http://iiif.io/api/presentation/3/context.json")
+                current.setdefault("id", manifest_id)
+                current.setdefault("type", "Manifest")
+                current["label"] = {"en": [label]}
+
+                result = _append_items_v3(current, manifest_id, items)
+                _atomic_write_json(path, current)
+
+                return Response(
+                    {
+                        "ok": True,
+                        "mode": "append_items",
+                        "manifest_url": current.get("id") or manifest_id,
+                        "resource_name": resolved_resource_name,
+                        **result
+                    },
+                    status=status.HTTP_200_OK
+                )
 
             if mode == "upsert_annotation":
                 canvas_id = request.data.get("canvas_id")
                 annotation = request.data.get("annotation")
+
                 if not isinstance(annotation, dict):
-                    return Response({"error": "annotation must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {"error": "annotation must be an object"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
                 if current is None:
-                    return Response({"error": "override manifest does not exist and cannot be loaded; use mode=replace first"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {"error": "override manifest does not exist and cannot be loaded; use mode=replace first"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
                 result = _upsert_annotation_v3(current, canvas_id, annotation)
                 _atomic_write_json(path, current)
-                return Response({"ok": True, "mode": "upsert_annotation", **result}, status=status.HTTP_200_OK)
+
+                return Response(
+                    {"ok": True, "mode": "upsert_annotation", **result},
+                    status=status.HTTP_200_OK
+                )
 
             if mode in ("delete_annotation", "delete_annotation_everywhere"):
                 canvas_id = request.data.get("canvas_id")
-                print(request.data)
                 annotation_id = request.data.get("annotation_id")
                 annotation_resource_id = request.data.get("annotation_resource_id")
 
                 if current is None:
-                    return Response({"error": "override manifest does not exist; use mode=replace first"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {"error": "override manifest does not exist; use mode=replace first"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
                 result = _delete_annotation_v3(current, canvas_id, annotation_id)
                 resource_result = {}
 
                 if mode == "delete_annotation_everywhere" and annotation_resource_id:
-                    print(f"[ManifestEditView] Deleting annotation resource: {annotation_resource_id}")
-                    resource_result = _delete_annotation_resource(annotation_resource_id)
+                    try:
+                        from arches.app.models.models import ResourceInstance
+                        deleted_count, _ = ResourceInstance.objects.filter(
+                            resourceinstanceid=annotation_resource_id
+                        ).delete()
+                        resource_result = {
+                            "resource_action": "deleted" if deleted_count else "not_found",
+                            "annotation_resource_id": annotation_resource_id
+                        }
+                    except Exception as e:
+                        resource_result = {
+                            "resource_action": "error",
+                            "annotation_resource_id": annotation_resource_id,
+                            "resource_error": str(e)
+                        }
 
                 _atomic_write_json(path, current)
+
                 return Response(
                     {"ok": True, "mode": mode, **result, **resource_result},
                     status=status.HTTP_200_OK
                 )
 
-            return Response({"error": f"unknown mode: {mode}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": f"unknown mode: {mode}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         except ValueError as ve:
             return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": f"manifest edit failed: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"manifest edit failed: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class ResourceContextView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, resource_id: str):
+        path, current, resolved_resource_name = _resolve_manifest_path_and_current(
+            resource_id=resource_id,
+            resource_name=None,
+            current=None
+        )
+
+        if current is None:
+            return Response(
+                {"error": "manifest not found for resource", "resource_id": str(resource_id)},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        manifest_url = current.get("id") or _public_manifest_url(resource_id)
+
+        node_iiif_url = "e0216dc7-89ba-4a27-9126-bf7e06d859a8"
+        node_used_files = "ba3a8689-8bb6-4759-b4e2-328e8cf9bdf8"
+
+        iiif_url_tile = TileModel.objects.filter(
+            resourceinstance_id=resource_id,
+            data__has_key=node_iiif_url
+        ).order_by("-sortorder").first()
+
+        used_files_tile = TileModel.objects.filter(
+            resourceinstance_id=resource_id,
+            data__has_key=node_used_files
+        ).order_by("-sortorder").first()
+
+        used_files = []
+        if used_files_tile and isinstance(used_files_tile.data, dict):
+            raw = used_files_tile.data.get(node_used_files, [])
+            if isinstance(raw, list):
+                used_files = raw
+
+        return Response(
+            {
+                "resource_id": str(resource_id),
+                "resource_name": resolved_resource_name or "unnamed",
+                "manifest_url": manifest_url,
+                "tiles": {
+                    "iiif_url_tile_id": str(iiif_url_tile.tileid) if iiif_url_tile else None,
+                    "used_files_tile_id": str(used_files_tile.tileid) if used_files_tile else None
+                },
+                "used_files": used_files
+            },
+            status=status.HTTP_200_OK
+        )
