@@ -8,10 +8,11 @@ from .views.tile_proxy import titiler_tile_proxy
 from .views.celery_utils import get_celery_task_status
 from .views.iiif_manifest_annotation import save_iiif_annotation_db, delete_iiif_annotation
 from .views.geotiif_handler import RasterUploadView ,dem_pixel_value
-from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView, ManifestEditView
+from .views.geotiff_manifest import BuildGeoTiffManifestView, GetGeoTiffManifestView, ManifestEditView, ResourceContextView
 from .views.geotiff_files import GeoTiffFileView
 from .views.dem_pixel_sample import dem_pixel_sample
 from .views.iiif_titler_proxy import titiler_iiif_proxy
+from .views.iiif_photo_handler import PhotoUploadView
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
@@ -30,6 +31,8 @@ urlpatterns = [
     path("iiif/api/iiif/titiler-proxy", titiler_iiif_proxy, name="titiler-iiif-proxy"),
     path("api/iiif/dem/pixel-value", dem_pixel_value, name="dem_pixel_value"),
     path("api/iiif/geotiff-manifest/edit/<uuid:resource_id>", ManifestEditView.as_view(), name="manifest_edit"),
+    path("api/iiif/photo-upload", PhotoUploadView.as_view(), name="iiif-photo-upload"),
+    path("api/iiif/resource-context/<uuid:resource_id>", ResourceContextView.as_view(), name="iiif_resource_context"),
 ]
 
 
