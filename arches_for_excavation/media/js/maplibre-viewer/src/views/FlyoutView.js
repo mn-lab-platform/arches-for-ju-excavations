@@ -1,10 +1,11 @@
-import arches from 'arches';
+// import arches from 'arches';
 import { getAllResources } from '../api/archesService';
 
 export class FlyoutView {
     constructor(parentElement) {
         this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
         this.resources = [];
+        this.selectedForLayer = new Set();
 
         this.container = document.createElement('div');
         this.container.className = 'flyout';
@@ -21,6 +22,9 @@ export class FlyoutView {
         this.header = document.createElement('div');
         this.header.className = 'flyout-header';
 
+        this.introSection = document.createElement('div');
+        this.introSection.className = 'flyout-intro';
+
         this.title = document.createElement('h4');
         this.title.className = 'flyout-title';
         this.title.textContent = 'Add Resource Layer';
@@ -29,8 +33,21 @@ export class FlyoutView {
         this.subtitle.className = 'flyout-subtitle';
         this.subtitle.textContent = 'Search resources and add them to the map.';
 
-        this.header.appendChild(this.title);
-        this.header.appendChild(this.subtitle);
+        this.introSection.appendChild(this.title);
+        this.introSection.appendChild(this.subtitle);
+
+        this.createLayerButton = document.createElement('button');
+        this.createLayerButton.className = 'flyout-create-layer-button';
+        this.createLayerButton.textContent = 'Create Layer';
+        this.createLayerButton.title = 'Create a new layer';
+        this.createLayerButton.disabled = true;
+
+        this.createLayerButton.addEventListener('click', () => {
+            
+        });
+
+        this.header.appendChild(this.introSection);
+        this.header.appendChild(this.createLayerButton);
 
         this.filters = document.createElement('div');
         this.filters.className = 'flyout-filters';
@@ -66,6 +83,16 @@ export class FlyoutView {
         this.container.appendChild(this.content);
     }
 
+    _updateCreateLayerButtonState() {
+        const count = this.selectedForLayer.size;
+        const hasSelection = count > 0;
+
+        this.createLayerButton.disabled = !hasSelection;
+        this.createLayerButton.textContent = hasSelection
+        ? `Create Layer (${count} selected)`
+        : "Create Layer";
+    }
+
     _applyFilters() {
         const searchTerm = this.searchInput.value.toLowerCase();
         const selectedType = this.typeSelect.value;
@@ -84,39 +111,39 @@ export class FlyoutView {
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        const resourceTypes = arches?.resources;
-    //     const resources = [
-    // {
-    //     "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-    //     "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-    //     "name": "Digital Resource 3D",
-    //     "icon": "fa fa-cube"
-    // },
-    // {
-    //     "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-    //     "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-    //     "name": "Trench",
-    //     "icon": "fa fa-crop"
-    // },
-    // {
-    //     "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-    //     "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-    //     "name": "New Resource Model",
-    //     "icon": ""
-    // },
-    // {
-    //     "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-    //     "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-    //     "name": "Context ",
-    //     "icon": "fa fa-digg"
-    // },
-    // {
-    //     "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-    //     "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-    //     "name": "Coordinate System",
-    //     "icon": "fa fa-arrows-alt"
-    // }
-// ];
+        // const resourceTypes = arches?.resources;
+        const resourceTypes = [
+    {
+        "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "name": "Digital Resource 3D",
+        "icon": "fa fa-cube"
+    },
+    {
+        "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "name": "Trench",
+        "icon": "fa fa-crop"
+    },
+    {
+        "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "name": "New Resource Model",
+        "icon": ""
+    },
+    {
+        "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "name": "Context ",
+        "icon": "fa fa-digg"
+    },
+    {
+        "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+        "name": "Coordinate System",
+        "icon": "fa fa-arrows-alt"
+    }
+];
         resourceTypes.forEach(resource => {
             const option = document.createElement('option');
             option.value = resource.graphid;
@@ -154,6 +181,7 @@ export class FlyoutView {
 
     _createResultItem(resourceInfo) {
         const resourceTypeInfo = this.resourceTypeDicts[resourceInfo.graph_id];
+        const resourceId = resourceInfo.resourceinstanceid;
 
         const item = document.createElement('div');
         item.className = 'flyout-result-item';
@@ -192,15 +220,19 @@ export class FlyoutView {
         const aggregateCheckbox = document.createElement('input');
         aggregateCheckbox.type = 'checkbox';
         aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';        
-        aggregateCheckbox.id = `aggregate-${resourceInfo.id}`;
-        aggregateCheckbox.name = `aggregate-${resourceInfo.id}`;
+        aggregateCheckbox.id = `aggregate-${resourceId}`;
+        aggregateCheckbox.name = `aggregate-${resourceId}`;
+        aggregateCheckbox.checked = this.selectedForLayer.has(resourceId);
+        item.classList.toggle('aggregated', aggregateCheckbox.checked);
 
-        aggregateCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                item.classList.add('aggregated');
+        aggregateCheckbox.addEventListener('change', () => {
+            if (aggregateCheckbox.checked) {
+                this.selectedForLayer.add(resourceId);
             } else {
-                item.classList.remove('aggregated');
+                this.selectedForLayer.delete(resourceId);
             }
+            item.classList.toggle("aggregated", aggregateCheckbox.checked);
+            this._updateCreateLayerButtonState();
         });
 
         const mapPreviewButton = document.createElement('button');
@@ -212,7 +244,7 @@ export class FlyoutView {
         });
 
         const reportLink = document.createElement('a');
-        reportLink.href = `/report/${resourceInfo.resourceinstanceid}`;
+        reportLink.href = `/report/${resourceId}`;
         reportLink.target = '_blank';
         reportLink.title = 'View resource report';
         reportLink.innerHTML = '<i class="fa fa-bar-chart"></i>';

@@ -13,6 +13,7 @@
   --panel-border-strong: rgba(255, 255, 255, 0.14);
 
   --aggregation-blue: #3b82f6;
+  --vibrant-green: #22d37a;
 }
 
 #map-root {
@@ -137,6 +138,11 @@
 }
 
 .flyout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+
   padding: 0.5rem;
 }
 
@@ -147,6 +153,31 @@
 .flyout-subtitle {
   color: var(--muted-text);
   margin: 0;
+}
+
+.flyout-create-layer-button {
+  background: transparent;
+  color: var(--vibrant-green);
+  border: 1.5px solid var(--vibrant-green);
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 0.6em 1.2em;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+
+.flyout-create-layer-button:hover:not(:disabled) {
+  background: rgba(34, 211, 122, 0.08);
+  color: #eafff4;
+  border-color: var(--vibrant-green);
+}
+
+.flyout-create-layer-button:disabled {
+  background: transparent;
+  color: var(--muted-text);
+  border-color: var(--panel-border-strong);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .flyout-filters {
