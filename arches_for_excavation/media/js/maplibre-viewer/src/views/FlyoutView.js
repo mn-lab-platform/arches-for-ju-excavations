@@ -206,6 +206,10 @@ export class FlyoutView {
         const mapPreviewButton = document.createElement('button');
         mapPreviewButton.innerHTML = '<i class="fa fa-map"></i>';
         mapPreviewButton.title = 'Preview on map';
+        mapPreviewButton.addEventListener('click', () => {
+            mapPreviewButton.classList.toggle('active');
+            item.classList.toggle('previewed');
+        });
 
         const reportLink = document.createElement('a');
         reportLink.href = `/report/${resourceInfo.resourceinstanceid}`;
