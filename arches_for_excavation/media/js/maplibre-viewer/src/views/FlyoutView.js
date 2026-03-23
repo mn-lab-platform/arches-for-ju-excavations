@@ -1,9 +1,10 @@
-// import arches from 'arches';
+import arches from 'arches';
 import { getAllResources } from '../api/archesService';
 
 export class FlyoutView {
     constructor(parentElement) {
         this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
+        this.resources = [];
 
         this.container = document.createElement('div');
         this.container.className = 'flyout';
@@ -39,11 +40,17 @@ export class FlyoutView {
         this.searchInput.type = 'search';
         this.searchInput.placeholder = 'Search resources...';
         this.searchInput.setAttribute('aria-label', 'Search resources');
+        this.searchInput.addEventListener('input', () => {
+            this._applyFilters();
+        });
 
         this.typeSelect = document.createElement('select');
         this.typeSelect.className = 'flyout-type-select';
         this.typeSelect.setAttribute('aria-label', 'Filter by resource type');
         this._fillTypeSelect();
+        this.typeSelect.addEventListener('change', () => {
+            this._applyFilters();
+        });
 
         this.filters.appendChild(this.searchInput);
         this.filters.appendChild(this.typeSelect);
@@ -59,53 +66,65 @@ export class FlyoutView {
         this.container.appendChild(this.content);
     }
 
+    _applyFilters() {
+        const searchTerm = this.searchInput.value.toLowerCase();
+        const selectedType = this.typeSelect.value;
+
+        const filteredResources = this.resources.filter(resource => {
+            const matchesSearch = resource.displayname.toLowerCase().includes(searchTerm) || resource.displaydescription.toLowerCase().includes(searchTerm);
+            const matchesType = selectedType ? resource.graph_id === selectedType : true;
+            return matchesSearch && matchesType;
+        });
+        this._renderResults(filteredResources);
+    }
+
     _fillTypeSelect() {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        // const resources = arches?.resources;
-        const resources = [
-    {
-        "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-        "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-        "name": "Digital Resource 3D",
-        "icon": "fa fa-cube"
-    },
-    {
-        "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-        "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-        "name": "Trench",
-        "icon": "fa fa-crop"
-    },
-    {
-        "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-        "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-        "name": "New Resource Model",
-        "icon": ""
-    },
-    {
-        "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-        "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-        "name": "Context ",
-        "icon": "fa fa-digg"
-    },
-    {
-        "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-        "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-        "name": "Coordinate System",
-        "icon": "fa fa-arrows-alt"
-    }
-]
-        resources.forEach(resource => {
+        const resourceTypes = arches?.resources;
+    //     const resources = [
+    // {
+    //     "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+    //     "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+    //     "name": "Digital Resource 3D",
+    //     "icon": "fa fa-cube"
+    // },
+    // {
+    //     "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+    //     "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+    //     "name": "Trench",
+    //     "icon": "fa fa-crop"
+    // },
+    // {
+    //     "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+    //     "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+    //     "name": "New Resource Model",
+    //     "icon": ""
+    // },
+    // {
+    //     "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+    //     "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+    //     "name": "Context ",
+    //     "icon": "fa fa-digg"
+    // },
+    // {
+    //     "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+    //     "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+    //     "name": "Coordinate System",
+    //     "icon": "fa fa-arrows-alt"
+    // }
+// ];
+        resourceTypes.forEach(resource => {
             const option = document.createElement('option');
             option.value = resource.graphid;
             option.textContent = resource.name;
             this.typeSelect.appendChild(option);
         });
 
-        this._createResourceTypeDict(resources);
+        this._createResourceTypeDict(resourceTypes);
     }
 
     _createResourceTypeDict(resources) {
@@ -118,13 +137,18 @@ export class FlyoutView {
     _fetchAllResources() {
         getAllResources().then(resources => {
             const hits = resources.results.hits.hits;
-            const mapHits = hits.filter(hit => hit._source.geometries && hit._source.geometries.length > 0);
-            mapHits.forEach(hit => {
-                const resourceInfo = hit._source;
-                console.log("resource info: ", resourceInfo);
-                const item = this._createResultItem(resourceInfo);
-                this.results.appendChild(item);
-            });
+            this.resources = hits
+                .filter((hit => hit._source.geometries && hit._source.geometries.length > 0))
+                .map(hit => hit._source);
+            this._renderResults(this.resources);
+        });
+    }
+
+    _renderResults(resourcesToRender) {
+        this.results.innerHTML = '';
+        resourcesToRender.forEach(resourceInfo => {
+            const item = this._createResultItem(resourceInfo);
+            this.results.appendChild(item);
         });
     }
 
@@ -167,7 +191,8 @@ export class FlyoutView {
 
         const aggregateCheckbox = document.createElement('input');
         aggregateCheckbox.type = 'checkbox';
-        aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';        aggregateCheckbox.id = `aggregate-${resourceInfo.id}`;
+        aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';        
+        aggregateCheckbox.id = `aggregate-${resourceInfo.id}`;
         aggregateCheckbox.name = `aggregate-${resourceInfo.id}`;
 
         aggregateCheckbox.addEventListener('change', function() {

@@ -16,7 +16,7 @@ export class MapEngine {
                 sources: {},
                 layers: [] 
             },
-            zoom: 17,
+            zoom: 16.5,
         });
         this._centerMap();
         this.map.on('load', () => {
@@ -30,7 +30,6 @@ export class MapEngine {
                 const extentPolygon = polygon([extent]);
                 const center = centroid(extentPolygon);
                 this.map.setCenter(center.geometry.coordinates ?? [0, 0]);
-                this.map.fitBounds(extent, {padding: 20});
             })
             .catch(error => {
                 console.error('Error fetching map extent:', error);
