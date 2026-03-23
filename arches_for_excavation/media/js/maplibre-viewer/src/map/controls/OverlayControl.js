@@ -72,4 +72,8 @@ export class OverlayControl {
         this._controlButton.parentNode?.removeChild(this._controlButton);
         this._controlPanel.parentNode?.removeChild(this._controlPanel);
     }
+
+    addOverlayLayer(layer) {
+        // is this a good idea?
+    }
 }
