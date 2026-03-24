@@ -1,6 +1,7 @@
 import { createMapControl } from "../../components/mapControl";
 import { loadSourcesAndLayersIntoMap, applyActiveLayerVisibility } from "./utils/controlUtils";
 
+//TODO: generic control to handle eventbus
 export class OverlayControl {
     constructor(options) {
         const osmBasemap = {
@@ -25,7 +26,8 @@ export class OverlayControl {
 
         const { button, panel } = createMapControl({
             iconClass: 'fa fa-list',
-            title: 'Overlay Selector'
+            title: 'Overlay Selector',
+            controlInstance: this
         });
         this._controlButton = button;
         this._controlPanel = panel;

@@ -24,8 +24,6 @@ class EventBus {
         if(!this.subscriptions[eventType]) {
             return;
         }
-        
-
         Object.keys(this.subscriptions[eventType]).forEach(key => this.subscriptions[eventType][key](data))
     }
 
