@@ -1,10 +1,16 @@
+import { EventBusInstance } from "../core/EventBus";
+import { events } from "../constants/events";
+
 export class LayerMenuView {
     constructor(parentElement) {
         this.container = document.createElement('div');
         this.container.className = 'layer-menu';
         parentElement.appendChild(this.container);
 
+        this.layers = [];
+
         this._generateLayout();
+        this._setupEventListeners();
     }
 
     _generateLayout() {
@@ -40,5 +46,42 @@ export class LayerMenuView {
         this.content.appendChild(this.layerList);
 
         this.container.appendChild(this.content);
+    }
+
+    _setupEventListeners() {
+        EventBusInstance.subscribe(events.CREATE_LAYER, (layerDataArray) => {
+            console.log("received layer data: ", layerDataArray);
+            this._createLayerMenuItem(layerDataArray);
+        });
+    }
+
+    _createLayerMenuItem(layerDataArray) {
+        const item = document.createElement('div');
+        item.className = 'layer-menu-item';
+        item.draggable = true;
+
+        const visibilityCheckbox = document.createElement('input');
+        visibilityCheckbox.type = 'checkbox';
+        visibilityCheckbox.checked = true;
+        visibilityCheckbox.className = 'layer-visibility-checkbox';
+
+        const colorIndicator = document.createElement('i');
+        colorIndicator.className = 'fa fa-heart layer-color-indicator';
+        colorIndicator.style.color = this._generateRandomColor();
+
+        const nameLabel = document.createElement('span');
+        nameLabel.className = 'layer-name';
+        nameLabel.textContent = `New Layer ${this.layers.length > 0 ? this.layers.length : ''}`;
+
+        item.appendChild(visibilityCheckbox);
+        item.appendChild(colorIndicator);
+        item.appendChild(nameLabel);
+
+        this.layerList.appendChild(item);
+        this.layers.push(layerDataArray);
+    }
+
+    _generateRandomColor() {
+        return `#${Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, 0)}`;
     }
 }

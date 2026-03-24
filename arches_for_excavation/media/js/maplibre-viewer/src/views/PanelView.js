@@ -1,6 +1,9 @@
 import { LayerMenuView } from './LayerMenuView.js';
 import { FlyoutView } from './FlyoutView.js';
 
+import { EventBusInstance } from "../core/EventBus";
+import { events } from "../constants/events";
+
 export class PanelView {
     constructor(parentContainerId) {
         const parentContainer = document.getElementById(parentContainerId);
@@ -17,6 +20,11 @@ export class PanelView {
         this.flyout = new FlyoutView(this.container);
 
         this.flyoutVisible = false;
+
+        EventBusInstance.subscribe(events.FLYOUT_CLOSED, () => {
+            this.flyoutVisible = false;
+            this.addLayerBtn.textContent = 'Add Layer';
+        });
     }
 
     // _createToggleButton() {

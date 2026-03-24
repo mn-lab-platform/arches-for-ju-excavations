@@ -1,4 +1,4 @@
-import arches from 'arches';
+// import arches from 'arches';
 import { getAllResources } from '../api/archesService';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
@@ -7,7 +7,7 @@ export class FlyoutView {
     constructor(parentElement) {
         this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
         this.resources = [];
-        this.selectedForLayer = new Set();
+        this.selectedForLayer = new Map();
         this.previewedIds = new Set();
 
         this.container = document.createElement('div');
@@ -41,12 +41,20 @@ export class FlyoutView {
 
         this.createLayerButton = document.createElement('button');
         this.createLayerButton.className = 'flyout-create-layer-button';
-        this.createLayerButton.textContent = 'Create Layer';
+        this.createLayerButton.textContent = 'Select resource(s) to create layer';
         this.createLayerButton.title = 'Create a new layer';
         this.createLayerButton.disabled = true;
 
         this.createLayerButton.addEventListener('click', () => {
-            
+            EventBusInstance.publish(events.CREATE_LAYER, Array.from(this.selectedForLayer.values()));
+            EventBusInstance.publish(events.FLYOUT_CLOSED);
+            this.container.classList.toggle('flyout--visible', false);
+            this._removeAllPreviews();
+            this.selectedForLayer.clear();
+            this.searchInput.value = '';
+            this.typeSelect.value = '';
+            this._renderResults(this.resources);
+            this._updateCreateLayerButtonState();
         });
 
         this.header.appendChild(this.introSection);
@@ -93,7 +101,7 @@ export class FlyoutView {
         this.createLayerButton.disabled = !hasSelection;
         this.createLayerButton.textContent = hasSelection
         ? `Create Layer (${count} selected)`
-        : "Create Layer";
+        : "Select resource(s) to create layer";
     }
 
     _applyFilters() {
@@ -107,12 +115,7 @@ export class FlyoutView {
         });
 
         const filteredIds = new Set(filteredResources.map(r => r.resourceinstanceid));
-        this.previewedIds.forEach(id => {
-            if (!filteredIds.has(id)) {
-                EventBusInstance.publish(events.PREVIEW_REMOVE, id);
-                this.previewedIds.delete(id);
-            }
-        });
+        this._removeAllPreviews();
         this._renderResults(filteredResources);
     }
 
@@ -122,39 +125,39 @@ export class FlyoutView {
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        const resourceTypes = arches?.resources;
-//         const resourceTypes = [
-//     {
-//         "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "name": "Digital Resource 3D",
-//         "icon": "fa fa-cube"
-//     },
-//     {
-//         "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "name": "Trench",
-//         "icon": "fa fa-crop"
-//     },
-//     {
-//         "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "name": "New Resource Model",
-//         "icon": ""
-//     },
-//     {
-//         "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "name": "Context ",
-//         "icon": "fa fa-digg"
-//     },
-//     {
-//         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "name": "Coordinate System",
-//         "icon": "fa fa-arrows-alt"
-//     }
-// ];
+        // const resourceTypes = arches?.resources;
+        const resourceTypes = [
+    {
+        "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "name": "Digital Resource 3D",
+        "icon": "fa fa-cube"
+    },
+    {
+        "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "name": "Trench",
+        "icon": "fa fa-crop"
+    },
+    {
+        "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "name": "New Resource Model",
+        "icon": ""
+    },
+    {
+        "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "name": "Context ",
+        "icon": "fa fa-digg"
+    },
+    {
+        "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+        "name": "Coordinate System",
+        "icon": "fa fa-arrows-alt"
+    }
+];
         resourceTypes.forEach(resource => {
             const option = document.createElement('option');
             option.value = resource.graphid;
@@ -238,7 +241,7 @@ export class FlyoutView {
 
         aggregateCheckbox.addEventListener('change', () => {
             if (aggregateCheckbox.checked) {
-                this.selectedForLayer.add(resourceId);
+                this.selectedForLayer.set(resourceId, resourceInfo);
             } else {
                 this.selectedForLayer.delete(resourceId);
             }
@@ -286,5 +289,12 @@ export class FlyoutView {
         item.appendChild(info);
         item.appendChild(controls);
         return item;
+    }
+
+    _removeAllPreviews() {
+        this.previewedIds.forEach(id => {
+            EventBusInstance.publish(events.PREVIEW_REMOVE, id);
+        });
+        this.previewedIds.clear();
     }
 }

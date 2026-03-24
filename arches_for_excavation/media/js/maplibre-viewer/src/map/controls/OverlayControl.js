@@ -53,7 +53,7 @@ export class OverlayControl {
             });
         });
 
-        this._layers.forEach((layer, index) => {
+        this._layers.forEach((layer) => {
             const layerInfo = layer.layer_info;
 
             const overlayContainer = document.createElement("div");
