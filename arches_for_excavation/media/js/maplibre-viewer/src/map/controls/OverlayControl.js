@@ -36,13 +36,25 @@ export class OverlayControl {
     onAdd(map) {
         this._map = map;
         console.log("Layers in overlaycontrol: ", this._layers);
-        
+
+        const previewLayerId = this._layers[0].layer_info.id;
+        if (!this._activeLayerIds.includes(previewLayerId)) {
+            this._activeLayerIds.push(previewLayerId);
+        }
+
         loadSourcesAndLayersIntoMap(this._map, this._layers, this._activeLayerIds);
+
+        this._map.once('idle', () => {
+            ['','-fill','-line','-circle'].forEach(sfx => {
+                const lid = `${previewLayerId}${sfx}`;
+                if (this._map.getLayer(lid)) {
+                    this._map.moveLayer(lid);
+                }
+            });
+        });
+
         this._layers.forEach((layer, index) => {
             const layerInfo = layer.layer_info;
-
-            if (index === 0) 
-                this._activeLayerIds.push(layerInfo.id);
 
             const overlayContainer = document.createElement("div");
             overlayContainer.classList.add("maplayer-option");
