@@ -54,7 +54,22 @@ define([
                 icon: 'fa-map',
                 description: 'Upload GeoTIFF file to be used as basemap or overlay layer in the map viewer',
                 backgroundColor: '#d9f2f2ff'
-            }   
+            },
+            {
+                name: 'crs-workflow',
+                slug: 'crs-workflow',
+                icon: 'fa-arrow-right',
+                description: 'Create and manage local coordinate systems',
+                backgroundColor: '#d9f2f2ff'
+            },
+            {
+                name: 'crs-assignment-workflow',
+                slug: 'crs-assignment-workflow',
+                icon: 'fa-arrow-right',
+                description: 'Create and manage local coordinate systems',
+                backgroundColor: '#d9f2f2ff'                
+            }
+            
 
         ]);
 

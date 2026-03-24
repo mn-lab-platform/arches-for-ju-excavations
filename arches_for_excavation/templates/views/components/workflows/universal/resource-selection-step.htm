@@ -246,4 +246,28 @@
             No resources available for this type
         </div>
     </div>
+    <!-- Multi-select -->
+    <!-- ko if: multiple -->
+    <div style="margin-bottom: 8px;">
+        <button type="button" class="btn btn-default btn-xs"
+                data-bind="click: selectAllVisible, enable: availableResources().length > 0 && !allVisibleSelected()">
+            Select all (visible)
+        </button>
+        <button type="button" class="btn btn-default btn-xs"
+                data-bind="click: clearSelection, enable: selectedResourceIds().length > 0">
+            Clear
+        </button>
+        <span data-bind="text: selectedResourceIds().length + ' selected'"></span>
+    </div>
+
+    <ul class="list-group" data-bind="foreach: availableResources">
+        <li class="list-group-item" data-bind="click: $parent.selectResource.bind($parent, $data)">
+            <input type="checkbox"
+                data-bind="checked: $parent.isSelected($data), click: function(_, e){ e.stopPropagation(); return true; }" />
+            <strong data-bind="text: name"></strong>
+            <div class="text-muted" data-bind="text: description || ''"></div>
+        </li>
+    </ul>
+    <!-- /ko -->
+
 </div>

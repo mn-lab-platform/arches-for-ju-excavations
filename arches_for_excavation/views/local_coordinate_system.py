@@ -6,7 +6,11 @@ from arches.app.models.models import Resource
 from arches.app.models.models import Node
 from arches.app.models.tile import Tile
 
+import json
+
 import numpy as np
+from uuid import uuid4
+from .services.iiif_utils import _resolve_manifest_path_and_current, _atomic_write_json
 
 from ..views.services.crs.local_mercator.from_2_points import estimate_local_mercator_2_points
 
@@ -210,3 +214,162 @@ class LocalCoordinateSystemDownloadView(View):
 
 
 
+class LocalCoordinateSystemAssignToResourcesView(View):
+    IIIF_GRAPH_ID = "401b3051-d1c4-465c-8dd0-1d5784adee98"
+    LOCAL_CRS_NODE_ID = "b5feba58-b75c-46da-9703-fef9b6d26217"
+
+    def _get_local_crs_node(self):
+        """
+        Strict lookup by known nodeid.
+        """
+        return Node.objects.get(
+            nodeid=self.LOCAL_CRS_NODE_ID,
+            graph_id=self.IIIF_GRAPH_ID
+        )
+
+    def _upsert_local_crs_relation_tile(self, resource: Resource, rel_node: Node, crs_resource_id: str):
+        """
+        Upsert relation value in node local_crs_resource (resource-instance-list/resource-instance).
+        """
+        node_id = str(rel_node.nodeid)
+        nodegroup_id = str(rel_node.nodegroup_id)
+
+        relation_value = [{
+            "resourceId": crs_resource_id,
+            "ontologyProperty": "",
+            "inverseOntologyProperty": "",
+            "resourceXresourceId": str(uuid4())
+        }]
+
+        tile = Tile.objects.filter(
+            resourceinstance=resource,
+            data__has_key=node_id
+        ).order_by("-sortorder").first()
+
+        if not tile:
+            tile = Tile.get_blank_tile_from_nodegroup_id(
+                nodegroup_id,
+                resourceid=str(resource.resourceinstanceid)
+            )
+
+        if not isinstance(tile.data, dict):
+            tile.data = {}
+
+        tile.data[node_id] = relation_value
+        tile.save()
+        return str(tile.tileid)
+
+    def _upsert_manifest_metadata(self, resource_id: str, crs_resource_id: str):
+        """
+        Adds/updates metadata in IIIF manifest for selected resource.
+        """
+        path, current, _resolved_name = _resolve_manifest_path_and_current(
+            resource_id=str(resource_id),
+            resource_name=None,
+            current=None
+        )
+
+        if current is None:
+            return False, "manifest not found"
+
+        metadata = current.get("metadata")
+        if not isinstance(metadata, list):
+            metadata = []
+            current["metadata"] = metadata
+
+        def _lang_first(v):
+            if isinstance(v, str):
+                return v
+            if isinstance(v, dict):
+                for lang in ("en", "none"):
+                    arr = v.get(lang)
+                    if isinstance(arr, list) and arr:
+                        return str(arr[0])
+            return ""
+
+        def _set_meta(key: str, value: str):
+            for row in metadata:
+                if not isinstance(row, dict):
+                    continue
+                k = _lang_first(row.get("label", {})).strip().lower()
+                if k == key.lower():
+                    row["value"] = {"en": [str(value)]}
+                    return
+            metadata.append({
+                "label": {"en": [key]},
+                "value": {"en": [str(value)]}
+            })
+
+        _set_meta("local_crs_resource_id", crs_resource_id)
+        _set_meta("georeferencing_method", "local_mercator_2_points")
+
+        _atomic_write_json(path, current)
+        return True, None
+
+    def post(self, request):
+        try:
+            payload = json.loads(request.body or "{}")
+            crs_resource_id = payload.get("crs_resource_id")
+            resource_ids = payload.get("resource_ids", [])
+
+            if not crs_resource_id or not isinstance(resource_ids, list) or len(resource_ids) == 0:
+                return JsonResponse({"status": "error", "message": "Invalid payload"}, status=400)
+
+            # Validate CRS resource exists in CRS graph
+            try:
+                Resource.objects.get(
+                    resourceinstanceid=crs_resource_id,
+                    graph_id=CRSNodeIds.GRAPH_ID
+                )
+            except Resource.DoesNotExist:
+                return JsonResponse(
+                    {"status": "error", "message": "CRS resource not found"},
+                    status=404
+                )
+
+            try:
+                rel_node = self._get_local_crs_node()
+            except Node.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": f"Node '{self.LOCAL_CRS_NODE_ID}' not found in IIIF graph."
+                    },
+                    status=400
+                )
+
+            updated = []
+            failed = []
+
+            for rid in resource_ids:
+                try:
+                    resource = Resource.objects.get(
+                        resourceinstanceid=rid,
+                        graph_id=self.IIIF_GRAPH_ID
+                    )
+
+                    tile_id = self._upsert_local_crs_relation_tile(resource, rel_node, crs_resource_id)
+                    manifest_updated, manifest_error = self._upsert_manifest_metadata(str(rid), str(crs_resource_id))
+
+                    updated.append({
+                        "resource_id": str(rid),
+                        "tile_id": tile_id,
+                        "manifest_updated": bool(manifest_updated),
+                        "manifest_error": manifest_error
+                    })
+                except Resource.DoesNotExist:
+                    failed.append({"resource_id": str(rid), "error": "IIIF resource not found"})
+                except Exception as ex:
+                    failed.append({"resource_id": str(rid), "error": str(ex)})
+
+            return JsonResponse({
+                "status": "success",
+                "assigned_count": len(updated),
+                "failed_count": len(failed),
+                "crs_resource_id": str(crs_resource_id),
+                "updated": updated,
+                "failed": failed
+            }, status=200)
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
