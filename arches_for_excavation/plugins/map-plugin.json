@@ -1,0 +1,12 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d211",
+  "name": "Map Plugin",
+  "icon": "fa fa-map",
+  "component": "views/components/plugins/map-plugin",
+  "componentname": "map-plugin",
+  "config": {
+    "show": true
+  },
+  "slug": "map-plugin",
+  "sortorder": 1
+}
