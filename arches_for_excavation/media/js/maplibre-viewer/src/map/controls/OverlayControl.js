@@ -8,19 +8,19 @@ export class OverlayControl {
                 name: 'osm-standard',
                 tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                 tileSize: 256,
-                bounds: null
+                bounds: null,
+                type: 'raster'
             },
             layer_info: {
                 name: 'OSM Standard',
                 id: 'osm-standard-layer',
                 source: 'osm-standard',
-                sortorder: 0,
                 icon: 'fa fa-globe'
             }
         };
 
         this._map = null;
-        this._layers = [osmBasemap, ...(options?.layers || [])];
+        this._layers = options?.layers || [];
         this._activeLayerIds = [];
 
         const { button, panel } = createMapControl({
@@ -33,9 +33,14 @@ export class OverlayControl {
 
     onAdd(map) {
         this._map = map;
+        console.log("Layers in overlaycontrol: ", this._layers);
+        
         loadSourcesAndLayersIntoMap(this._map, this._layers, this._activeLayerIds);
-        this._layers.forEach(layer => {
+        this._layers.forEach((layer, index) => {
             const layerInfo = layer.layer_info;
+
+            if (index === 0) 
+                this._activeLayerIds.push(layerInfo.id);
 
             const overlayContainer = document.createElement("div");
             overlayContainer.classList.add("maplayer-option");
@@ -43,6 +48,7 @@ export class OverlayControl {
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.classList.add("overlay-checkbox");
+            checkbox.checked = this._activeLayerIds.includes(layerInfo.id);
 
             checkbox.addEventListener("change", () => {
                 if (checkbox.checked) {
@@ -65,15 +71,14 @@ export class OverlayControl {
 
             this._controlPanel.appendChild(overlayContainer);
         });
+
+        applyActiveLayerVisibility(this._map, this._layers, this._activeLayerIds);// for initial visibility of preview
+
         return this._controlButton;
     }
 
     onRemove() {
         this._controlButton.parentNode?.removeChild(this._controlButton);
         this._controlPanel.parentNode?.removeChild(this._controlPanel);
-    }
-
-    addOverlayLayer(layer) {
-        // is this a good idea?
     }
 }

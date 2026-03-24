@@ -154,6 +154,7 @@ class BasemapAccessView(View):
         return {
             'source_info': {
                 'name': source.name,
+                'type': 'raster',
                 'tiles': source.source.get('tiles', [None]) if source.source else None,
                 'tileSize': source.source.get('tileSize') if source.source else None,
                 'bounds': source.source.get('bounds') if source.source else None

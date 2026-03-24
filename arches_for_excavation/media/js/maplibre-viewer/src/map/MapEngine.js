@@ -12,6 +12,7 @@ import { events } from '../constants/events';
 export class MapEngine {
     constructor(containerId) {
         this.previewFeatures = new Map();
+        this.previewSourceId = 'preview-source';
         this.map = new MapLibreMap({
             container: containerId,
             style: {
@@ -23,10 +24,7 @@ export class MapEngine {
         });
         this._centerMap();
         this.map.on('load', () => {
-            console.log("MapEngine: map loaded, initializing preview overlay and controls");
-            this._register_controls().then(() => {
-                this._initPreviewOverlay();
-            });
+            this._register_controls();
         });
         this._setupEventListeners();
     }
@@ -48,14 +46,18 @@ export class MapEngine {
             .then(info => {
                 const basemapInfo = info.basemaps;
                 const overlayInfo = info.overlays;
+                console.log("overlays: ", overlayInfo);
+                
 
                 const basemapControl = new BasemapControl({
                     layers: basemapInfo
                 });
                 this.map.addControl(basemapControl, 'top-right');
 
+                const overlayLayers = [this._createPreviewMapDefinition(), ...overlayInfo];
+                console.log("overlayLayers: ", overlayLayers);
                 const overlayControl = new OverlayControl({
-                    layers: overlayInfo
+                    layers: overlayLayers
                 });
                 this.map.addControl(overlayControl, 'top-right');
             })
@@ -66,57 +68,25 @@ export class MapEngine {
             });
     }
 
-    _initPreviewOverlay() {
-        if (this.map.getSource('preview-source')) {
-            console.warn("MapEngine: preview-source already exists.");
-            return;
+    _createPreviewMapDefinition() {
+        return {
+            source_info: {
+                name: this.previewSourceId,
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] }
+            },
+            layer_info: {
+                id: 'preview-layer',
+                name: 'Layer Preview',
+                source: this.previewSourceId,
+                accent: '#22d37a',
+                icon: 'fa fa-map-marker',
+            }
         }
-
-        this.map.addSource('preview-source', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-        });
-
-        this.map.addLayer({
-            id: 'preview-fill-layer',
-            type: 'fill',
-            source: 'preview-source',
-            paint: {
-                'fill-color': '#22d37a',
-                'fill-opacity': 0.4
-            },
-            filter: ['==', ['geometry-type'], 'Polygon'],
-            minzoom: 0,
-        });
-
-        this.map.addLayer({
-            id: 'preview-line-layer',
-            type: 'line',
-            source: 'preview-source',
-            paint: {
-                'line-color': '#22d37a',
-                'line-width': 2
-            },
-            filter: ['!=', ['geometry-type'], 'Point'],
-            minzoom: 0,
-        });
-
-        this.map.addLayer({
-            id: 'preview-circle-layer',
-            type: 'circle',
-            source: 'preview-source',
-            paint: {
-                'circle-radius': 6,
-                'circle-color': '#22d37a',
-                'circle-stroke-width': 2,
-                'circle-stroke-color': '#ffffff'
-            },
-            filter: ['==', ['geometry-type'], 'Point']
-        });
     }
 
     _updatePreviewSource() {
-        const source = this.map.getSource('preview-source');
+        const source = this.map.getSource(this.previewSourceId);
         if (!source) {
             return;
         }

@@ -8,7 +8,7 @@ export class FlyoutView {
         this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
         this.resources = [];
         this.selectedForLayer = new Set();
-        this.previewedId = null;
+        this.previewedIds = new Set();
 
         this.container = document.createElement('div');
         this.container.className = 'flyout';
@@ -104,6 +104,14 @@ export class FlyoutView {
             const matchesSearch = resource.displayname.toLowerCase().includes(searchTerm) || resource.displaydescription.toLowerCase().includes(searchTerm);
             const matchesType = selectedType ? resource.graph_id === selectedType : true;
             return matchesSearch && matchesType;
+        });
+
+        const filteredIds = new Set(filteredResources.map(r => r.resourceinstanceid));
+        this.previewedIds.forEach(id => {
+            if (!filteredIds.has(id)) {
+                EventBusInstance.publish(events.PREVIEW_REMOVE, id);
+                this.previewedIds.delete(id);
+            }
         });
         this._renderResults(filteredResources);
     }
@@ -241,8 +249,12 @@ export class FlyoutView {
         const mapPreviewButton = document.createElement('button');
         mapPreviewButton.innerHTML = '<i class="fa fa-map"></i>';
         mapPreviewButton.title = 'Preview on map';
+        mapPreviewButton.classList.toggle('active', this.previewedIds.has(resourceId));
+        item.classList.toggle('previewed', this.previewedIds.has(resourceId));
+
         mapPreviewButton.addEventListener('click', () => {
-            mapPreviewButton.classList.toggle('active');
+            this.previewedIds.has(resourceId) ? this.previewedIds.delete(resourceId) : this.previewedIds.add(resourceId);
+            mapPreviewButton.classList.toggle('active', this.previewedIds.has(resourceId));
             item.classList.toggle('previewed');
 
             if (mapPreviewButton.classList.contains('active')) {
@@ -256,8 +268,6 @@ export class FlyoutView {
             else {
                 EventBusInstance.publish(events.PREVIEW_REMOVE, resourceId);
             }
-
-            
         });
 
         const reportLink = document.createElement('a');
