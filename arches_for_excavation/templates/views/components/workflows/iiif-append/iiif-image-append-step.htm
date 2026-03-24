@@ -14,62 +14,25 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
-
-    .iiif-preview-wrap {
-        display: flex;
-        gap: 14px;
-        align-items: flex-start;
-        margin-top: 10px;
-    }
-    .iiif-preview-thumb {
-        width: 220px;
-        height: 220px;
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 6px;
-        overflow: hidden;
-        background: rgba(255,255,255,0.03);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .iiif-preview-thumb img {
-        max-width: 100%;
-        max-height: 100%;
-        display: block;
-    }
-    .iiif-preview-meta code {
-        word-break: break-all;
-        display: inline-block;
-    }
 </style>
 
 <section class="workflow-step">
     <h3 data-bind="text: stepTitle"></h3>
     <p class="text-muted" data-bind="visible: stepDescription, text: stepDescription"></p>
 
-    <!-- Info o zasobie z kroku 1 -->
-    <div class="alert alert-info" data-bind="visible: targetResourceId">
-        Target resource ID:
-        <code data-bind="text: targetResourceId"></code>
-    </div>
-    <div class="alert alert-danger" data-bind="visible: !targetResourceId()">
-        WARNING: Step 1 did not set a target resource ID –
-        the workflow will fail when trying to create the relation.
-    </div>
-
-
-    <!-- Nazwa zasobu -->
-    <div class="form-group" style="margin-top:10px;">
-        <label for="iiif-resource-name-input">Resource name</label>
-        <input id="iiif-resource-name-input"
-               type="text"
-               class="form-control"
-               placeholder="e.g., 'Aerial Photos 2024'"
-               data-bind="value: resourceName">
-        <small class="text-muted">Used to organize files in folder structure</small>
+    <div class="alert alert-info" data-bind="visible: digitalResourceId">
+        <strong>Selected IIIF resource:</strong>
+        <code data-bind="text: digitalResourceId"></code>
+        <span data-bind="visible: resourceName">
+            —
+            <span data-bind="text: resourceName"></span>
+        </span>
     </div>
 
-    <!-- NOWE: tryb przesyłania -->
+    <div class="alert alert-warning" data-bind="visible: loading">
+        Loading resource context...
+    </div>
+
     <div class="form-group" style="margin-top:10px;">
       <label>Upload mode</label>
       <div>
@@ -90,11 +53,10 @@
             <button type="button" class="btn btn-default fileinput-create-button">
                 Choose file…
             </button>
-            <div id="hidden-dz-create-previews" style="display:none;"></div>
+            <div id="hidden-dz-append-previews" style="display:none;"></div>
         </div>
     </div>
 
-    <!-- NOWE: tabela plików -->
     <div class="panel panel-default" style="margin-top:10px;" data-bind="visible: queue().length > 0">
       <div class="panel-heading"><strong>Selected files</strong></div>
       <div class="panel-body" style="padding:0;">
@@ -136,7 +98,6 @@
       </div>
     </div>
 
-    <!-- Status i przycisk upload -->
     <div data-bind="visible: progressPhase() === 'ready'" style="margin-top:10px; text-align:center;">
         <p style="color: #5cb85c; font-weight: bold;" data-bind="text: progressStatus"></p>
         <button type="button" class="btn btn-success" data-bind="click: startUpload">
@@ -153,16 +114,13 @@
         </div>
     </div>
 
-    <!-- Potwierdzenie sukcesu -->
     <div data-bind="visible: progressPhase() === 'complete'" class="alert alert-success" style="margin-top:10px;">
         <span class="glyphicon glyphicon-ok"></span>
-        <strong>Success!</strong> All files processed and manifest created.
+        <strong>Success!</strong> Files processed and appended to the existing manifest.
         <p style="margin-top:8px;" data-bind="text: progressStatus"></p>
     </div>
 
-    <!-- Błędy -->
     <div data-bind="visible: errorMessage" class="alert alert-danger" style="margin-top:10px;">
         <span data-bind="text: errorMessage"></span>
     </div>
-
 </section>

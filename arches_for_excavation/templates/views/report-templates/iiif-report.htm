@@ -35,8 +35,6 @@
 
 {% block body %}
 <div class="rp-report-section">
-
-
   <h3>IIIF Viewer</h3>
 
   <!-- ko if: status -->
@@ -49,14 +47,27 @@
 
   <!-- ko if: manifest -->
   <div class="rp-map-wrap">
+
+    <!-- KOLEJNE STRONY zdjęć -->
+    <!-- ko if: isPhotoManifest -->
+    <!-- ko component: {
+      name: 'iiif-photo-viewer',
+      params: { manifest: manifest }
+    } --><!-- /ko -->
+    <!-- /ko -->
+
+    <!-- Dotychczasowy viewer geotiff/dem -->
+    <!-- ko ifnot: isPhotoManifest -->
     <!-- ko component: {
       name: 'iiif-map-viewer',
       params: {
         manifest: manifest,
+        existingAnnotations: existingAnnotations,
         basemapStyleUrl: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
       }
-    } -->
+    } --><!-- /ko -->
     <!-- /ko -->
+
   </div>
   <!-- /ko -->
 </div>

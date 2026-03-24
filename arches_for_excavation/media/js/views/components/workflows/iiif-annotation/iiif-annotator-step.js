@@ -2,28 +2,35 @@ define([
     'knockout',
     'jquery',
     'arches',
-    // Importujemy nasz nowy komponent (upewnij się co do ścieżki!)
-    'views/components/iiif/iiif-map-viewer', 
+    // komponent mapy (V3)
+    'views/components/iiif/iiif-map-viewer',
     'templates/views/components/workflows/iiif-annotation/iiif-annotator-step.htm'
-], function(ko, $, arches, MapViewer, template) {
+    ], function(ko, $, arches, _MapViewer, template) {
     'use strict';
 
     function viewModel(params) {
         var self = this;
 
-        console.log('[WF LOG] Annotator Step Loaded');
-
-        // --- Workflow Params ---
+        // ---- workflow params ----
         if (typeof params.value !== 'function') params.value = ko.observable(null);
         self.value = params.value;
 
         self.hostResourceId = ko.observable(ko.unwrap(params.hostResourceId) || null);
 
-        // --- State ---
+        // ---- state ----
+        self.loading = ko.observable(false);
+        self.error = ko.observable('');
+
+        // V3 manifest (source of truth)
+        self.manifest = ko.observable(null);
+
+        // optional: extracted iiif service url (debug/legacy)
         self.imageServiceUrl = ko.observable('');
-        self.existingAnnotations = ko.observableArray([]); // To przekażemy do mapy
-        self.newAnnotations = ko.observableArray([]);      // To odbierzemy z mapy
-        self.manifestGlobalId = ko.observable(null);
+
+        // existing + new annotations (workflow payload uses NEW only)
+        self.existingAnnotations = ko.observableArray([]);
+        self.newAnnotations = ko.observableArray([]);
+
         // --- Finalize Modal ---
         self.showFinalizeModal = ko.observable(false);
         self.outputMode = ko.observable('annotation-only');
@@ -31,205 +38,291 @@ define([
         self.availableOutputGraphs = ko.observableArray([]);
 
         // =====================================================================
-        // DATA LOADING (Arches API)
+        // helpers
         // =====================================================================
 
-        // 1. Pobierz URL obrazka z kafelków
-        self.loadHostResource = function(resourceId) {
-            if (!resourceId) return;
-            // Add null check for arches.urls
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-            var tilesUrl = baseUrl + 'resource/' + encodeURIComponent(resourceId) + '/tiles';
-            
-            $.ajax({ url: tilesUrl, method: 'GET', xhrFields: { withCredentials: true } })
-                .done(function(resp) {
-                    var iiif = extractIiifFromTiles(resp);
-                    if (iiif) {
-                        console.log('[WF LOG] Found Image URL:', iiif);
-                        self.imageServiceUrl(iiif);
-                        // Jak mamy obrazek, to szukamy adnotacji
-                        self.loadExistingAnnotations(resourceId);
-                    }
-                });
-        };
+        function baseRoot() {
+        var root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+        return root.replace(/\/+$/, '/') ;
+        }
 
-        // 2. Pobierz Manifest i Adnotacje
-        self.loadExistingAnnotations = function(resourceId) {
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-            var manifestUrl = baseUrl + 'manifest/' + resourceId;
-            
-            // ✅ FIX: Extract globalid from resourceId directly (it's already the UUID)
-            self.manifestGlobalId(resourceId);
-            console.log('[WF LOG] Set manifestGlobalId from resourceId:', resourceId);
-            
-            $.getJSON(manifestUrl, function(manifest) {
-                try {
-                    var globalid = manifest['@id'] || manifest['id'];
-                    console.log('[WF LOG] Manifest Global ID:', globalid);
-                    
-                    // Verify/update with UUID from manifest if needed
-                    var uuidMatch = globalid.match(/([a-f0-9-]{36})$/i);
-                    if (uuidMatch) {
-                        console.log('[WF LOG] Extracted UUID from manifest:', uuidMatch[1]);
-                        self.manifestGlobalId(uuidMatch[1]); // Update if different
-                    }
-                    
-                    console.log('[WF LOG] Loaded Manifest:', manifest);
-                    var canvas = manifest.sequences[0].canvases[0];
-                    if (canvas.otherContent && canvas.otherContent.length > 0) {
-                        var listUrl = canvas.otherContent[0]['@id'];
-                        $.getJSON(listUrl, function(annoList) {
-                            if (annoList && annoList.resources) {
-                                console.log('[WF LOG] Loaded existing annotations:', annoList.resources.length);
-                                self.existingAnnotations(annoList.resources);
-                            }
-                        });
-                    }
-                } catch(e) { console.warn('No annotations found/manifest structure error', e); }
-            });
-        };
+        function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+            }
+        }
+        return cookieValue;
+        }
 
-        // Helper do wyciągania URL z tilesów
+        function safeJsonGet(url) {
+        return $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json',
+            xhrFields: { withCredentials: true }
+        });
+        }
+
+        // Walk object and try to find iiif-ish URLs (legacy convenience)
         function extractIiifFromTiles(tilesResp) {
-            var candidates = [];
-            function walk(o) {
-                if (!o) return;
-                if (typeof o === 'string') {
-                    if (o.includes('/iiif/') || /\/info\.json$/i.test(o)) candidates.push(o);
-                    return;
-                }
-                if (Array.isArray(o)) { o.forEach(walk); return; }
-                if (typeof o === 'object') { Object.keys(o).forEach(function(k){ walk(o[k]); }); }
+        var candidates = [];
+        function walk(o) {
+            if (!o) return;
+            if (typeof o === 'string') {
+            if (o.indexOf('/iiif/') >= 0 || /\/info\.json$/i.test(o)) candidates.push(o);
+            return;
             }
-            walk(tilesResp);
-            return (candidates[0] || '').replace(/\/info\.json$/i, '');
+            if (Array.isArray(o)) { o.forEach(walk); return; }
+            if (typeof o === 'object') { Object.keys(o).forEach(function(k){ walk(o[k]); }); }
+        }
+        walk(tilesResp);
+        return (candidates[0] || '').replace(/\/info\.json$/i, '');
         }
 
-        // Inicjalizacja
-        if (self.hostResourceId()) {
-            self.loadHostResource(self.hostResourceId());
+        // IIIF Presentation 3: collect annotations from canvas.annotations[*].items
+        function collectV3AnnotationsFromManifest(manifest) {
+        var out = [];
+        try {
+            var canvases = (manifest && Array.isArray(manifest.items)) ? manifest.items : [];
+            canvases.forEach(function(canvas) {
+            var canvasId = canvas && canvas.id ? canvas.id : null;
+            var pages = Array.isArray(canvas.annotations) ? canvas.annotations : [];
+            pages.forEach(function(page) {
+                if (page && Array.isArray(page.items)) {
+                page.items.forEach(function(anno) {
+                    var a = Object.assign({}, anno);
+                    if (!a.canvasId) a.canvasId = canvasId;
+                    out.push(a);
+                });
+                }
+            });
+            });
+        } catch (e) {}
+        return out;
         }
 
         // =====================================================================
-        // HANDLERS (Komunikacja z Mapą)
+        // data loading
         // =====================================================================
 
-        // Funkcja przekazywana do komponentu mapy
-        self.handleNewAnnotation = function(annoPayload) {
-            console.log('[WF LOG] Received new annotation from map:', annoPayload);
-            // Dodajemy do naszej listy, która pójdzie do zapisu
-            self.newAnnotations.push({
-                id: 'anno-' + Date.now(),
-                type: annoPayload.type,
-                selector: annoPayload.selector, // SVG lub XYWH
-                geometry: annoPayload.geometry, // GeoJSON
-                created: annoPayload.created
+        self.loadHostResource = function(resourceId) {
+        if (!resourceId) return;
+
+        self.loading(true);
+        self.error('');
+        self.manifest(null);
+        self.existingAnnotations.removeAll();
+        self.newAnnotations.removeAll();
+
+        var root = baseRoot();
+
+        // 1) optional: fetch tiles to extract iiif service url (not required by viewer)
+        var tilesUrl = root + 'resource/' + encodeURIComponent(resourceId) + '/tiles';
+
+        // 2) fetch V3 manifest (this is required)
+        var manifestUrl = root + 'api/iiif/geotiff-manifest/' + encodeURIComponent(resourceId);
+
+        var tilesReq = $.ajax({
+            url: tilesUrl,
+            method: 'GET',
+            dataType: 'json',
+            xhrFields: { withCredentials: true }
+        });
+
+        var manifestReq = safeJsonGet(manifestUrl);
+
+        $.when(tilesReq, manifestReq)
+            .done(function(tilesResp, manifestResp) {
+            // jQuery returns [data, status, xhr] tuples for $.when
+            var tilesJson = tilesResp && tilesResp[0] ? tilesResp[0] : tilesResp;
+            var manifestJson = manifestResp && manifestResp[0] ? manifestResp[0] : manifestResp;
+
+            var iiif = extractIiifFromTiles(tilesJson);
+            if (iiif) self.imageServiceUrl(iiif);
+
+            // sanity: must look like IIIF v3
+            if (!manifestJson || !Array.isArray(manifestJson.items)) {
+                self.error('Manifest does not look like IIIF Presentation 3 (missing items[]).');
+                self.loading(false);
+                return;
+            }
+
+            self.manifest(manifestJson);
+
+            // collect existing annotations (embedded only)
+            var existing = collectV3AnnotationsFromManifest(manifestJson);
+            self.existingAnnotations(existing);
+
+            self.loading(false);
+            })
+            .fail(function(xhr) {
+            self.loading(false);
+            var msg = 'Failed to load manifest/tiles';
+            try {
+                if (xhr && xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
+                else if (xhr && xhr.responseText) msg = xhr.responseText;
+            } catch (_) {}
+            self.error(msg);
             });
         };
 
-        // ✅ NEW: Handle annotation deletion
-        self.handleAnnotationDeleted = function(annotationIndex) {
-            console.log('[WF LOG] Annotation deleted annotationIndex:', annotationIndex);
-            
-            // Remove from existing annotations array
-            var annos = self.existingAnnotations();
-            if (annotationIndex >= 0 && annotationIndex < annos.length) {
-                annos.splice(annotationIndex, 1);
-                self.existingAnnotations(annos);
-            }
-            
-            // Call backend with INDEX
-            self.deleteAnnotationFromServer(annotationIndex);
+        // init
+        if (self.hostResourceId()) {
+        self.loadHostResource(self.hostResourceId());
+        }
+
+        // =====================================================================
+        // handlers from map-viewer (future-proof)
+        // =====================================================================
+
+        self.handleNewAnnotation = function(annoPayload) {
+        // viewer should send a normalized payload; we store it verbatim + stable id
+        self.newAnnotations.push({
+            id: annoPayload.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
+            type: annoPayload.type || 'Polygon',
+            canvasId: annoPayload.canvasId || null,
+            selector: annoPayload.selector || null,        // SvgSelector / FragmentSelector
+            geometry: annoPayload.geometry || null,        // optional GeoJSON (pixel or local)
+            localGeometry: annoPayload.localGeometry || null, // optional GeoJSON local CRS
+            created: annoPayload.created || new Date().toISOString(),
+            body: annoPayload.body || null,
+            color: annoPayload.color || '#64ff64' 
+        });
         };
 
-        self.deleteAnnotationFromServer = function(annotationIndex) {
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-            var deleteUrl = baseUrl + 'api/manifest/delete_annotation';
-            
-            $.ajax({
+        function canvasIdFromAnnotation(annotation) {
+            if (!annotation) return null;
+            if (annotation.canvasId) return annotation.canvasId;
+            var t = annotation.target;
+            if (typeof t === 'string') return t;
+            if (t && typeof t === 'object') return t.source || t.id || null;
+            return null;
+        }
+
+        function annotationResourceIdFromAnnotation(annotation) {
+            if (!annotation) return null;
+            if (annotation.annotationResourceId) return annotation.annotationResourceId;
+            if (annotation.annotation_resource_id) return annotation.annotation_resource_id;
+
+            var b = annotation.body;
+            if (Array.isArray(b)) {
+                var rid = b.find(function(x) {
+                    return x && typeof x === 'object' &&
+                           (x.purpose === 'resource-id' || x.purpose === 'arch-resource-id') &&
+                           typeof x.value === 'string' && x.value.trim();
+                });
+                if (rid) return rid.value.trim();
+            } else if (b && typeof b === 'object') {
+                if ((b.purpose === 'resource-id' || b.purpose === 'arch-resource-id') &&
+                    typeof b.value === 'string' && b.value.trim()) {
+                    return b.value.trim();
+                }
+            }
+            return null;
+        }
+
+        self.handleAnnotationDeleted = function(annotationOrIndex) {
+            var annos = self.existingAnnotations().slice();
+            var anno = null;
+
+            if (typeof annotationOrIndex === 'number') {
+                var idx = annotationOrIndex;
+                if (idx >= 0 && idx < annos.length) anno = annos[idx];
+                if (idx >= 0 && idx < annos.length) {
+                    annos.splice(idx, 1);
+                    self.existingAnnotations(annos);
+                }
+            } else if (annotationOrIndex && typeof annotationOrIndex === 'object') {
+                anno = annotationOrIndex;
+                self.existingAnnotations(annos.filter(function(a){ return a.id !== anno.id; }));
+            }
+
+            var canvasId = canvasIdFromAnnotation(anno);
+            if (anno && anno.id && canvasId) {
+                self.deleteAnnotationFromServer(anno);
+            }
+        };
+
+        self.deleteAnnotationFromServer = function(annotation) {
+            var root = baseRoot();
+            var rid = self.hostResourceId();
+            var deleteUrl = root + 'api/iiif/geotiff-manifest/edit/' + encodeURIComponent(rid);
+
+            var canvasId = canvasIdFromAnnotation(annotation);
+            var annotationResourceId = annotationResourceIdFromAnnotation(annotation);
+
+            return $.ajax({
                 url: deleteUrl,
                 method: 'POST',
                 contentType: 'application/json',
                 headers: { 'X-CSRFToken': getCookie('csrftoken') },
                 data: JSON.stringify({
-                    digital_resource_id: self.hostResourceId(),
-                    annotation_index: annotationIndex
+                    mode: 'delete_annotation_everywhere',
+                    canvas_id: canvasId,
+                    annotation_id: annotation.id,
+                    annotation_resource_id: annotationResourceId
                 })
-            })
-            .done(function(response) {
-                console.log('[WF LOG] Annotation deleted from server:', response);
-            })
-            .fail(function(err) {
-                console.error('[WF LOG] Failed to delete annotation:', err);
-                alert('Failed to delete annotation from server');
+            }).fail(function(err) {
+                console.error('[iiif-annotator-step] Failed to delete annotation:', err);
+                alert('Failed to delete annotation from server (state may be inconsistent).');
             });
         };
 
-        function getCookie(name) {
-            var cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                var cookies = document.cookie.split(';');
-                for (var i = 0; i < cookies.length; i++) {
-                    var cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
         // =====================================================================
-        // WORKFLOW LOGIC (Save, Modal)
+        // workflow save / modal
         // =====================================================================
 
         self.openFinalizeModal = function() { self.showFinalizeModal(true); };
         self.cancelFinalizeModal = function() { self.showFinalizeModal(false); };
 
         function buildStepPayload() {
-            return {
-                hostResourceId: self.hostResourceId(),
-                digitalResourceId: self.hostResourceId(),
-                iiifServiceUrl: self.imageServiceUrl(),
-                annotations: self.newAnnotations(), // Tylko nowe idą do zapisu!
-                output: {
-                    mode: self.outputMode(),
-                    targetGraphId: self.targetGraphId()
-                }
-            };
+        return {
+            hostResourceId: self.hostResourceId(),
+            digitalResourceId: self.hostResourceId(),
+            iiifServiceUrl: self.imageServiceUrl(), // legacy/debug
+            manifest: self.manifest(),              // <-- V3 manifest (source of truth)
+            annotations: self.newAnnotations(),     // only NEW go to summary/save
+            output: {
+            mode: self.outputMode(),
+            targetGraphId: self.targetGraphId()
+            }
+        };
         }
 
         self.confirmFinalizeModal = function() {
-            self.value(buildStepPayload());
-            self.showFinalizeModal(false);
+        self.value(buildStepPayload());
+        self.showFinalizeModal(false);
         };
 
-        // Save Hook
+        // Save hook
         if (params.form && params.form.save) {
-            var origSave = params.form.save;
-            params.form.save = function() {
-                if (self.newAnnotations().length === 0) {
-                    // Możemy pozwolić przejść bez nowych adnotacji, albo zablokować
-                    // return Promise.reject(new Error('Draw something first!'));
-                }
-                self.value(buildStepPayload());
-                return origSave ? origSave.apply(params.form, arguments) : Promise.resolve(true);
-            };
-        }
-        
-        // Gating
-        if (params.form && params.form.complete) {
-            params.form.complete(ko.pureComputed(function() {
-                return self.imageServiceUrl() && self.newAnnotations().length > 0;
-            }));
+        var origSave = params.form.save;
+        params.form.save = function() {
+            self.value(buildStepPayload());
+            return origSave ? origSave.apply(params.form, arguments) : Promise.resolve(true);
+        };
         }
 
-        // Opcjonalne ładowanie listy grafów (dla modala)
+        // Gating
+        if (params.form && params.form.complete) {
+        params.form.complete(ko.pureComputed(function() {
+            // allow complete only if manifest loaded AND at least one new annotation
+            return !!self.manifest() && self.newAnnotations().length > 0;
+        }));
+        }
+
+        // optional: load graphs for modal
         function readCreateableResources() {
-            var vm = params.pageVm || {};
-            var list = ko.unwrap(vm.createableResources || []);
-            self.availableOutputGraphs(list.map(g => ({ graphid: g.graphid, name: g.name })));
+        var vm = params.pageVm || {};
+        var list = ko.unwrap(vm.createableResources || []);
+        self.availableOutputGraphs(list.map(function(g) { return { graphid: g.graphid, name: g.name }; }));
         }
         ko.computed(readCreateableResources);
 
@@ -240,4 +333,4 @@ define([
         viewModel: viewModel,
         template: template
     });
-});
+    });

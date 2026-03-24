@@ -10,7 +10,16 @@ import { createMeasureController } from './map/measure-controller';
 import { createDemSampler } from './map/dem-sampling';
 
 import { createLeafletViewer } from './viewers/iiif-leaflet-viewer';
+import { createLeafletImageState } from './state/leaflet-image-state';
+import { createLeafletMeasureController } from './features/leaflet-measure-controller';
+import { createLeafletDemPickerController } from './features/leaflet-dem-picker-controller';
+import { createLeafletAnnotationController } from './features/leaflet-annotation-controller';
+import { canvasHasGeoref, ensureAbsoluteUrl,extractServiceUrlFromCanvas,
+  extractTitilerFilePathFromServiceUrl, manifestHasAnyGeoref, mdValue,
+  mdBool, parseTransformFromCanvas, pickDemCanvasFromManifest
+} from './lib/iiif-manifest-utils';
 
+import {affineForward, affineInverse, clamp} from './lib/affine-utils';
 // Binding: data-bind="iiifMapInit: initMap"
 ko.bindingHandlers.iiifMapInit = {
   init(element, valueAccessor) {
@@ -19,115 +28,6 @@ ko.bindingHandlers.iiifMapInit = {
     return { controlsDescendantBindings: false };
   }
 };
-
-// ---- Manifest helpers ----
-function parseTransformFromCanvas(canvas) {
-  const trRaw = mdValue(canvas, 'transform');
-  if (!trRaw) return null;
-  try {
-    const tr = JSON.parse(trRaw);
-    return (Array.isArray(tr) && tr.length === 6) ? tr : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-// pixel (col=x, row=y) -> local (X,Y)
-function affineForward(tr, x, y,s) {
-  // console.log("affine tr", tr);
-  // console.log("x,y", x, y);
-  x=x*(2**s);
-  y=y*(2**s);
-  const [a,b,c,d,e,f] = tr;
-  return [a*x + b*y + c, d*x + e*y + f];
-}
-
-// local (X,Y) -> pixel (x,y)
-function affineInverse(tr, X, Y) {
-  const [a,b,c,d,e,f] = tr;
-  const det = a*e - b*d;
-  if (!Number.isFinite(det) || Math.abs(det) < 1e-12) return null;
-
-  const dx = X - c;
-  const dy = Y - f;
-  const x = ( e*dx - b*dy) / det;
-  const y = (-d*dx + a*dy) / det;
-  return [x, y];
-}
-
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-function mdValue(canvas, key) {
-  const md = canvas && canvas.metadata;
-  if (!Array.isArray(md)) return null;
-  for (let i = 0; i < md.length; i++) {
-    const row = md[i];
-    const label = row?.label?.en?.[0] ?? row?.label?.none?.[0] ?? null;
-    if (label !== key) continue;
-    const val = row?.value?.en?.[0] ?? row?.value?.none?.[0] ?? null;
-    return val ?? null;
-  }
-  return null;
-}
-
-function mdBool(canvas, key) {
-  const v = mdValue(canvas, key);
-  return String(v).trim().toLowerCase() === 'true';
-}
-
-function pickDemCanvasFromManifest(manifest) {
-  const items = Array.isArray(manifest?.items) ? manifest.items : [];
-  return items.find((c) => mdBool(c, 'is_dem_hint')) || null;
-}
-function ensureAbsoluteUrl(url) {
-  if (!url) return url;
-  if (/^https?:\/\//i.test(url)) return url;
-  try {
-    return new URL(url, window.location.origin).toString();
-  } catch (e) {
-    return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
-  }
-}
-
-function extractServiceUrlFromCanvas(canvas) {
-  try {
-    const ap = canvas?.items?.[0];
-    const ann = ap?.items?.[0];
-    const body = ann?.body;
-    if (!body) return null;
-    const svc = body.service;
-    const s = Array.isArray(svc) ? svc[0] : svc;
-    const id = s?.id || s?.['@id'];
-    if (!id) return null;
-    return ensureAbsoluteUrl(id);
-  } catch (_) {
-    return null;
-  }
-}
-
-function extractTitilerFilePathFromServiceUrl(serviceUrl) {
-  if (!serviceUrl) return null;
-  try {
-    const u = new URL(serviceUrl, window.location.origin);
-    const p = u.pathname || '';
-    const m = p.match(/\/iiif\/{1,2}(data\/.+)$/i);
-    if (!m) return null;
-    return '/' + m[1].replace(/^\/+/, '');
-  } catch (_) {
-    return null;
-  }
-}
-
-function canvasHasGeoref(canvas) {
-  const v = mdValue(canvas, 'has_georef');
-  return String(v).trim().toLowerCase() === 'true';
-}
-
-function manifestHasAnyGeoref(manifest) {
-  const items = manifest?.items;
-  if (!Array.isArray(items) || !items.length) return false;
-  return items.some(canvasHasGeoref);
-}
-
 ko.components.register('iiif-map-viewer', {
   viewModel: {
     createViewModel: function (params) {
@@ -135,9 +35,44 @@ ko.components.register('iiif-map-viewer', {
       installIiifInfoJsonPatch();
       self.manifest = params.manifest;
 
+      // ---- Annotation hooks (optional, used by workflow annotator step) ----
+      self.existingAnnotations = params.existingAnnotations || ko.observableArray([]);
+      self.onAnnotationCreated = typeof params.onAnnotationCreated === 'function' ? params.onAnnotationCreated : null;
+      self.onAnnotationDeleted = typeof params.onAnnotationDeleted === 'function' ? params.onAnnotationDeleted : null;
+
       self.status = ko.observable('');
       self.error = ko.observable('');
-      self.imageGroup = ko.observable('ortho'); // 'ortho' | 'dem'
+
+      // Unified UI
+      self.renderMode = ko.observable('map'); // 'map' | 'image'
+      self.fallbackReason = ko.observable('');
+      self.canToggleRenderMode = ko.observable(false);
+
+      // MAP mode: Allmaps layers UI
+      self.layers = ko.observableArray([]);
+
+      // MAP mode measure / elevation
+      self.measureMode = ko.observable(false);
+      self.measureDistance = ko.observable('');
+      self.measureCoords = ko.observable('');
+
+      self.elevationMode = ko.observable(true);
+
+      Object.assign(self, createLeafletImageState({
+        ko,
+        annotationEnabled: !!self.onAnnotationCreated
+      }));
+
+      // Annotation modal state
+      self.showAnnotationDialog = ko.observable(false);
+      self.openAnnotationDialog = () => {
+        if (!self.annotationEnabled || !self.annotationEnabled()) return;
+        self.showAnnotationDialog(true);
+      };
+      self.closeAnnotationDialog = () => {
+        self.showAnnotationDialog(false);
+      };
+
       self.setImageGroup = async (g) => {
         const group = (g === 'dem') ? 'dem' : 'ortho';
         self.imageGroup(group);
@@ -147,40 +82,81 @@ ko.components.register('iiif-map-viewer', {
           self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
           self.leafletCanvasOptions(leafletViewer.canvasOptions());
           self.leafletLayers(leafletViewer.layers());
+          //try { leafletAnnotation.refresh(); } catch (_) {}
         }
       };
-      // Unified UI
-      self.renderMode = ko.observable('map'); // 'map' | 'image'
-      self.fallbackReason = ko.observable('');
-      self.canToggleRenderMode = ko.observable(false);
 
-      // MAP mode: Allmaps layers UI
-      self.layers = ko.observableArray([]);
+      function deactivateImageTool(toolName) {
+        if (toolName === 'annotate') {
+          leafletAnnotation.clearDraft();
+          self.annotationStatus('');
+        }
+        if (toolName === 'measure') {
+          leafletMeasure.clear();
+        }
+        if (toolName === 'dem-pick') {
+          leafletDemPicker.clear();
+        }
+      }
 
-      // IMAGE mode: Leaflet picker + overlays UI
-      self.leafletBaseCanvasId = ko.observable(null);
-      self.leafletCanvasOptions = ko.observableArray([]);
-      self.leafletLayers = ko.observableArray([]);
+      function activateImageTool(toolName) {
+        const current = self.getActiveImageTool();
+        if (current === toolName) {
+          deactivateImageTool(toolName);
+          self.clearActiveImageTool();
+          setLeafletCursor();
+          return false;
+        }
 
-      // MAP mode measure / elevation
-      self.measureMode = ko.observable(false);
-      self.measureDistance = ko.observable('');
-      self.measureCoords = ko.observable('');
+        if (current && current !== 'none') {
+          deactivateImageTool(current);
+        }
 
-      self.elevationMode = ko.observable(true);
-      self.elevationLoading = ko.observable(false);
-      self.elevationValue = ko.observable('');
-      self.elevationError = ko.observable('');
+        self.setActiveImageTool(toolName);
 
-      self.clickedCoords = ko.observable(''); // Dodaj observable na współrzędne
+        if (toolName === 'annotate') {
+          self.annotationStatus('Annotation mode: click to add vertices, double-click to Finish.');
+        } else {
+          self.annotationStatus('');
+        }
 
-      // Leaflet measure
-      self.leafletMeasureMode = ko.observable(false);
-      self.leafletMeasurePoints = ko.observableArray([]);
-      self.leafletMeasureDistance = ko.observable('');
-      self._leafletMeasureLine = null;
-      self._leafletMeasureMarkers = [];
+        setLeafletCursor();
+        return true;
+      }
 
+      // ---- Annotation public methods ----
+      self.toggleAnnotationMode = () => {
+        if (!self.annotationEnabled()) return;
+        const on = activateImageTool('annotate');
+        if (on) {
+          console.log('[iiif-map-viewer] Annotation mode ENABLED');
+        } else {
+          console.log('[iiif-map-viewer] Annotation mode DISABLED');
+        }
+      };
+
+      self.disableActiveImageTool = () => {
+        const current = self.getActiveImageTool();
+        if (!current || current === 'none') return;
+        deactivateImageTool(current);
+        self.clearActiveImageTool();
+        setLeafletCursor();
+      };
+
+      self.finishAnnotation = () => {
+        if (!self.annotationEnabled()) return;
+        leafletAnnotation.finishDraft();
+      };
+
+      self.cancelAnnotation = () => {
+        leafletAnnotation.clearDraft();
+      };
+      function setLeafletCursor() {
+        const map = leafletViewer && leafletViewer._map;
+        const el = map && typeof map.getContainer === 'function' ? map.getContainer() : null;
+        if (!el) return;
+        el.style.cursor = (self.isActiveImageTool('dem-pick') || self.isActiveImageTool('annotate')) ? 'crosshair' : '';
+      }
       const layerManager = createAllmapsLayerManager({
         setStatus: self.status,
         setError: self.error
@@ -190,6 +166,45 @@ ko.components.register('iiif-map-viewer', {
         setLoading: self.elevationLoading,
         setValue: self.elevationValue,
         setError: self.elevationError
+      });
+
+      const leafletMeasure = createLeafletMeasureController({
+        state: self,
+        getMap: () => (leafletViewer && leafletViewer._map) ? leafletViewer._map : null,
+        getLeaflet: () => (leafletViewer && leafletViewer._L) ? leafletViewer._L : window.L,
+        affineForward
+      });
+
+      const leafletDemPicker = createLeafletDemPickerController({
+        state: self,
+        getMap: () => (leafletViewer && leafletViewer._map) ? leafletViewer._map : null,
+        getLeaflet: () => (leafletViewer && leafletViewer._L) ? leafletViewer._L : window.L,
+        getManifest: () => ko.unwrap(self.manifest),
+        getImageGroup: () => self.imageGroup(),
+        parseTransformFromCanvas,
+        pickDemCanvasFromManifest,
+        affineForward,
+        affineInverse
+      });
+
+      const leafletAnnotation = createLeafletAnnotationController({
+        state: self,
+        getMap: () => (leafletViewer && leafletViewer._map) ? leafletViewer._map : null,
+        getLeaflet: () => (leafletViewer && leafletViewer._L) ? leafletViewer._L : window.L,
+        getManifest: () => ko.unwrap(self.manifest),
+        getBaseCanvasId: () => self.leafletBaseCanvasId(),
+        getExistingAnnotations: () => ko.unwrap(self.existingAnnotations) || [],
+        getCanvasMaxZoom: (canvasId) =>
+          (leafletViewer && typeof leafletViewer.getCanvasMaxZoom === 'function')
+            ? leafletViewer.getCanvasMaxZoom(canvasId)
+            : null,
+        onAnnotationCreated: self.onAnnotationCreated,
+        onAnnotationDeleted: self.onAnnotationDeleted,
+        parseTransformFromCanvas,
+        affineForward,
+        affineInverse,
+        clamp,
+        mdValue
       });
 
       const measure = createMeasureController({
@@ -231,26 +246,25 @@ ko.components.register('iiif-map-viewer', {
             );
           }
 
-          if (self.leafletMeasureMode && self.leafletMeasureMode()) {
-            const pts = self.leafletMeasurePoints();
-            if (pts.length >= 2) {
-              self.leafletMeasurePoints([]);
-              self.leafletMeasureDistance('');
-            }
-            // Zawsze licz affineForward ejeśli jst transformacja
-            let X = info.x, Y = info.y;
-            if (tr) {
-              [X, Y] = affineForward(tr, info.x, info.y, info.s);
-            }
-            // Zapisz oba zestawy współrzędnych
-            self.leafletMeasurePoints([...pts, { x: info.x, y: info.y, X, Y }]);
-            if (self.leafletMeasurePoints().length === 2) {
-              const [p1, p2] = self.leafletMeasurePoints();
-              const dx = p2.X - p1.X;
-              const dy = p2.Y - p1.Y;
-              const d = Math.sqrt(dx * dx + dy * dy);
-              self.leafletMeasureDistance(`${d.toFixed(2)} meters`);
-            }
+          // ---- Annotation mode: collect polygon vertices ----
+          if (self.isActiveImageTool('annotate')) {
+            leafletAnnotation.handleMapClick(info);
+            return;
+          }
+
+          // ---- DEM pick mode: click once => marker + sample ----
+          if (self.isActiveImageTool('dem-pick')) {
+            deactivateImageTool('dem-pick');
+            self.clearActiveImageTool();
+            setLeafletCursor();
+            leafletDemPicker.handleMapClick(info, canvas, tr).catch((e) => {
+              self.elevationError('DEM pixel error: ' + String(e?.message || e));
+            });
+            return;
+          }
+
+          if (self.isActiveImageTool('measure')) {
+            leafletMeasure.handleMapClick(info, tr);
             return;
           }
         }
@@ -310,6 +324,7 @@ ko.components.register('iiif-map-viewer', {
         if (!self._leafletDiv) return;
         if (!leafletViewer.ready()) {
           await leafletViewer.init(self._leafletDiv);
+          leafletAnnotation.attachDoubleClickFinish();
         }
         if (typeof leafletViewer.setGroup === 'function') {
           await leafletViewer.setGroup(self.imageGroup());
@@ -321,6 +336,9 @@ ko.components.register('iiif-map-viewer', {
         self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
         self.leafletCanvasOptions(leafletViewer.canvasOptions());
         self.leafletLayers(leafletViewer.layers());
+        setLeafletCursor();
+
+        leafletAnnotation.refresh();
 
         // Base is locked in Leaflet viewer: keep UI synced one-way only.
         if (!self._leafletBaseSub) {
@@ -332,6 +350,7 @@ ko.components.register('iiif-map-viewer', {
         if (!self._leafletBaseSub2) {
           self._leafletBaseSub2 = leafletViewer.baseCanvasId.subscribe((id) => {
             if (self.leafletBaseCanvasId() !== id) self.leafletBaseCanvasId(id);
+            try { leafletAnnotation.refresh(); } catch (_) {}
           });
         }
       }
@@ -339,6 +358,7 @@ ko.components.register('iiif-map-viewer', {
       self.initMap = (rootEl) => {
         self._mapDiv = rootEl.querySelector('.iiif-maplibre-container');
         self._leafletDiv = rootEl.querySelector('.iiif-leaflet-container');
+
 
         self._map = new maplibregl.Map({
           container: self._mapDiv,
@@ -442,96 +462,16 @@ ko.components.register('iiif-map-viewer', {
         if (!on) self.elevationValue('');
       };
 
+      self.toggleLeafletDemPick = () => {
+        activateImageTool('dem-pick');
+      };
+
       self.toggleLeafletMeasure = () => {
-        const on = !self.leafletMeasureMode();
-        self.leafletMeasureMode(on);
-        self.leafletMeasurePoints([]);
-        self.leafletMeasureDistance('');
-        if (self._leafletMeasureLine && leafletViewer._map) {
-          leafletViewer._map.removeLayer(self._leafletMeasureLine);
-          self._leafletMeasureLine = null;
-        }
-        // Usuń markery
-        if (self._leafletMeasureMarkers && leafletViewer._map) {
-          self._leafletMeasureMarkers.forEach(m => leafletViewer._map.removeLayer(m));
-          self._leafletMeasureMarkers = [];
-        }
+        activateImageTool('measure');
       };
       self.clearLeafletMeasure = () => {
-        self.leafletMeasurePoints([]);
-        self.leafletMeasureDistance('');
-        if (self._leafletMeasureLine && leafletViewer._map) {
-          leafletViewer._map.removeLayer(self._leafletMeasureLine);
-          self._leafletMeasureLine = null;
-        }
-        // Usuń markery
-        if (self._leafletMeasureMarkers && leafletViewer._map) {
-          self._leafletMeasureMarkers.forEach(m => leafletViewer._map.removeLayer(m));
-          self._leafletMeasureMarkers = [];
-        }
+        leafletMeasure.clear();
       };
-
-      // Subskrypcja do leafletMeasurePoints
-      self.leafletMeasurePoints.subscribe((pts) => {
-
-        if (!leafletViewer._map) {
-          console.warn('[LeafletMeasure] Map is not ready!');
-          return;
-        }
-
-        // Usuń stare markery
-        if (self._leafletMeasureMarkers) {
-          self._leafletMeasureMarkers.forEach(m => {
-            try {
-              leafletViewer._map.removeLayer(m);
-            } catch (e) {
-              console.warn('[LeafletMeasure] Failed to remove marker:', e);
-            }
-          });
-          self._leafletMeasureMarkers = [];
-        }
-
-        // Dodaj markery dla każdego punktu
-        pts.forEach((pt, idx) => {
-          if (!Number.isFinite(pt.X) || !Number.isFinite(pt.Y)) {
-            console.warn('[LeafletMeasure] Invalid marker coords:', pt);
-            return;
-          }
-          try {
-            const marker = window.L.circleMarker([-pt.y, pt.x], {
-              radius: 6,
-              color: idx === 0 ? 'blue' : 'red',
-              fillColor: idx === 0 ? 'blue' : 'red',
-              fillOpacity: 0.8,
-              weight: 2
-            }).addTo(leafletViewer._map);
-            self._leafletMeasureMarkers.push(marker);
-          } catch (e) {
-            console.error('[LeafletMeasure] Failed to add marker:', e);
-          }
-        });
-
-        // Rysuj linię jeśli są dwa punkty
-        if (pts.length === 2) {
-          const latlngs = [
-            [-pts[0].y, pts[0].x],
-            [-pts[1].y, pts[1].x]
-          ];
-          if (
-            Number.isFinite(pts[0].X) && Number.isFinite(pts[0].Y) &&
-            Number.isFinite(pts[1].X) && Number.isFinite(pts[1].Y)
-          ) {
-            try {
-              self._leafletMeasureLine = window.L.polyline(latlngs, { color: 'red', weight: 3 }).addTo(leafletViewer._map);
-
-            } catch (e) {
-              console.error('[LeafletMeasure] Failed to draw line:', e);
-            }
-          } else {
-            console.warn('[LeafletMeasure] Invalid line coords:', latlngs);
-          }
-        }
-      });
 
       self.toggleRenderMode = async () => {
         const m = ko.unwrap(self.manifest);
@@ -559,11 +499,28 @@ ko.components.register('iiif-map-viewer', {
         scheduleRender(false);
       });
 
+      // Keep annotation overlays synced when existingAnnotations list changes
+      self._annoSyncSub = ko.computed(() => {
+        const _ = ko.unwrap(self.existingAnnotations);
+        const mode = self.renderMode();
+        const ready = leafletViewer && leafletViewer.ready && leafletViewer.ready();
+        if (mode === 'image' && ready) {
+          try { leafletAnnotation.refresh(); } catch (e) { console.error(e); }
+        }
+        return _;
+      });
+
       self.dispose = () => {
         self._disposed = true;
         self._renderNonce++;
+        self.showAnnotationDialog(false);
 
         try { if (self._renderSub) self._renderSub.dispose(); } catch (_) {}
+        try { if (self._annoSyncSub) self._annoSyncSub.dispose(); } catch (_) {}
+
+        try { leafletMeasure.dispose(); } catch (_) {}
+        try { leafletDemPicker.dispose(); } catch (_) {}
+        try { leafletAnnotation.dispose(); } catch (_) {}
 
         try {
           leafletViewer.dispose();
@@ -577,6 +534,7 @@ ko.components.register('iiif-map-viewer', {
         self._map = null;
         self._mapDiv = null;
         self._leafletDiv = null;
+        self.disableActiveImageTool();
       };
 
       // Nowa funkcja do pomiaru wartości piksela DEM

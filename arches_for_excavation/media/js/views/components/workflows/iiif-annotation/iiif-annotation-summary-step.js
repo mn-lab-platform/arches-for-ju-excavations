@@ -26,6 +26,10 @@ define([
         self.error = ko.observable('');
         self.isLoading = ko.observable(false);
 
+        // NEW
+        self.success = ko.observable('');
+        self.isSaved = ko.observable(false);
+
         self.annotationLabel = ko.observable('');
         self.annotationNote = ko.observable('');
 
@@ -207,16 +211,14 @@ define([
         });
 
         // Can continue?
-        self.canContinue = ko.pureComputed(function() {
+        self.canSave = ko.pureComputed(function() {
             const p = self.payload();
-            const canContinue = p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue()));
-            console.log('[DEBUG] canContinue:', canContinue, {
-                payload: !!p,
-                mode: self.mode(),
-                targetGraphId: self.targetGraphId(),
-                riValue: self.riValue()
-            });
-            return canContinue;
+            return !!(p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue())));
+        });
+
+        self.canContinue = ko.pureComputed(function() {
+            // workflow można zamknąć dopiero po udanym zapisie
+            return self.canSave() && self.isSaved() && !self.isLoading();
         });
 
         // Wire workflow step
@@ -224,6 +226,19 @@ define([
             params.form.complete = self.canContinue;
             console.log('[WF LOG][summary] Workflow step complete condition set.');
         }
+
+        // NEW: jeżeli user zmieni parametry po zapisie -> wymagaj ponownego save
+        function invalidateSavedState() {
+            if (self.isSaved()) {
+                self.isSaved(false);
+                self.success('');
+            }
+        }
+        self.annotationLabel.subscribe(invalidateSavedState);
+        self.annotationNote.subscribe(invalidateSavedState);
+        self.mode.subscribe(invalidateSavedState);
+        self.targetGraphId.subscribe(invalidateSavedState);
+        self.riValue.subscribe(invalidateSavedState);
 
         // ===================== HELPER FUNCTIONS =====================
         
@@ -281,55 +296,146 @@ define([
                 return resp.json ? resp.json() : {};
             });
         }    
-        self.updateManifestOnServer = function(annotationData, digitalResourceId) {
-            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-            var backendUrl = baseUrl + 'api/manifest/update_db'; 
+        function baseRoot() {
+            var root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            return root.replace(/\/+$/, '/');
+        }
 
-            // ✅ ADD: Debug logs
-            console.log('[WF LOG][summary] updateManifestOnServer called with:');
-            console.log('[WF LOG][summary] - annotationData:', annotationData);
-            console.log('[WF LOG][summary] - selector:', annotationData.selector);
-            console.log('[WF LOG][summary] - geometry:', annotationData.geometry);
+        function manifestEditUrl(resourceId) {
+            return baseRoot() + 'api/iiif/geotiff-manifest/edit/' + encodeURIComponent(resourceId);
+        }
 
-            // Używamy selektora z annotatora
-            var selector = annotationData.selector; // {type:..., value:...} (svg/xywh)
-            
-            // ✅ ADD: Validate selector
-            if (!selector || !selector.type || !selector.value) {
-                console.error('[WF LOG][summary] ❌ Invalid selector structure:', selector);
-                console.error('[WF LOG][summary] ❌ Full annotationData:', annotationData);
+        let overrideReadyFor = null;
+
+        function ensureManifestOverride(resourceId, manifest) {
+            return fetchResourceName(resourceId).then(function(resourceName) {
+                return $.ajax({
+                    type: 'POST',
+                    url: manifestEditUrl(resourceId),
+                    data: JSON.stringify({ mode: 'replace', manifest: manifest, resource_name: resourceName }),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                }).then(function() {
+                    overrideReadyFor = resourceId;
+                });
+            });
+        }
+
+        function normalizeSelector(selector) {
+            if (!selector || !selector.value) return null;
+            var t = String(selector.type || '').toLowerCase();
+            var v = String(selector.value || '');
+
+            if (t.indexOf('svg') >= 0) return { type: 'SvgSelector', value: v };
+            if (t.indexOf('xywh') >= 0 || t.indexOf('fragment') >= 0) {
+                return {
+                    type: 'FragmentSelector',
+                    conformsTo: 'http://www.w3.org/TR/media-frags/',
+                    value: /^xywh=/.test(v) ? v : ('xywh=' + v)
+                };
             }
-            
-            // Preferuj xywh z annotatora, jeśli brakuje
-            if (!selector && annotationData.geometry) {
-                console.warn('[WF LOG][summary] ⚠️ Selector missing, falling back to geometry');
-                // fallback (gdyby coś poszło nie tak, ale getIIIFSelectorFromLayer powinien to załatwić)
-                var xywhString = getXYWHFromGeoJSON(annotationData.geometry);
-                selector = { type: 'xywh', value: xywhString };
+            return selector;
+        }
+
+        function buildV3Annotation(anno, label, description) {
+            var canvasId = anno.canvasId || (typeof anno.target === 'string' ? anno.target : null);
+            var selector = normalizeSelector(anno.selector);
+            var target = selector ? { source: canvasId, selector: selector } : canvasId;
+
+            var title = (label || '').trim();
+            var note = (description || '').trim();
+
+            var body = [];
+            if (title) {
+                body.push({
+                    type: 'TextualBody',
+                    value: title,
+                    format: 'text/plain',
+                    purpose: 'tagging'
+                });
+            }
+            if (note) {
+                body.push({
+                    type: 'TextualBody',
+                    value: note,
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                });
+            }
+            if (anno.color) {
+                body.push({
+                    type: 'TextualBody',
+                    value: anno.color,
+                    format: 'text/plain',
+                    purpose: 'color'
+                });
             }
 
-            var payload = {
-                digital_resource_id: digitalResourceId,
-                annotation: {
-                    label: self.annotationLabel() || 'Annotation',
-                    description: self.annotationNote() || '',
-                    selector: selector,
-                    geometry: annotationData.geometry
-                }
+            var annotationResourceId =
+                anno.annotationResourceId ||
+                anno.annotation_resource_id ||
+                null;
+
+            // redundancja: zapisz też w body
+            if (annotationResourceId) {
+                body.push({
+                    type: 'TextualBody',
+                    value: annotationResourceId,
+                    format: 'text/plain',
+                    purpose: 'resource-id'
+                });
+            }
+
+            if (!body.length) {
+                body.push({
+                    type: 'TextualBody',
+                    value: 'Annotation',
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                });
+            }
+
+            var out = {
+                id: anno.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
+                type: 'Annotation',
+                motivation: 'commenting',
+                target: target,
+                body: body
             };
 
-            console.log('[WF LOG][summary] Sending to backend:', payload);
-            console.log('[WF LOG][summary] Selector in payload:', payload.annotation.selector); // ✅ ADD: Specific check
+            if (annotationResourceId) {
+                out.annotationResourceId = annotationResourceId;   // główne pole
+                out.annotation_resource_id = annotationResourceId; // kompatybilność
+            }
 
-            return $.ajax({
-                type: "POST",
-                url: backendUrl,
-                data: JSON.stringify(payload),
-                contentType: "application/json",
-                headers: { 'X-CSRFToken': getCookie('csrftoken') }
-            }).then(function(res) {
-                console.log("[WF LOG][summary] Manifest updated:", res);
-                return res;
+            if (title) {
+                out.label = { none: [title] };
+            }
+            return out;
+        }
+
+        self.updateManifestOnServer = function(annotationData, digitalResourceId, sourceManifest) {
+            var canvasId = annotationData.canvasId || (typeof annotationData.target === 'string' ? annotationData.target : null);
+            if (!canvasId) return Promise.reject(new Error('Missing canvasId for annotation upsert'));
+
+            var v3Anno = buildV3Annotation(
+                annotationData,
+                self.annotationLabel() || 'Annotation',
+                self.annotationNote() || ''
+            );
+
+            return ensureManifestOverride(digitalResourceId, sourceManifest).then(function() {
+                return $.ajax({
+                    type: 'POST',
+                    url: manifestEditUrl(digitalResourceId),
+                    data: JSON.stringify({
+                        mode: 'upsert_annotation',
+                        canvas_id: canvasId,
+                        annotation: v3Anno
+                    }),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                });
             });
         };
 
@@ -402,11 +508,15 @@ define([
             const payload = self.payload();
             if (!payload || !payload.annotations || payload.annotations.length === 0) {
                 self.error('No annotations to save');
+                self.isSaved(false);
+                self.success('');
                 return;
             }
 
             self.isLoading(true);
             self.error('');
+            self.success('');
+            self.isSaved(false);
 
             console.log('[WF LOG][summary] Starting manual save...');
 
@@ -426,11 +536,12 @@ define([
                         return self.saveAnnotationsWithTargetResource(payload, targetResourceId, targetResourceInfo);
                     })
                     .then(function() {
-                        console.log('[WF LOG][summary] All annotations saved with target resource successfully');
+                        self.isSaved(true);
+                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
-                        console.error('[WF LOG][summary] Error in save with target resource:', err);
+                        self.isSaved(false);
                         self.error('Failed to save: ' + err.message);
                         self.isLoading(false);
                     });
@@ -438,11 +549,12 @@ define([
                 // Zwykły tryb - tylko adnotacje
                 self.saveAnnotationsOnly(payload)
                     .then(function() {
-                        console.log('[WF LOG][summary] All annotations saved successfully');
+                        self.isSaved(true);
+                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
-                        console.error('[WF LOG][summary] Error in save:', err);
+                        self.isSaved(false);
                         self.error('Failed to save: ' + err.message);
                         self.isLoading(false);
                     });
@@ -453,48 +565,24 @@ define([
         self.saveAnnotationsWithTargetResource = function(payload, targetResourceId, targetResourceInfo) {
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
-            
-            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations with target resource');
-            console.log('[WF LOG][summary] Full annotations data:', annotations); // ✅ ADD: Debug log
-            
-            // Zapisz wszystkie adnotacje i zbierz ich ID
-            const annotationPromises = annotations.map(function(anno) {
+            const sourceManifest = payload.manifest || null;
+
+            return Promise.all(annotations.map(function(anno) {
                 return self.createAnnotationResource(anno, hostResourceId);
+            }))
+            .then(function(annotationResourceIds) {
+                if (targetResourceInfo.hasRelatedNode) {
+                    return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo)
+                        .then(function() { return annotationResourceIds; });
+                }
+                return annotationResourceIds;
+            })
+            .then(function(annotationResourceIds) {
+                return Promise.all(annotations.map(function(anno, i) {
+                    var withResourceId = Object.assign({}, anno, { annotationResourceId: annotationResourceIds[i] });
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest);
+                }));
             });
-            
-            return Promise.all(annotationPromises)
-                .then(function(annotationResourceIds) {
-                    console.log('[WF LOG][summary] Created annotation resources:', annotationResourceIds);
-                    console.log('[WF LOG][summary] hasRelatedNode:', targetResourceInfo.hasRelatedNode);
-                    console.log('[WF LOG][summary] canLinkToAnnotations:', targetResourceInfo.canLinkToAnnotations);
-                    // Teraz dodaj relacje do target resource'a
-                    if (targetResourceInfo.hasRelatedNode) {
-                        return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo);
-                    } else {
-                        console.log('[WF LOG][summary] Target resource cannot link to annotations, skipping relation');
-                        return Promise.resolve();
-                    }
-                })
-                .then(function() {
-                    // ✅ FIX: Pass the full annotation object with selector and geometry
-                    const manifestPromises = annotations.map(function(anno) {
-                        console.log('[WF LOG][summary] Updating manifest with anno:', anno); // ✅ ADD: Debug
-                        
-                        // ✅ ENSURE selector and geometry are present
-                        if (!anno.selector || !anno.geometry) {
-                            console.error('[WF LOG][summary] ❌ Missing selector or geometry:', anno);
-                        }
-                        
-                        return self.updateManifestOnServer({
-                            label: self.annotationLabel(),
-                            description: self.annotationNote(),
-                            selector: anno.selector,      // ✅ This should contain {type: 'svg', value: '...'} or {type: 'xywh', value: '...'}
-                            geometry: anno.geometry       // ✅ This should contain the GeoJSON
-                        }, hostResourceId);
-                    });
-                    
-                    return Promise.all(manifestPromises);
-                });
         };
 
         // Funkcja do dodawania relacji adnotacji do target resource'a
@@ -529,24 +617,16 @@ define([
         self.saveAnnotationsOnly = function(payload) {
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
-            
-            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations only');
-            
-            const promises = annotations.map(function(anno) {
-                // Utwórz annotation resource
-                return self.createAnnotationResource(anno, hostResourceId)
-                    .then(function(annotationResourceId) {
-                        // Zaktualizuj manifest
-                        return self.updateManifestOnServer({
-                            label: self.annotationLabel(),
-                            description: self.annotationNote(),
-                            selector: anno.selector,
-                            geometry: anno.geometry
-                        }, hostResourceId);
-                    });
+            const sourceManifest = payload.manifest || null;
+
+            return Promise.all(annotations.map(function(anno) {
+                return self.createAnnotationResource(anno, hostResourceId);
+            })).then(function(annotationResourceIds) {
+                return Promise.all(annotations.map(function(anno, i) {
+                    var withResourceId = Object.assign({}, anno, { annotationResourceId: annotationResourceIds[i] });
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest);
+                }));
             });
-            
-            return Promise.all(promises);
         };
 
         // Dodaj nową funkcję do sprawdzania struktury wybranego/stworzonego resource'a
@@ -705,6 +785,15 @@ define([
                     error: err.message
                 };
             });
+        }
+
+        function fetchResourceName(resourceId) {
+            var baseUrl = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
+            var url = baseUrl + 'resource/' + encodeURIComponent(resourceId);
+            return fetch(url, { credentials: 'include', headers: { 'Accept': 'application/json' } })
+                .then(resp => resp.json())
+                .then(data => data.displayname || data.name || resourceId)
+                .catch(() => resourceId);
         }
 
         self.dispose = function() {

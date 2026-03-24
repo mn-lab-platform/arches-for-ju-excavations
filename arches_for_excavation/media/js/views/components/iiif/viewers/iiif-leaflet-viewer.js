@@ -1,7 +1,19 @@
 // viewers/iiif-leaflet-viewer.js
 import ko from 'knockout';
 import $ from 'jquery';
-import { forceDoubleSlashAfterIiif } from '../lib/iiif-infojson-patch';
+
+import {
+  canvasDims,
+  canvasLabel,
+  canvasLabelStr,
+  extractServiceUrlFromCanvas,
+  forceIiifServiceId,
+  isDemCanvas,
+  isDemProductCanvas,
+  mdValue,
+  pickLargestCanvas
+} from '../lib/iiif-manifest-utils';
+
 
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const LEAFLET_IIIF_JS = 'https://unpkg.com/leaflet-iiif@3.0.0/leaflet-iiif.js';
@@ -80,104 +92,6 @@ async function ensureLeaflet() {
   return L;
 }
 
-function forceIiifServiceId(serviceId) {
-  if (!serviceId) return null;
-
-  // enforce /iiif//data/... shape
-  const s = forceDoubleSlashAfterIiif(serviceId);
-
-  // strip trailing slashes
-  return String(s).replace(/\/+$/, '');
-}
-
-// Reads IIIF v3 metadata: [{label:{en:[k]}, value:{en:[v]}}]
-function mdValue(canvas, key) {
-  const md = canvas && canvas.metadata;
-  if (!Array.isArray(md)) return null;
-  for (let i = 0; i < md.length; i++) {
-    const row = md[i];
-    const label = row?.label?.en?.[0] ?? row?.label?.none?.[0] ?? null;
-    if (label !== key) continue;
-    const val = row?.value?.en?.[0] ?? row?.value?.none?.[0] ?? null;
-    return val ?? null;
-  }
-  return null;
-}
-function canvasLabelStr(canvas) {
-  return (
-    canvas?.label?.en?.[0] ||
-    canvas?.label?.none?.[0] ||
-    ''
-  );
-}
-
-function isDemCanvas(canvas) {
-  const v = mdValue(canvas, 'is_dem_hint');
-  return String(v).trim().toLowerCase() === 'true';
-}
-
-// hack: produkty DEM po suffixach w label
-function isDemProductCanvas(canvas) {
-  const label = canvasLabelStr(canvas).toLowerCase();
-  // dopisz tu wszystkie swoje konwencje nazw
-  return (
-    label.includes('(hillshade)') ||
-    label.includes('(color relief)') ||
-    label.includes('(colorrelief)') ||
-    label.includes('(slope)') ||
-    label.includes('(aspect)')
-  );
-}
-function canvasLabel(canvas, fallback) {
-  return (
-    canvas?.label?.en?.[0] ||
-    canvas?.label?.none?.[0] ||
-    String(fallback || 'Layer')
-  );
-}
-
-function extractServiceUrlFromCanvas(canvas) {
-  try {
-    const ap = canvas?.items?.[0];
-    const ann = ap?.items?.[0];
-    const body = ann?.body;
-    if (!body) return null;
-
-    const svc = body.service;
-    const s = Array.isArray(svc) ? svc[0] : svc;
-    const id = s?.id || s?.['@id'];
-    return forceIiifServiceId(id);
-  } catch (e) {
-    return null;
-  }
-}
-
-function canvasDims(canvas) {
-  // canvas.width/height mogą być 1 (placeholder) — fallback do metadata
-  const wCanvas = Number(canvas?.width || 0);
-  const hCanvas = Number(canvas?.height || 0);
-  const wMeta = Number(mdValue(canvas, 'width') || 0);
-  const hMeta = Number(mdValue(canvas, 'height') || 0);
-
-  // preferuj większą wartość (metadata > placeholder)
-  const w = wMeta > 1 ? wMeta : wCanvas;
-  const h = hMeta > 1 ? hMeta : hCanvas;
-  return { w, h };
-}
-function pickLargestCanvas(canvases) {
-  let best = null;
-  let bestArea = -1;
-  canvases.forEach((c) => {
-    const { w, h } = canvasDims(c);
-    const area = w > 0 && h > 0 ? w * h : -1;
-    if (area > bestArea) {
-      bestArea = area;
-      best = c;
-    }
-  });
-  return best || canvases[0] || null;
-}
-
 /**
  * Leaflet IIIF multi-layer viewer in pixel space (CRS.Simple).
  *
@@ -220,13 +134,14 @@ export function createLeafletViewer(opts = {}) {
   }
 
   function makeLayerVm(rec) {
-    // Overlay toggle + opacity for this canvas
-    // IMPORTANT: default visible = true, otherwise user will think "only 1 layer works"
+    // Ustaw opacity tylko dla warstwy colorrelief
+    const label = rec.label.toLowerCase();
+    const isColorRelief = label.includes('(colorrelief)') || label.includes('(color relief)') || label.includes('hillshade');
     const vm = {
       id: rec.id,
       label: rec.label,
       visible: ko.observable(true),
-      opacity: ko.observable(1),
+      opacity: ko.observable(isColorRelief ? 0.5 : 1),
       _ensureLayer: () => ensureLayer(rec),
       _setVisible: async (v) => setLayerVisible(rec, v),
       _setOpacity: async (o) => setLayerOpacity(rec, o),
@@ -253,6 +168,10 @@ export function createLeafletViewer(opts = {}) {
       api._map.createPane('iiif-overlays');
       api._map.getPane('iiif-overlays').style.zIndex = 400;
     }
+    if (!api._map.getPane('iiif-tools')) {
+      api._map.createPane('iiif-tools');
+      api._map.getPane('iiif-tools').style.zIndex = 800;
+    }    
   }
 
   async function loadDimsFromInfoJson(rec) {
@@ -550,7 +469,32 @@ export function createLeafletViewer(opts = {}) {
     }
   };
 
+  api.getCanvasRecord = (canvasId) => {
+    if (!canvasId) return null;
+    return api._canvasIndex.get(canvasId) || null;
+  };
 
+  api.getCanvasMaxZoom = (canvasId) => {
+    const rec = api.getCanvasRecord(canvasId);
+    if (!rec) return null;
+
+    const layer = rec._layer || null;
+    const fromLayer = getIiifLayerMaxZoom(layer);
+    if (Number.isFinite(fromLayer)) return fromLayer;
+
+    const w = Number(rec.w || 0);
+    const h = Number(rec.h || 0);
+    const maxDim = Math.max(w, h);
+    if (!(maxDim > 1)) return 0;
+
+    // fallback tylko gdy warstwa jeszcze nie ma wyliczonego zoomu
+    return Math.max(0, Math.ceil(Math.log2(maxDim / 256)));
+  };
+
+  api.getCurrentBaseCanvasMaxZoom = () => {
+    const baseId = api._lockedBaseId || api.baseCanvasId();
+    return api.getCanvasMaxZoom(baseId);
+  };
   api.dispose = () => {
     disposeSubs();
 
