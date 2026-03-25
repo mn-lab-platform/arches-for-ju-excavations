@@ -1,4 +1,7 @@
-export const createMapControl = ({ iconClass, title }) => {
+import { EventBusInstance } from "../core/EventBus";
+import { events } from "../constants/events";
+
+export const createMapControl = ({ iconClass, title, controlInstance }) => {
     const button = document.createElement("button");
     button.classList.add("maplibregl-ctrl", "map-control-button");
     button.title = title;
@@ -9,6 +12,18 @@ export const createMapControl = ({ iconClass, title }) => {
         const isOpen = panel.classList.toggle("--control-panel-open");
         button.classList.toggle("--control-active", isOpen);
         button.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        
+        if (isOpen) {
+            EventBusInstance.publish(events.CONTROL_OPEN, controlInstance);
+        }
+    });
+
+    EventBusInstance.subscribe(events.CONTROL_OPEN, (openedControl) => {
+        if (openedControl !== controlInstance) {
+            panel.classList.remove("--control-panel-open");
+            button.classList.remove("--control-active");
+            button.setAttribute("aria-expanded", "false");
+        }
     });
 
     const icon = document.createElement("i");

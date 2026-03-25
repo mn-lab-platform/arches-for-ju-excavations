@@ -8,7 +8,8 @@ export default class BasemapControl {
                 name: 'carto-voyager',
                 tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
                 tileSize: 256,
-                bounds: null
+                bounds: null,
+                type: 'raster'
             },
             layer_info: {
                 name: 'Carto Voyager',
