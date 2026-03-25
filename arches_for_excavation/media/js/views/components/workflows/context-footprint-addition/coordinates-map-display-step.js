@@ -3,10 +3,9 @@ define([
     'arches',
     'maplibre-gl',
     '../../../../services/basemap-service',
-    '../../../../maplibre_map_viewer/controls/basemapMenu',
+    '../../../../maplibre-viewer/src/map/controls/BasemapControl',
     'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
-    'maplibre-gl/dist/maplibre-gl.css',
-    '../../../../../css/components/maplibre_map_viewer/index.css' 
+    '../../../../../css/components/maplibre-viewer/index.css' 
 ], function(ko, arches, maplibreGl, basemapServiceModule, basemapMenuModule, template) {
     class Point {
         constructor(label, x, y, z) {
@@ -206,7 +205,6 @@ define([
 
                 basemapService.getBasemapsAndOverlaysInfo().then(info => {
                     const basemapInfo = info.basemaps;
-                    const overlayInfo = info.overlays;
 
                     const basemapControl = new BasemapMenuControl({
                         layers: basemapInfo
