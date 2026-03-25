@@ -1,22 +1,23 @@
 export const extractGeommetryFeaturesFromArchesResourceInfo = (resourceInfo) => {
-    const geometry = resourceInfo?.geometries?.[0]?.geom;
+    const geometries = resourceInfo?.geometries;
+    if (!geometries || !Array.isArray(geometries) || geometries.length === 0) return [];
 
-    if (!geometry) {
-        console.warn(`extractGeommetryFeaturesFromArchesResourceInfo: Resource with id ${resourceInfo?.resourceId} does not have valid geometry.`);
-        return [];
-    }
+    const features = [];
 
-    let extractedFeatures = [];
+    geometries.forEach(g => {
+        const geo = g?.geom;
+        if (!geo) return;
 
-    if (geometry.type === "FeatureCollection") {
-        if (geometry.features) {
-            extractedFeatures = geometry.features;
+        if (geo.type === 'FeatureCollection' && Array.isArray(geo.features)) {
+            features.push(...geo.features.filter(f => f && f.type === 'Feature'));
+        } else if (geo.type === 'Feature') {
+            features.push(geo);
+        } else if (geo.type && ['Point','LineString','Polygon','MultiPoint','MultiLineString','MultiPolygon','GeometryCollection'].includes(geo.type)) {
+            features.push({ type: 'Feature', geometry: geo, properties: {} });
+        } else {
+            console.warn('extractGeommetryFeaturesFromArchesResourceInfo: unrecognized geometry', geo);
         }
-    } else if (geometry.type === "Feature") {
-        extractedFeatures = [geometry];
-    } else {
-        console.warn("MapEngine: Unrecognized or invalid geometry structure.", geometry);
-    }
+    });
 
-    return extractedFeatures;
+    return features;
 }

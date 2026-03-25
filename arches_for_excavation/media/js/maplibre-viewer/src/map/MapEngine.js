@@ -1,7 +1,7 @@
 import { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { centroid, polygon, bbox } from '@turf/turf';
-import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData } from './utils';
+import { centroid, polygon } from '@turf/turf';
+import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer } from './utils';
 
 import {getMapExtent, getBasemapsAndOverlays} from '../api/archesService';
 
@@ -9,6 +9,7 @@ import BasemapControl from './controls/BasemapControl';
 import { OverlayControl } from './controls/OverlayControl';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
+import store from '../core/store';
 
 export class MapEngine {
     constructor(containerId) {
@@ -47,8 +48,6 @@ export class MapEngine {
             .then(info => {
                 const basemapInfo = info.basemaps;
                 const overlayInfo = info.overlays;
-                console.log("overlays: ", overlayInfo);
-                
 
                 const basemapControl = new BasemapControl({
                     layers: basemapInfo
@@ -56,7 +55,6 @@ export class MapEngine {
                 this.map.addControl(basemapControl, 'top-right');
 
                 const overlayLayers = [this._createPreviewMapDefinition(), ...overlayInfo];
-                console.log("overlayLayers: ", overlayLayers);
                 const overlayControl = new OverlayControl({
                     layers: overlayLayers
                 });
@@ -123,6 +121,24 @@ export class MapEngine {
             } else {
                 console.warn(`MapEngine: PREVIEW_REMOVE requested for ${resourceId} but it wasn't in state.`);
             }
+        });
+
+        EventBusInstance.subscribe(events.LAYER_ADD, (layerDefinition) => {
+            addSourceAndLayersToMap(this.map, layerDefinition, store.mapLayerIds);
+            fitMapToGeojson(this.map, {
+                type: 'FeatureCollection',
+                features: layerDefinition.features
+            }, { padding: 50, duration: 800 });
+        });
+
+        EventBusInstance.subscribe(events.LAYER_SHOW, (layerId) => {
+            store.mapLayerIds = [...store.mapLayerIds, layerId];
+            showLayer(this.map, layerId);
+        });
+
+        EventBusInstance.subscribe(events.LAYER_HIDE, (layerId) => {
+            store.mapLayerIds = store.mapLayerIds.filter(id => id !== layerId);
+            hideLayer(this.map, layerId);
         });
     }
 }

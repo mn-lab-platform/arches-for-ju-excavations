@@ -48,7 +48,7 @@ export class FlyoutView {
         this.createLayerButton.disabled = true;
 
         this.createLayerButton.addEventListener('click', () => {
-            EventBusInstance.publish(events.CREATE_LAYER, Array.from(this.selectedForLayer.values()));
+            EventBusInstance.publish(events.LAYER_CREATE_TRIGGER, Array.from(this.selectedForLayer.values()));
             EventBusInstance.publish(events.FLYOUT_CLOSED);
             this.container.classList.toggle('flyout--visible', false);
             this._removeAllPreviews();

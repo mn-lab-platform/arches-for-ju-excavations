@@ -35,7 +35,6 @@ export class OverlayControl {
 
     onAdd(map) {
         this._map = map;
-        console.log("Layers in overlaycontrol: ", this._layers);
 
         const previewLayerId = this._layers[0].layer_info.id;
         if (!this._activeLayerIds.includes(previewLayerId)) {

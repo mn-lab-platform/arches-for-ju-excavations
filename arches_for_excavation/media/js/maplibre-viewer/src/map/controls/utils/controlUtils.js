@@ -5,7 +5,6 @@ export const loadSourcesAndLayersIntoMap = (map, layers, activeLayerIds = []) =>
 
         console.log("Layerinfo inside loadSources: ", layerInfo);
         
-
         const hasRasterLayer = !!map.getLayer(layerInfo.id);
         const hasGeojsonLayer = !!map.getLayer(`${layerInfo.id}-fill`) || !!map.getLayer(`${layerInfo.id}-line`) || !!map.getLayer(`${layerInfo.id}-circle`);
 
