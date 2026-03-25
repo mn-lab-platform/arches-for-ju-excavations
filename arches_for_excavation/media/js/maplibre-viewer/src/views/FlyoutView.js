@@ -2,6 +2,8 @@ import arches from 'arches';
 import { getAllResources } from '../api/archesService';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
+import { extractGeommetryFeaturesFromArchesResourceInfo } from './utils';
+
 
 export class FlyoutView {
     constructor(parentElement) {
@@ -114,7 +116,6 @@ export class FlyoutView {
             return matchesSearch && matchesType;
         });
 
-        const filteredIds = new Set(filteredResources.map(r => r.resourceinstanceid));
         this._removeAllPreviews();
         this._renderResults(filteredResources);
     }
@@ -265,7 +266,7 @@ export class FlyoutView {
                     resourceId: resourceId,
                     name: resourceInfo.displayname,
                     description: resourceInfo.displaydescription,
-                    geometry: resourceInfo.geometries[0]
+                    geometryFeatures: extractGeommetryFeaturesFromArchesResourceInfo(resourceInfo)
                 });
             }
             else {
