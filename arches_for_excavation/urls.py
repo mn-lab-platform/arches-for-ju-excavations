@@ -14,6 +14,7 @@ from .views.geotiff_files import GeoTiffFileView
 from .views.dem_pixel_sample import dem_pixel_sample
 from .views.iiif_titler_proxy import titiler_iiif_proxy
 from .views.iiif_photo_handler import PhotoUploadView
+from .views.iiif_map_plugin import IiifAllmapsLayersView
 urlpatterns = [
     # project-level urls
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
@@ -37,6 +38,7 @@ urlpatterns = [
     path("api/iiif/geotiff-manifest/edit/<uuid:resource_id>", ManifestEditView.as_view(), name="manifest_edit"),
     path("api/iiif/photo-upload", PhotoUploadView.as_view(), name="iiif-photo-upload"),
     path("api/iiif/resource-context/<uuid:resource_id>", ResourceContextView.as_view(), name="iiif_resource_context"),
+    path('api/iiif/<str:resource_id>/allmaps-layers', IiifAllmapsLayersView.as_view(), name='iiif_allmaps_layers'),
 ]
 
 
