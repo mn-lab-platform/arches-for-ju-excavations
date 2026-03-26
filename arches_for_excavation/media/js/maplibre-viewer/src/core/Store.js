@@ -6,4 +6,4 @@ const store = {
 }
 
 
-export default store;
+export default Object.seal(store);
