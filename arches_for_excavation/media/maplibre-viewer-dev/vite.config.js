@@ -21,6 +21,13 @@ export default defineConfig({
         open: true,
         fs: {
             allow: ['../../..']
+        },
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+                secure: false
+            }
         }
     },
 });
