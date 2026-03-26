@@ -1,5 +1,7 @@
 import { createMapControl } from "../../components/mapControl";
-import { loadSourcesAndLayersIntoMap, applyActiveLayerVisibility } from "./utils/controlUtils";
+import { EventBusInstance } from "../../core/EventBus";
+import { events } from "../../constants/events";
+import store from "../../core/store";
 
 export default class BasemapControl {
     constructor(options) {
@@ -12,7 +14,7 @@ export default class BasemapControl {
                 type: 'raster'
             },
             layer_info: {
-                name: 'Carto Voyager',
+                name: 'Default Basemap',
                 id: 'carto-voyager-layer',
                 source: 'carto-voyager',
                 sortorder: -1,
@@ -21,8 +23,9 @@ export default class BasemapControl {
         };
 
         this._map = null;
-        this._layers = [defaultBasemap, ...(options?.layers || [])];
-        this._activeLayerIds = [defaultBasemap.layer_info.id];
+        const areLayersProvided = options?.layers && options.layers.length > 0;
+        this._layers = areLayersProvided ? [...options?.layers, defaultBasemap] : [defaultBasemap];
+        store.basemapLayerId = areLayersProvided ? [options.layers[0].layer_info.id] : [defaultBasemap.layer_info.id];
 
         const { button, panel } = createMapControl({
             iconClass: 'fa fa-map',
@@ -34,14 +37,14 @@ export default class BasemapControl {
 
     onAdd(map) {
         this._map = map;
-        loadSourcesAndLayersIntoMap(this._map, this._layers, this._activeLayerIds);
+        
         this._layers.forEach(layer => {
             const layerInfo = layer.layer_info;
 
             const basemapContainer = document.createElement("div");
             basemapContainer.classList.add("maplayer-option");
 
-            if (this._activeLayerIds.includes(layerInfo.id)) {
+            if (store.basemapLayerId.includes(layerInfo.id)) {
                 basemapContainer.classList.add("active");
             }
 
@@ -59,15 +62,20 @@ export default class BasemapControl {
             });
 
             this._controlPanel.appendChild(basemapContainer);
+
+            EventBusInstance.publish(events.BASEMAP_ADD, layer);
         });
         
         return this._controlButton;
     }
 
     _switchBasemap(newLayerId, newContainer) {
-        this._activeLayerIds = [newLayerId];
-        applyActiveLayerVisibility(this._map, this._layers, this._activeLayerIds);
+        const oldLayerId = store.basemapLayerId[0];
+        store.basemapLayerId = [newLayerId];
 
+        EventBusInstance.publish(events.LAYER_HIDE, oldLayerId);
+        EventBusInstance.publish(events.LAYER_SHOW, newLayerId);
+        
         this._controlButton.querySelectorAll('.maplayer-option').forEach(el => {
             el.classList.remove('active');
         });

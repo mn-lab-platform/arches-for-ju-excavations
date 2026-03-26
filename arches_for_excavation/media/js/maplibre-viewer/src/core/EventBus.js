@@ -10,6 +10,7 @@ class EventBus {
         }
         this.subscriptions[eventType][id] = callback;
 
+        //TODO: actually use the cleanup in subscribers
         return {
             unsubscribe: () => {
                 delete this.subscriptions[eventType][id];
