@@ -1,5 +1,5 @@
 // import arches from 'arches';
-import { getAllResources } from '../api/archesService';
+import { getAllResources, getAllResourcesFromFilterString } from '../api/archesService';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import { extractGeommetryFeaturesFromArchesResourceInfo } from './utils/utils';
@@ -11,6 +11,7 @@ export class FlyoutView {
         this.resources = [];
         this.selectedForLayer = new Map();
         this.previewedIds = new Set();
+        this.advancedSearchOn = false;
 
         this.container = document.createElement('div');
         this.container.className = 'flyout';
@@ -65,24 +66,90 @@ export class FlyoutView {
         this.filters = document.createElement('div');
         this.filters.className = 'flyout-filters';
 
+        this.searchContainer = document.createElement('div');
+        this.searchContainer.className = 'flyout-search-container';
+
         this.searchInput = document.createElement('input');
         this.searchInput.className = 'flyout-search-input';
         this.searchInput.type = 'search';
         this.searchInput.placeholder = 'Search resources...';
         this.searchInput.setAttribute('aria-label', 'Search resources');
         this.searchInput.addEventListener('input', () => {
-            this._applyFilters();
+            if (this.advancedSearchCheckbox.checked && this.searchInput.value.trim()) {
+                this.advancedApplyButton.style.display = 'inline-block';
+            } else {
+                this.advancedApplyButton.style.display = 'none';
+            }
+            if (!this.advancedSearchCheckbox.checked) {
+                this._applyFilters();
+            }
         });
+
+        this.advancedSearchLabel = document.createElement('label');
+        this.advancedSearchLabel.className = 'flyout-advanced-label';
+        this.advancedSearchLabel.htmlFor = 'advanced-search-toggle';
+        this.advancedSearchLabel.textContent = 'Advanced search';
+
+        this.advancedSearchCheckbox = document.createElement('input');
+        this.advancedSearchCheckbox.type = 'checkbox';
+        this.advancedSearchCheckbox.id = 'advanced-search-toggle';
+        this.advancedSearchCheckbox.name = 'advanced-search-toggle';
+        this.advancedSearchCheckbox.checked = this.advancedSearchOn;
+        this.advancedSearchCheckbox.title = 'Toggle advanced search mode';
+
+        this.advancedSearchCheckbox.addEventListener('change', () => {
+            if (this.advancedSearchCheckbox.checked) {
+                this.advancedSearchOn = true;
+                this.typeSelect.disabled = true;
+                this.searchInput.placeholder = 'Paste your filter URL in here...';
+                if (this.searchInput.value.trim()) {
+                    this.advancedApplyButton.style.display = 'inline-block';
+                }
+            } else {
+                this.advancedSearchOn = false;
+                this.typeSelect.disabled = false;
+                this.searchInput.value = '';
+                this.searchInput.placeholder = 'Search resources...';
+                this.advancedApplyButton.style.display = 'none';
+                this._fetchAllResources();
+                this._applyFilters();
+            }
+        });
+
+        this.advancedApplyButton = document.createElement('button');
+        this.advancedApplyButton.className = 'flyout-advanced-apply';
+        this.advancedApplyButton.textContent = 'Apply';
+        this.advancedApplyButton.style.display = 'none';
+
+        this.advancedApplyButton.addEventListener('click', () => {
+            const filterUrl = this.searchInput.value.trim();
+            if (!filterUrl) {
+                return;
+            }
+            const filterString = this._extractFilterStringFromUrl(filterUrl);
+            console.log("Applying advanced filter with string: ", filterString);
+            getAllResourcesFromFilterString(filterString).then(response => {
+                this._fillInstanceResourcesFromApiResponse(response);
+                this._renderResults(this.resources);
+            });
+        });
+        this.searchContainer.appendChild(this.advancedApplyButton);
+
+        this.searchContainer.appendChild(this.searchInput);
+        this.searchContainer.appendChild(this.advancedSearchCheckbox);
+        this.searchContainer.appendChild(this.advancedSearchLabel);
+        this.searchContainer.appendChild(this.advancedApplyButton);
 
         this.typeSelect = document.createElement('select');
         this.typeSelect.className = 'flyout-type-select';
         this.typeSelect.setAttribute('aria-label', 'Filter by resource type');
         this._fillTypeSelect();
+
         this.typeSelect.addEventListener('change', () => {
             this._applyFilters();
         });
 
-        this.filters.appendChild(this.searchInput);
+        this.filters.appendChild(this.searchContainer);
         this.filters.appendChild(this.typeSelect);
 
         this.results = document.createElement('div');
@@ -94,6 +161,16 @@ export class FlyoutView {
 
 
         this.container.appendChild(this.content);
+    }
+
+    _extractFilterStringFromUrl(url) {
+        try {
+            const parsedUrl = new URL(url, window.location.origin);
+            return parsedUrl.search ? parsedUrl.search.substring(1) : '';
+        } catch (e) {
+            const idx = url.indexOf('?');
+            return idx !== -1 ? url.substring(idx + 1) : '';
+        }
     }
 
     _updateCreateLayerButtonState() {
@@ -177,14 +254,17 @@ export class FlyoutView {
     }
 
     _fetchAllResources() {
-        getAllResources().then(resources => {
-            
-            const hits = resources.results.hits.hits;
-            this.resources = hits
-                .filter((hit => hit._source.geometries && hit._source.geometries.length > 0))
-                .map(hit => hit._source);
+        getAllResources().then(response => {
+            this._fillInstanceResourcesFromApiResponse(response);
             this._renderResults(this.resources);
         });
+    }
+
+    _fillInstanceResourcesFromApiResponse(apiResponse) {
+        const hits = apiResponse.results.hits.hits;
+        this.resources = hits
+            .filter((hit => hit._source.geometries && hit._source.geometries.length > 0))
+            .map(hit => hit._source);
     }
 
     _renderResults(resourcesToRender) {

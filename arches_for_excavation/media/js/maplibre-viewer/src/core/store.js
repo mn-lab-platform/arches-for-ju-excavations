@@ -1,3 +1,4 @@
+//always use reasignment eg. store.mapLayerIds = [...store.mapLayerIds, newLayerId];. Dont mutate state in place.
 const store = {
     previewedResourceId: null,
     mapLayerIds: [],
