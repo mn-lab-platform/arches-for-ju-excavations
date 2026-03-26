@@ -27,11 +27,6 @@ export class OverlayControl {
             store.overlayLayerIds = [...store.overlayLayerIds, previewLayerId];
         }
 
-        this._layers.forEach(layer => {
-            console.log("Adding layer to map: ", layer);
-            EventBusInstance.publish(events.OVERLAY_ADD, layer);
-        });
-
         this._map.once('idle', () => {
             ['','-fill','-line','-circle'].forEach(sfx => {
                 const lid = `${previewLayerId}${sfx}`;
@@ -73,6 +68,8 @@ export class OverlayControl {
             overlayContainer.appendChild(labelElement);
 
             this._controlPanel.appendChild(overlayContainer);
+
+            EventBusInstance.publish(events.OVERLAY_ADD, layer);
         });
 
         // for initial visibility of preview

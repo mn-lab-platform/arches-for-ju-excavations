@@ -124,6 +124,10 @@ export class MapEngine {
             }
         });
 
+        EventBusInstance.subscribe(events.BASEMAP_ADD, (layerInfo) => {
+            addSourceAndLayersToMap(this.map, layerInfo, store.basemapLayerId);
+        });
+
         EventBusInstance.subscribe(events.OVERLAY_ADD, (layerInfo) => {
             addSourceAndLayersToMap(this.map, layerInfo, store.overlayLayerIds);
         });
