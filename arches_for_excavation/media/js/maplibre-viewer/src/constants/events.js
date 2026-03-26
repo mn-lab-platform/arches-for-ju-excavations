@@ -5,6 +5,8 @@ export const events = {
     CONTROL_OPEN: 'control:open',
     FLYOUT_CLOSED: 'flyout:closed',
 
+    OVERLAY_ADD: 'overlay:add',
+
     LAYER_CREATE_TRIGGER: 'layer:create_trigger', 
     LAYER_ADD: 'layer:add',
     LAYER_REMOVE: 'layer:remove',

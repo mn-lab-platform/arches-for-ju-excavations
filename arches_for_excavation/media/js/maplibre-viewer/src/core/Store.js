@@ -1,8 +1,8 @@
 const store = {
     previewedResourceId: null,
     mapLayerIds: [],
-    basemapLayers: [],
-    overlayLayers: [],
+    basemapLayerId: [], //in order to keep map layers and sources loading logic modular we keep it as array
+    overlayLayerIds: [],
 }
 
 

@@ -1,29 +1,15 @@
 import { createMapControl } from "../../components/mapControl";
-import { loadSourcesAndLayersIntoMap, applyActiveLayerVisibility } from "./utils/controlUtils";
+import { EventBusInstance } from "../../core/EventBus";
+import { events } from "../../constants/events";
+import store from "../../core/store";
 
 //TODO: generic control to handle eventbus
 export class OverlayControl {
     constructor(options) {
-        const osmBasemap = {
-            source_info: {
-                name: 'osm-standard',
-                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                tileSize: 256,
-                bounds: null,
-                type: 'raster'
-            },
-            layer_info: {
-                name: 'OSM Standard',
-                id: 'osm-standard-layer',
-                source: 'osm-standard',
-                icon: 'fa fa-globe'
-            }
-        };
-
         this._map = null;
-        this._layers = options?.layers || [];
-        this._activeLayerIds = [];
 
+        this._layers = options?.layers || [];
+        
         const { button, panel } = createMapControl({
             iconClass: 'fa fa-list',
             title: 'Overlay Selector',
@@ -35,13 +21,16 @@ export class OverlayControl {
 
     onAdd(map) {
         this._map = map;
-
+        
         const previewLayerId = this._layers[0].layer_info.id;
-        if (!this._activeLayerIds.includes(previewLayerId)) {
-            this._activeLayerIds.push(previewLayerId);
+        if (!store.overlayLayerIds.includes(previewLayerId)) {
+            store.overlayLayerIds = [...store.overlayLayerIds, previewLayerId];
         }
 
-        loadSourcesAndLayersIntoMap(this._map, this._layers, this._activeLayerIds);
+        this._layers.forEach(layer => {
+            console.log("Adding layer to map: ", layer);
+            EventBusInstance.publish(events.OVERLAY_ADD, layer);
+        });
 
         this._map.once('idle', () => {
             ['','-fill','-line','-circle'].forEach(sfx => {
@@ -61,15 +50,16 @@ export class OverlayControl {
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.classList.add("overlay-checkbox");
-            checkbox.checked = this._activeLayerIds.includes(layerInfo.id);
+            checkbox.checked = store.overlayLayerIds.includes(layerInfo.id);
 
             checkbox.addEventListener("change", () => {
                 if (checkbox.checked) {
-                    this._activeLayerIds.push(layerInfo.id);
+                    store.overlayLayerIds = [...store.overlayLayerIds, layerInfo.id];
+                    EventBusInstance.publish(events.LAYER_SHOW, layerInfo.id);
                 } else {
-                    this._activeLayerIds = this._activeLayerIds.filter(id => id !== layerInfo.id);
+                    store.overlayLayerIds = store.overlayLayerIds.filter(id => id !== layerInfo.id);
+                    EventBusInstance.publish(events.LAYER_HIDE, layerInfo.id);
                 }
-                applyActiveLayerVisibility(this._map, this._layers, this._activeLayerIds);
             });
             overlayContainer.appendChild(checkbox);
 
@@ -85,7 +75,11 @@ export class OverlayControl {
             this._controlPanel.appendChild(overlayContainer);
         });
 
-        applyActiveLayerVisibility(this._map, this._layers, this._activeLayerIds);// for initial visibility of preview
+        // for initial visibility of preview
+        //TODO
+        store.overlayLayerIds.forEach(layerId => {
+            EventBusInstance.publish(events.LAYER_SHOW, layerId);
+        });
 
         return this._controlButton;
     }

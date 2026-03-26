@@ -1,7 +1,7 @@
 import { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { centroid, polygon } from '@turf/turf';
-import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer } from './utils';
+import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer } from './utils/utils';
 
 import {getMapExtent, getBasemapsAndOverlays} from '../api/archesService';
 
@@ -34,6 +34,7 @@ export class MapEngine {
     _centerMap() {
         getMapExtent()
             .then(extent => {
+                console.log("Map extent: ", extent);
                 const extentPolygon = polygon([extent]);
                 const center = centroid(extentPolygon);
                 this.map.setCenter(center.geometry.coordinates ?? [0, 0]);
@@ -123,12 +124,20 @@ export class MapEngine {
             }
         });
 
+        EventBusInstance.subscribe(events.OVERLAY_ADD, (layerInfo) => {
+            addSourceAndLayersToMap(this.map, layerInfo, store.overlayLayerIds);
+        });
+
         EventBusInstance.subscribe(events.LAYER_ADD, (layerDefinition) => {
             addSourceAndLayersToMap(this.map, layerDefinition, store.mapLayerIds);
-            fitMapToGeojson(this.map, {
-                type: 'FeatureCollection',
-                features: layerDefinition.features
-            }, { padding: 50, duration: 800 });
+            const features = layerDefinition.source_info.data.features;
+            if (features) {
+                fitMapToGeojson(this.map, {
+                    type: 'FeatureCollection',
+                    features: features
+                }, { padding: 50, duration: 800 });
+            }
+            showLayer(this.map, layerDefinition.layer_info.id);
         });
 
         EventBusInstance.subscribe(events.LAYER_SHOW, (layerId) => {

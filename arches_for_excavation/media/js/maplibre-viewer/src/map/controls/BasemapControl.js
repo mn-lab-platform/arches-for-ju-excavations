@@ -12,7 +12,7 @@ export default class BasemapControl {
                 type: 'raster'
             },
             layer_info: {
-                name: 'Carto Voyager',
+                name: 'Default Basemap',
                 id: 'carto-voyager-layer',
                 source: 'carto-voyager',
                 sortorder: -1,
@@ -21,8 +21,9 @@ export default class BasemapControl {
         };
 
         this._map = null;
-        this._layers = [defaultBasemap, ...(options?.layers || [])];
-        this._activeLayerIds = [defaultBasemap.layer_info.id];
+        const areLayersProvided = options?.layers && options.layers.length > 0;
+        this._layers = areLayersProvided ? [...options?.layers, defaultBasemap] : [defaultBasemap];
+        this._activeLayerIds = areLayersProvided ? [options.layers[0].layer_info.id] : [defaultBasemap.layer_info.id];
 
         const { button, panel } = createMapControl({
             iconClass: 'fa fa-map',
