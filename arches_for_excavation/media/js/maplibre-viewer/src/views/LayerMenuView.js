@@ -1,6 +1,6 @@
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
-import { extractGeommetryFeaturesFromArchesResourceInfo } from "./utils";
+import { extractGeommetryFeaturesFromArchesResourceInfo } from "./utils/utils";
 import store from "../core/store";
 
 export class LayerMenuView {
@@ -60,10 +60,18 @@ export class LayerMenuView {
 
             const featureCollection = this._aggregateLayerGeometryFeatures(layerDataArray);
             const layerDefinition = {
-                id: layerId,
-                name: `Layer ${this.layers.length}`,
-                features: featureCollection.features,
-                color: layerAccentColor,
+                source_info: {
+                    name: layerId,
+                    type: 'geojson',
+                    data: featureCollection
+                },
+                layer_info: {
+                    id: layerId,
+                    name: `Layer ${this.layers.length}`,
+                    source: layerId,
+                    accent: layerAccentColor,
+                    icon: 'fa fa-map-marker',
+                }
             }
             this.layers.push(layerDefinition);
             

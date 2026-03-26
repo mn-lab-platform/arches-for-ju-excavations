@@ -40,23 +40,11 @@ export const createValidLayerInfoFromResourceData= (resourceData) => {
     return processedFeatures;
 }
 
-export const addSourceAndLayersToMap = (map, layerInfo, activeLayerIds = []) => {
-    console.log("Adding layer to map with info: ", layerInfo);
-    console.log("Active layers before adding: ", activeLayerIds);
-    
-    const sourceInfo = {
-        name: layerInfo.id,
-        type: 'geojson',
-        data: {
-            type: 'FeatureCollection',
-            features: layerInfo.features
-        }
-    }
+export const addSourceAndLayersToMap = (map, layerDefinition, activeLayerIds = []) => {
+    console.log("Adding layer to map with definition: ", layerDefinition);
+    const sourceInfo = layerDefinition.source_info;
+    const layerInfo = layerDefinition.layer_info;
 
-    layerInfo.source = sourceInfo.name;
-
-    console.log("Layerinfo inside loadSourcesmap: ", layerInfo);
-    
     const hasRasterLayer = !!map.getLayer(layerInfo.id);
     const hasGeojsonLayer = !!map.getLayer(`${layerInfo.id}-fill`) || !!map.getLayer(`${layerInfo.id}-line`) || !!map.getLayer(`${layerInfo.id}-circle`);
 
@@ -86,7 +74,7 @@ export const addSourceAndLayersToMap = (map, layerInfo, activeLayerIds = []) => 
                 source: layerInfo.source,
                 maxzoom: 24,
                 layout: {
-                    visibility: "visible",
+                    visibility: activeLayerIds.includes(layerInfo.id) ? "visible" : "none",
                 },
             });
         }
@@ -106,15 +94,12 @@ export const addSourceAndLayersToMap = (map, layerInfo, activeLayerIds = []) => 
 };
 
 const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
-    console.log("Id from layerinfo: ", layerInfo.id);
-    console.log("Active layers: ", activeLayerIds);
-    
     map.addLayer({
         id: `${layerInfo.id}-fill`,
         type: 'fill',
         source: layerInfo.source,
         paint: {
-            'fill-color': layerInfo.color || '#22d37a',
+            'fill-color': layerInfo.accent || '#22d37a',
             'fill-opacity': 0.5
         },  
         filter: ['==', ['geometry-type'], 'Polygon'],
@@ -129,7 +114,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         type: 'line',
         source: layerInfo.source,
         paint: {
-            'line-color': layerInfo.color|| '#22d37a',
+            'line-color': layerInfo.accent|| '#22d37a',
             'line-width': 2
         },
         filter: ['!=', ['geometry-type'], 'Point'],
@@ -145,7 +130,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         source: layerInfo.source,
         paint: {
             'circle-radius': 6,
-            'circle-color': layerInfo.color || '#22d37a',
+            'circle-color': layerInfo.accent || '#22d37a',
             'circle-stroke-width': 2,
             'circle-stroke-color': '#ffffff'
         },
@@ -181,44 +166,6 @@ export const showLayer = (map, layerId) => {
         const lid = `${layerId}${sfx}`;
         if (map.getLayer(lid)) {
             map.setLayoutProperty(lid, 'visibility', 'visible');
-        }
-    });
-};
-
-export const applyActiveLayerVisibility = (map, layers, activeLayerIds = []) => {
-    layers.forEach((layer) => {
-        const id = layer.layer_info.id;
-        const srcType = layer.source_info?.type;
-
-        if (srcType === 'raster') {
-            if (map.getLayer(id)) {
-                map.setLayoutProperty(
-                    id,
-                    "visibility",
-                    activeLayerIds.includes(id) ? "visible" : "none"
-                );
-            }
-        }
-        else if (srcType === 'geojson') {
-            ['-fill', '-line', '-circle'].forEach(sfx => {
-                const lid = `${id}${sfx}`;
-                if (map.getLayer(lid)) {
-                    map.setLayoutProperty(
-                        lid,
-                        "visibility",
-                        activeLayerIds.includes(id) ? "visible" : "none"
-                    );
-                }
-            });
-        }
-        else {
-            if (map.getLayer(id)) {
-                map.setLayoutProperty(
-                    id,
-                    "visibility",
-                    activeLayerIds.includes(id) ? "visible" : "none"
-                );
-            }
         }
     });
 };
