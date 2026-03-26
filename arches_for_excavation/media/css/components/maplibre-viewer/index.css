@@ -233,6 +233,7 @@
   color: var(--muted-text);
   cursor: pointer;
   user-select: none;
+  margin: 0 0.5em 0 0.5em;
 }
 
 .flyout-search-input {
@@ -245,6 +246,7 @@
   height: 1.2em;
 
   accent-color: var(--vibrant-purple);
+  margin: 0 0.2em 0 0.5em;
 }
 
 .flyout-advanced-apply {
