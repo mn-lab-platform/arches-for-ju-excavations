@@ -9,4 +9,4 @@ export const initializePlugin = () => {
     const panelView = new PanelView('map-root');
 };
 
-initializePlugin();
+// initializePlugin();
