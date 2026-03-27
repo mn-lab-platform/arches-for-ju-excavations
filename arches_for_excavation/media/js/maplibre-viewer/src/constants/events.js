@@ -2,7 +2,7 @@ export const events = {
     PREVIEW_ADD: 'preview:add',
     PREVIEW_REMOVE: 'preview:remove',
 
-    CONTROL_OPEN: 'control:open',
+    CONTROL_ACTIVE: 'control:active',
     FLYOUT_CLOSED: 'flyout:closed',
 
     BASEMAP_ADD: 'basemap:add',
@@ -13,5 +13,7 @@ export const events = {
     LAYER_REMOVE: 'layer:remove',
     LAYER_SHOW: 'layer:show',
     LAYER_HIDE: 'layer:hide',
+
+    MAP_TO_DEFAULT: 'map:to_default',
 }
 

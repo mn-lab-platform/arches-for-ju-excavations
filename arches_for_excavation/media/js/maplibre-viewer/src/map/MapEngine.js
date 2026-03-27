@@ -5,8 +5,9 @@ import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceD
 
 import {getMapExtent, getBasemapsAndOverlays} from '../api/archesService';
 
-import BasemapControl from './controls/BasemapControl';
+import { BasemapControl } from './controls/BasemapControl';
 import { OverlayControl } from './controls/OverlayControl';
+import { RecenterMapControl } from './controls/RecenterMapControl';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import store from '../core/store';
@@ -15,6 +16,7 @@ export class MapEngine {
     constructor(containerId) {
         this.previewFeatures = new Map();
         this.previewSourceId = 'preview-source';
+        this.extent = null;
         this.map = new MapLibreMap({
             container: containerId,
             style: {
@@ -24,24 +26,32 @@ export class MapEngine {
             },
             zoom: 16.5,
         });
-        this._centerMap();
+        this._centerMapToDefaultExtent();
         this.map.on('load', () => {
             this._register_controls();
         });
         this._setupEventListeners();
     }
 
-    _centerMap() {
-        getMapExtent()
-            .then(extent => {
-                console.log("Map extent: ", extent);
-                const extentPolygon = polygon([extent]);
-                const center = centroid(extentPolygon);
-                this.map.setCenter(center.geometry.coordinates ?? [0, 0]);
-            })
-            .catch(error => {
-                console.error('Error fetching map extent:', error);
-            });
+    _centerMapToDefaultExtent() {
+        if (this.extent) {
+            this.map.setCenter(this._getCenterFromExtent(this.extent));
+        } else {
+            getMapExtent()
+                .then(extent => {
+                    this.map.setCenter(this._getCenterFromExtent(extent));
+                    this.extent = extent;
+                })
+                .catch(error => {
+                    console.error('Error fetching map extent:', error);
+                });
+        }
+    }
+
+    _getCenterFromExtent(extent) {
+        const extentPolygon = polygon([extent]);
+        const center = centroid(extentPolygon);
+        return center.geometry.coordinates ?? [0, 0];
     }
 
      _register_controls() {
@@ -60,11 +70,12 @@ export class MapEngine {
                     layers: overlayLayers
                 });
                 this.map.addControl(overlayControl, 'top-right');
+
+                const recenterControl = new RecenterMapControl();
+                this.map.addControl(recenterControl, 'top-right');
             })
             .catch(error => {
                 console.error('Error registering controls:', error);
-                this.map.addControl(new BasemapControl({ layers: [] }), 'top-right');
-                this.map.addControl(new OverlayControl({ layers: [] }), 'top-right');
             });
     }
 
@@ -152,6 +163,10 @@ export class MapEngine {
         EventBusInstance.subscribe(events.LAYER_HIDE, (layerId) => {
             store.mapLayerIds = store.mapLayerIds.filter(id => id !== layerId);
             hideLayer(this.map, layerId);
+        });
+
+        EventBusInstance.subscribe(events.MAP_TO_DEFAULT, () => {
+            this._centerMapToDefaultExtent();
         });
     }
 }
