@@ -10,6 +10,7 @@ export class FlyoutView {
         this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
         this.resources = [];
         this.selectedForLayer = new Map();
+        this.currentlyRenderedResources = [];
         this.previewedIds = new Set();
         this.advancedSearchOn = false;
         this.allResultsSelected = false;
@@ -76,6 +77,11 @@ export class FlyoutView {
         this.searchInput.placeholder = 'Search resources...';
         this.searchInput.setAttribute('aria-label', 'Search resources');
         this.searchInput.addEventListener('input', () => {
+            if (this.searchInput.classList.contains('flyout-search-error')) {
+                this.searchInput.classList.remove('flyout-search-error');
+                this.searchInput.placeholder = 'Search resources...';
+            }
+
             if (this.advancedSearchCheckbox.checked && this.searchInput.value.trim()) {
                 this.advancedApplyButton.style.display = 'inline-block';
             } else {
@@ -112,6 +118,7 @@ export class FlyoutView {
                 this.searchInput.value = '';
                 this.searchInput.placeholder = 'Search resources...';
                 this.advancedApplyButton.style.display = 'none';
+                this.searchInput.classList.remove('flyout-search-input--error');
                 this._fetchAllResources();
                 this._applyFilters();
             }
@@ -124,11 +131,13 @@ export class FlyoutView {
 
         this.advancedApplyButton.addEventListener('click', () => {
             const filterUrl = this.searchInput.value.trim();
-            if (!filterUrl) {
+            if (!filterUrl || !this._isValidSearchUrl(filterUrl)) {
+                this.searchInput.value = '';
+                this.searchInput.placeholder = 'Please enter a valid search URL';
+                this.searchInput.classList.add('flyout-search-input--error');
                 return;
             }
             const filterString = this._extractFilterStringFromUrl(filterUrl);
-            console.log("Applying advanced filter with string: ", filterString);
             getAllResourcesFromFilterString(filterString).then(response => {
                 this._fillInstanceResourcesFromApiResponse(response);
                 this._renderResults(this.resources);
@@ -168,25 +177,15 @@ export class FlyoutView {
 
         this.selectAllButton.addEventListener('click', () => {
             this.allResultsSelected = !this.allResultsSelected;
-            let filteredResources;
-            if (!this.advancedSearchOn) {
-                filteredResources = this._applyFilters(false);
-            } else {
-                filteredResources = this.resources;
-            }
-
+            const visible = this.currentlyRenderedResources;
             if (this.allResultsSelected) {
-                filteredResources.forEach(resource => {
-                    this.selectedForLayer.set(resource.resourceinstanceid, resource);
-                });
+                visible.forEach(resource => this.selectedForLayer.set(resource.resourceinstanceid, resource));
                 this.selectAllButton.textContent = 'Unselect All';
             } else {
-                filteredResources.forEach(resource => {
-                    this.selectedForLayer.delete(resource.resourceinstanceid);
-                });
+                visible.forEach(resource => this.selectedForLayer.delete(resource.resourceinstanceid));
                 this.selectAllButton.textContent = 'Select All';
             }
-            this._renderResults(filteredResources);
+            this._renderResults(visible);
             this._updateCreateLayerButtonState();
         });
 
@@ -236,6 +235,15 @@ export class FlyoutView {
 
 
         this.container.appendChild(this.content);
+    }
+
+    _isValidSearchUrl(url) {
+        try {
+        const parsed = new URL(url, window.location.origin);
+            return parsed.pathname.startsWith('/search');
+        } catch (e) {
+            return false;
+        }
     }
 
     _extractFilterStringFromUrl(url) {
@@ -347,6 +355,7 @@ export class FlyoutView {
     }
 
     _renderResults(resourcesToRender) {
+        this.currentlyRenderedResources = resourcesToRender;
         this.results.innerHTML = '';
         resourcesToRender.forEach(resourceInfo => {
             const item = this._createResultItem(resourceInfo);
@@ -406,6 +415,17 @@ export class FlyoutView {
             }
             item.classList.toggle("aggregated", aggregateCheckbox.checked);
             this._updateCreateLayerButtonState();
+
+            const visibleResourceIds = this.currentlyRenderedResources.map(r => r.resourceinstanceid);
+            const allChecked = visibleResourceIds.every(id => this.selectedForLayer.has(id));
+        
+            if (allChecked) {
+                this.allResultsSelected = true;
+                this.selectAllButton.textContent = 'Unselect All';
+            } else {
+                this.allResultsSelected = false;
+                this.selectAllButton.textContent = 'Select All';
+            }
         });
 
         const mapPreviewButton = document.createElement('button');

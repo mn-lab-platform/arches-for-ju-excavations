@@ -1,6 +1,7 @@
 :root {
   --vibrant-purple: #a259f7;
   --deep-purple: #4c4772;
+  --vibrant-red: #f44336;
 
   --dark-bg: #181825;  
   --menu-bg: #24263a;      
@@ -303,6 +304,11 @@
   outline: none !important;
 }
 
+.flyout-search-input--error {
+  border-color: var(--vibrant-red) !important;
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.25) !important;
+}
+
 .flyout-type-select option {
   background: var(--menu-bg);
   color: var(--light-text);
@@ -311,6 +317,11 @@
 .flyout-search-input::placeholder {
   color: var(--muted-text);
   opacity: 1;
+}
+
+.flyout-search-input--error::placeholder {
+  color: var(--vibrant-red) !important;
+  opacity: 0.8;
 }
 
 .flyout-filter-group {
