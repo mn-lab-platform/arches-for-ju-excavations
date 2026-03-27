@@ -1,28 +1,42 @@
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
 
-export const createMapControl = ({ iconClass, title, controlInstance }) => {
+export const createMapControl = ({ iconClass, title, hasPanel, controlInstance }) => {
     const button = document.createElement("button");
+    const panel = document.createElement("div");
+
     button.classList.add("maplibregl-ctrl", "map-control-button");
     button.title = title;
-    button.setAttribute("aria-haspopup", "true");
+    button.setAttribute("aria-haspopup", hasPanel ? "true" : "false");
     button.setAttribute("aria-expanded", "false");
 
     button.addEventListener("click", () => {
-        const isOpen = panel.classList.toggle("--control-panel-open");
-        button.classList.toggle("--control-active", isOpen);
-        button.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        
-        if (isOpen) {
-            EventBusInstance.publish(events.CONTROL_OPEN, controlInstance);
+        const isActive = !button.classList.contains("--control-active");
+
+        button.classList.toggle("--control-active", isActive);
+        button.setAttribute("aria-expanded", isActive ? "true" : "false");
+
+        if (isActive) {
+            EventBusInstance.publish(events.CONTROL_ACTIVE, controlInstance);
+        }
+
+        if (hasPanel) {
+            panel.classList.toggle("--control-panel-open", isActive);
+        } else if (isActive) {
+            setTimeout(() => {
+                button.classList.remove("--control-active");
+                button.setAttribute("aria-expanded", "false");
+            }, 500);
         }
     });
 
-    EventBusInstance.subscribe(events.CONTROL_OPEN, (openedControl) => {
-        if (openedControl !== controlInstance) {
-            panel.classList.remove("--control-panel-open");
+    EventBusInstance.subscribe(events.CONTROL_ACTIVE, (activeControl) => {
+        if (activeControl !== controlInstance) {
             button.classList.remove("--control-active");
             button.setAttribute("aria-expanded", "false");
+            if (hasPanel) {
+                panel.classList.remove("--control-panel-open");
+            }
         }
     });
 
@@ -30,7 +44,9 @@ export const createMapControl = ({ iconClass, title, controlInstance }) => {
     icon.className = iconClass;
     button.appendChild(icon);
 
-    const panel = document.createElement("div");
+    if (!hasPanel) 
+        return { button };
+
     panel.classList.add("control-panel");
     panel.setAttribute("role", "menu");
     button.appendChild(panel);

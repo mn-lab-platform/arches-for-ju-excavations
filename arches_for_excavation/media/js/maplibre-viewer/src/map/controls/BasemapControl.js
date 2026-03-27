@@ -3,7 +3,7 @@ import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
 import store from "../../core/store";
 
-export default class BasemapControl {
+export class BasemapControl {
     constructor(options) {
         const defaultBasemap = {
             source_info: {
@@ -29,7 +29,9 @@ export default class BasemapControl {
 
         const { button, panel } = createMapControl({
             iconClass: 'fa fa-map',
-            title: 'Basemap Selector'
+            title: 'Basemap Selector',
+            hasPanel: true,
+            controlInstance: this
         });
         this._controlButton = button;
         this._controlPanel = panel;
