@@ -1,4 +1,4 @@
-import arches from 'arches';
+// import arches from 'arches';
 import { getAllResources, getAllResourcesFromFilterString } from '../api/archesService';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
@@ -12,6 +12,7 @@ export class FlyoutView {
         this.selectedForLayer = new Map();
         this.previewedIds = new Set();
         this.advancedSearchOn = false;
+        this.allResultsSelected = false;
 
         this.container = document.createElement('div');
         this.container.className = 'flyout';
@@ -67,7 +68,7 @@ export class FlyoutView {
         this.filters.className = 'flyout-filters';
 
         this.searchContainer = document.createElement('div');
-        this.searchContainer.className = 'flyout-search-container';
+        this.searchContainer.className = 'flyout-search-group';
 
         this.searchInput = document.createElement('input');
         this.searchInput.className = 'flyout-search-input';
@@ -140,6 +141,12 @@ export class FlyoutView {
         this.searchContainer.appendChild(this.advancedSearchLabel);
         this.searchContainer.appendChild(this.advancedApplyButton);
 
+        this.resultToolbar = document.createElement('div');
+        this.resultToolbar.className = 'flyout-result-toolbar';
+        
+        this.filterGroup = document.createElement('div');
+        this.filterGroup.className = 'flyout-filter-group';
+
         this.typeSelect = document.createElement('select');
         this.typeSelect.className = 'flyout-type-select';
         this.typeSelect.setAttribute('aria-label', 'Filter by resource type');
@@ -148,9 +155,77 @@ export class FlyoutView {
         this.typeSelect.addEventListener('change', () => {
             this._applyFilters();
         });
+        
+        this.filterGroup.appendChild(this.typeSelect);
 
+        this.actionGroup = document.createElement('div');
+        this.actionGroup.className = 'flyout-action-group';
+
+        this.selectAllButton = document.createElement('button');
+        this.selectAllButton.className = 'flyout-select-all';
+        this.selectAllButton.textContent = 'Select All';
+        this.selectAllButton.title = 'Select all resources in the current filter results';
+
+        this.selectAllButton.addEventListener('click', () => {
+            this.allResultsSelected = !this.allResultsSelected;
+            let filteredResources;
+            if (!this.advancedSearchOn) {
+                filteredResources = this._applyFilters(false);
+            } else {
+                filteredResources = this.resources;
+            }
+
+            if (this.allResultsSelected) {
+                filteredResources.forEach(resource => {
+                    this.selectedForLayer.set(resource.resourceinstanceid, resource);
+                });
+                this.selectAllButton.textContent = 'Unselect All';
+            } else {
+                filteredResources.forEach(resource => {
+                    this.selectedForLayer.delete(resource.resourceinstanceid);
+                });
+                this.selectAllButton.textContent = 'Select All';
+            }
+            this._renderResults(filteredResources);
+            this._updateCreateLayerButtonState();
+        });
+
+        this.selectedOnlyToggle = document.createElement('div');
+        this.selectedOnlyToggle.className = 'selected-only-toggle';
+
+        this.selectedOnlySwitch = document.createElement('label');
+        this.selectedOnlySwitch.className = 'selected-only-switch';
+
+        this.selectedOnlyCheckbox = document.createElement('input');
+        this.selectedOnlyCheckbox.type = 'checkbox';
+
+        const toggleSpan = document.createElement('span');
+
+        const toggleText = document.createTextNode(' Selected only');
+
+        this.selectedOnlySwitch.appendChild(this.selectedOnlyCheckbox);
+        this.selectedOnlySwitch.appendChild(toggleSpan);
+        this.selectedOnlySwitch.appendChild(toggleText);
+
+        this.selectedOnlyCheckbox.addEventListener('change', () => {
+            if (this.selectedOnlyCheckbox.checked) {
+                this._renderResults(Array.from(this.selectedForLayer.values()));
+                this.selectAllButton.disabled = true;
+            }
+            else {                
+                this._renderResults(this.resources);
+                this.selectAllButton.disabled = false;
+            }
+        });
+
+        this.selectedOnlyToggle.appendChild(this.selectedOnlySwitch);
+
+        this.filterGroup.appendChild(this.actionGroup);
+        this.actionGroup.appendChild(this.selectAllButton);
+        this.actionGroup.appendChild(this.selectedOnlyToggle);
+        
         this.filters.appendChild(this.searchContainer);
-        this.filters.appendChild(this.typeSelect);
+        this.filters.appendChild(this.filterGroup);
 
         this.results = document.createElement('div');
         this.results.className = 'flyout-results';
@@ -183,18 +258,22 @@ export class FlyoutView {
         : "Select resource(s) to create layer";
     }
 
-    _applyFilters() {
+    _applyFilters(shouldRender = true) {
         const searchTerm = this.searchInput.value.toLowerCase();
         const selectedType = this.typeSelect.value;
 
         const filteredResources = this.resources.filter(resource => {
-            const matchesSearch = resource.displayname.toLowerCase().includes(searchTerm) || resource.displaydescription.toLowerCase().includes(searchTerm);
+            const matchesSearch = resource.displayname.toLowerCase().includes(searchTerm) ||
+                                resource.displaydescription.toLowerCase().includes(searchTerm);
             const matchesType = selectedType ? resource.graph_id === selectedType : true;
             return matchesSearch && matchesType;
         });
 
-        this._removeAllPreviews();
-        this._renderResults(filteredResources);
+        if (shouldRender) {
+            this._removeAllPreviews();
+            this._renderResults(filteredResources);
+        }
+        return filteredResources;
     }
 
     _fillTypeSelect() {
@@ -203,39 +282,39 @@ export class FlyoutView {
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        const resourceTypes = arches?.resources;
-//         const resourceTypes = [
-//     {
-//         "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "name": "Digital Resource 3D",
-//         "icon": "fa fa-cube"
-//     },
-//     {
-//         "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "name": "Trench",
-//         "icon": "fa fa-crop"
-//     },
-//     {
-//         "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "name": "New Resource Model",
-//         "icon": ""
-//     },
-//     {
-//         "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "name": "Context ",
-//         "icon": "fa fa-digg"
-//     },
-//     {
-//         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "name": "Coordinate System",
-//         "icon": "fa fa-arrows-alt"
-//     }
-// ];
+        // const resourceTypes = arches?.resources;
+        const resourceTypes = [
+    {
+        "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "name": "Digital Resource 3D",
+        "icon": "fa fa-cube"
+    },
+    {
+        "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "name": "Trench",
+        "icon": "fa fa-crop"
+    },
+    {
+        "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "name": "New Resource Model",
+        "icon": ""
+    },
+    {
+        "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "name": "Context ",
+        "icon": "fa fa-digg"
+    },
+    {
+        "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+        "name": "Coordinate System",
+        "icon": "fa fa-arrows-alt"
+    }
+];
         resourceTypes.forEach(resource => {
             const option = document.createElement('option');
             option.value = resource.graphid;
