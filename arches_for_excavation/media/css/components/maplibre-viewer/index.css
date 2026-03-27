@@ -1,6 +1,7 @@
 :root {
   --vibrant-purple: #a259f7;
   --deep-purple: #4c4772;
+  --vibrant-red: #f44336;
 
   --dark-bg: #181825;  
   --menu-bg: #24263a;      
@@ -219,7 +220,7 @@
   box-sizing: border-box;
 }
 
-.flyout-search-container {
+.flyout-search-group {
   width: 100%;
 
   display: flex;
@@ -240,7 +241,7 @@
   flex: 1;
 }
 
-.flyout-search-container input[type="checkbox"] {
+.flyout-search-group input[type="checkbox"] {
   align-self: center;
   width: 1.2em;
   height: 1.2em;
@@ -303,6 +304,11 @@
   outline: none !important;
 }
 
+.flyout-search-input--error {
+  border-color: var(--vibrant-red) !important;
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.25) !important;
+}
+
 .flyout-type-select option {
   background: var(--menu-bg);
   color: var(--light-text);
@@ -311,6 +317,47 @@
 .flyout-search-input::placeholder {
   color: var(--muted-text);
   opacity: 1;
+}
+
+.flyout-search-input--error::placeholder {
+  color: var(--vibrant-red) !important;
+  opacity: 0.8;
+}
+
+.flyout-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flyout-action-group {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0.5em 0 0.5em;
+}
+
+.flyout-select-all {
+  background: transparent;
+  color: var(--muted-text);
+  border: 1.5px solid var(--panel-border-strong);
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 0.4em 0.8em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.flyout-select-all:hover:not(:disabled) {
+  background: rgba(162, 89, 247, 0.1);
+  color: var(--light-text);
+  border-color: var(--vibrant-purple);
+}
+
+.flyout-select-all:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: var(--panel-border-soft);
 }
 
 .flyout-results {
@@ -603,6 +650,88 @@
   color: var(--light-text);
 }
 
+/* Original toggle switch styles by https://uiverse.io/profile/lenin55
+   Licensed under MIT - Adapted to Arches Dark Theme */
+
+.selected-only-toggle {
+  position: relative;
+}
+
+.selected-only-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-size: 0.98em;
+  color: var(--muted-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hidden Input */
+.selected-only-switch > input {
+  appearance: none;
+  z-index: -1;
+  position: absolute;
+  left: -6px;
+  top: -8px;
+  display: block;
+  margin: 0;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Track (Unchecked) */
+.selected-only-switch > span::before {
+  content: "";
+  display: inline-block;
+  margin: 5px 10px 5px 0;
+  border-radius: 7px;
+  width: 36px;
+  height: 14px;
+  background-color: var(--panel-border-strong);
+  vertical-align: top;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+/* Thumb (Unchecked) */
+.selected-only-switch > span::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 0px;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  background-color: var(--muted-text);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+/* Track (Checked) */
+.selected-only-switch > input:checked + span::before {
+  background-color: rgba(162, 89, 247, 0.4); 
+}
+
+/* Thumb (Checked) */
+.selected-only-switch > input:checked + span::after {
+  background-color: var(--vibrant-purple);
+  transform: translateX(16px);
+}
+
+/* Hover State (Subtle brightness) */
+.selected-only-switch:hover > span::after {
+  filter: brightness(1.2);
+}
+
+/* Disabled State */
+.selected-only-switch > input:disabled + span::before {
+  background-color: var(--panel-border-soft);
+}
+.selected-only-switch > input:disabled + span::after {
+  background-color: rgba(255, 255, 255, 0.1);
+}
 
 
 
