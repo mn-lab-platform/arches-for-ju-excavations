@@ -36,11 +36,13 @@ export class MapEngine {
     _centerMapToDefaultExtent() {
         if (this.extent) {
             this.map.setCenter(this._getCenterFromExtent(this.extent));
+            this.map.setZoom(16.5);
         } else {
             getMapExtent()
                 .then(extent => {
                     this.map.setCenter(this._getCenterFromExtent(extent));
                     this.extent = extent;
+                    this.map.setZoom(16.5);
                 })
                 .catch(error => {
                     console.error('Error fetching map extent:', error);
@@ -111,11 +113,14 @@ export class MapEngine {
                 type: 'FeatureCollection',
                 features: Array.from(this.previewFeatures.values()).flat()
             });
-            
+
+            const padding = 50;
+            const overlayWidth = store.mapOffsetX || 0;
+            const shift = Math.max(0, Math.round(overlayWidth / 2 - padding));
             fitMapToGeojson(this.map, {
                 type: 'FeatureCollection',
                 features: Array.from(this.previewFeatures.values()).flat()
-            }, { padding: 50, duration: 800 });
+            }, { padding, duration: 800, offset: [shift, 0] });
         });
 
         EventBusInstance.subscribe(events.PREVIEW_REMOVE, (resourceId) => {
@@ -150,7 +155,7 @@ export class MapEngine {
                 fitMapToGeojson(this.map, {
                     type: 'FeatureCollection',
                     features: features
-                }, { padding: 50, duration: 800 });
+                }, { padding: 50, duration: 800, offset: [50, 0] });
             }
             showLayer(this.map, layerDefinition.layer_info.id);
         });

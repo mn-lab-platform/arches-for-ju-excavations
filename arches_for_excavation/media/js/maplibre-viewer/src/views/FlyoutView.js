@@ -3,6 +3,7 @@ import { getAllResources, getAllResourcesFromFilterString } from '../api/archesS
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import { extractGeommetryFeaturesFromArchesResourceInfo } from './utils/utils';
+import store from '../core/store';
 
 
 export class FlyoutView {
@@ -21,6 +22,13 @@ export class FlyoutView {
 
         this._buildLayout();
         this._fetchAllResources();
+
+        this._includeFlyoutSizeInMapOffset();
+    }
+
+    _includeFlyoutSizeInMapOffset() {
+        const flyoutWidth = this.container.offsetWidth;
+        store.mapOffsetX += flyoutWidth;
     }
 
     _buildLayout() {
@@ -58,6 +66,10 @@ export class FlyoutView {
             this.selectedForLayer.clear();
             this.searchInput.value = '';
             this.typeSelect.value = '';
+            this.selectAllButton.textContent = 'Select All';
+            this.allResultsSelected = false;
+            this.selectedOnlyCheckbox.checked = false;
+            this.selectAllButton.disabled = false;
             this._renderResults(this.resources);
             this._updateCreateLayerButtonState();
         });
