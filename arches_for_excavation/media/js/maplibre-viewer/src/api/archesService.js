@@ -54,16 +54,44 @@ export const getAllResources = (graphId=null) => {
     return resourceService.getAll(graphId);
 };
 
-export const getAllResourcesFromFilterString = (filterString) => {
-    const url = `/search/resources?${filterString}`;
-    return fetch(url, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken')
+export const getAllResourcesFromFilterString = async (filterString, maxPages = 1000) => {
+    const params = new URLSearchParams(filterString);
+    let page = Number(params.get('paging-filter') || 1);
+    const results = [];
+
+    while (page <= maxPages) {
+        params.set('paging-filter', String(page));
+        const url = `/search/resources?${params.toString()}`;
+
+        let resp;
+        try {
+            resp = await fetch(url, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+        } catch (err) {
+            console.warn('Network error:', err);
+            break;
         }
-    }).then(resp => {
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        return resp.json();
-    });
+
+        let json;
+        try {
+            json = await resp.json();
+        } catch (err) {
+            console.warn('Non-JSON response:', err);
+            break;
+        }
+        if (json && json.success === false) {
+            break;
+        }
+        results.push(json);
+        if (!json || (Object.keys(json).length === 0 && resp.ok)) {
+            break;
+        }
+    }
+
+    return results;
 };
