@@ -118,7 +118,13 @@ define([
                 if (params.form) {
                     params.form.resourceids = ids;
                     params.form.resourceid = ids[0] || null; // backward compatibility
-                    params.form.value = ids;
+
+                    // FIX: never overwrite form.value (it is expected to be a function/observable)
+                    if (typeof params.form.value === 'function') {
+                        params.form.value(ids);
+                    } else {
+                        params.form._value = ids; // optional fallback only
+                    }
 
                     const selected = self.allResources()
                         .filter(r => ids.indexOf(r.id) !== -1)
@@ -132,7 +138,13 @@ define([
 
                 if (params.form) {
                     params.form.resourceid = id;
-                    params.form.value = id;
+
+                    // FIX: never overwrite form.value (it is expected to be a function/observable)
+                    if (typeof params.form.value === 'function') {
+                        params.form.value(id);
+                    } else {
+                        params.form._value = id; // optional fallback only
+                    }
 
                     const one = self.allResources().find(r => r.id === id) || null;
                     params.form.selectedResources = one ? [{ id: one.id, name: one.name, description: one.description || '' }] : [];
@@ -153,12 +165,18 @@ define([
                 .then(function(data) {
                     const hits = (((data || {}).results || {}).hits || {}).hits || [];
                     const rows = hits.map(function(hit) { return hit._source; });
-
                     self.allResources(rows.map(function(r) {
+
+                        let computedGraphName = 'Unknown Resource Type';
+                        if (r.graph_id && arches.default && arches.default.resources) {
+                            const graphInfo = arches.default.resources.find(g => g.graphid === r.graph_id)
+                            computedGraphName = graphInfo.name;
+                        }
                         return {
                             id: r.resourceinstanceid,
                             name: r.displayname || r.resourceinstanceid,
-                            description: r.displaydescription || ''
+                            description: r.displaydescription || '',
+                            graphName: computedGraphName
                         };
                     }));
 

@@ -74,7 +74,7 @@ define([
 
     function _isAllowedForCurrentMode(file) {
       var name = (file && file.name ? file.name : '').toLowerCase();
-      if (self.isPhotoMode()) return /\.(jpe?g|png)$/.test(name);
+      if (self.isPhotoMode()) return /\.(jpe?g|png|tiff?)$/.test(name);
       return /\.(tif|tiff)$/.test(name);
     }
 

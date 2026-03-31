@@ -1,6 +1,7 @@
 import ko from 'knockout';
 import $ from 'jquery';
 import maplibregl from 'maplibre-gl';
+import '../../../../css/components/iiif_viewer/index.css';
 
 import iiifMapViewerTemplate from 'templates/views/components/iiif/iiif-map-viewer.htm';
 
