@@ -1,8 +1,9 @@
-import arches from 'arches';
+// import arches from 'arches';
 import { getAllResources, getAllResourcesFromFilterString } from '../api/archesService';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import { extractGeommetryFeaturesFromArchesResourceInfo } from './utils/utils';
+import store from '../core/store';
 
 
 export class FlyoutView {
@@ -21,6 +22,13 @@ export class FlyoutView {
 
         this._buildLayout();
         this._fetchAllResources();
+
+        this._includeFlyoutSizeInMapOffset();
+    }
+
+    _includeFlyoutSizeInMapOffset() {
+        const flyoutWidth = this.container.offsetWidth;
+        store.mapOffsetX += flyoutWidth;
     }
 
     _buildLayout() {
@@ -58,6 +66,10 @@ export class FlyoutView {
             this.selectedForLayer.clear();
             this.searchInput.value = '';
             this.typeSelect.value = '';
+            this.selectAllButton.textContent = 'Select All';
+            this.allResultsSelected = false;
+            this.selectedOnlyCheckbox.checked = false;
+            this.selectAllButton.disabled = false;
             this._renderResults(this.resources);
             this._updateCreateLayerButtonState();
         });
@@ -290,39 +302,39 @@ export class FlyoutView {
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        const resourceTypes = arches?.resources;
-//         const resourceTypes = [
-//     {
-//         "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "name": "Digital Resource 3D",
-//         "icon": "fa fa-cube"
-//     },
-//     {
-//         "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "name": "Trench",
-//         "icon": "fa fa-crop"
-//     },
-//     {
-//         "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "name": "New Resource Model",
-//         "icon": ""
-//     },
-//     {
-//         "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "name": "Context ",
-//         "icon": "fa fa-digg"
-//     },
-//     {
-//         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "name": "Coordinate System",
-//         "icon": "fa fa-arrows-alt"
-//     }
-// ];
+        // const resourceTypes = arches?.resources;
+        const resourceTypes = [
+    {
+        "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        "name": "Digital Resource 3D",
+        "icon": "fa fa-cube"
+    },
+    {
+        "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        "name": "Trench",
+        "icon": "fa fa-crop"
+    },
+    {
+        "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        "name": "New Resource Model",
+        "icon": ""
+    },
+    {
+        "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        "name": "Context ",
+        "icon": "fa fa-digg"
+    },
+    {
+        "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+        "name": "Coordinate System",
+        "icon": "fa fa-arrows-alt"
+    }
+];
         resourceTypes.forEach(resource => {
             const option = document.createElement('option');
             option.value = resource.graphid;
