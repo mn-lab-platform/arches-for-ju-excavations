@@ -36,11 +36,13 @@ export class MapEngine {
     _centerMapToDefaultExtent() {
         if (this.extent) {
             this.map.setCenter(this._getCenterFromExtent(this.extent));
+            this.map.setZoom(16.5);
         } else {
             getMapExtent()
                 .then(extent => {
                     this.map.setCenter(this._getCenterFromExtent(extent));
                     this.extent = extent;
+                    this.map.setZoom(16.5);
                 })
                 .catch(error => {
                     console.error('Error fetching map extent:', error);
