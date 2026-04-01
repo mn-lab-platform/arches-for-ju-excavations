@@ -18,7 +18,7 @@ export class BasemapControl {
                 id: 'carto-voyager-layer',
                 source: 'carto-voyager',
                 sortorder: -1,
-                icon: 'fa fa-map'
+                icon: 'fa fa-home'
             }
         };
 

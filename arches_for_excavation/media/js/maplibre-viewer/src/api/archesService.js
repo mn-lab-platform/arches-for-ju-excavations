@@ -91,6 +91,7 @@ export const getAllResourcesFromFilterString = async (filterString, maxPages = 1
         if (!json || (Object.keys(json).length === 0 && resp.ok)) {
             break;
         }
+        page += 1;
     }
 
     return results;

@@ -354,15 +354,29 @@ export class FlyoutView {
 
     _fetchAllResources() {
         getAllResources().then(response => {
+            this.resources = [];
             this._fillInstanceResourcesFromApiResponse(response);
             this._renderResults(this.resources);
         });
     }
 
     _fillInstanceResourcesFromApiResponse(apiResponse) {
-        const hits = apiResponse.results.hits.hits;
-        this.resources = hits
-            .filter((hit => hit._source.geometries && hit._source.geometries.length > 0))
+        const allHits = [];
+        const pushHits = (resp) => {
+            const hits = resp?.results?.hits?.hits;
+            if (Array.isArray(hits)) {
+                allHits.push(...hits);
+            }
+        };
+
+        if (Array.isArray(apiResponse)) {
+            apiResponse.forEach(pushHits);
+        } else if (apiResponse) {
+            pushHits(apiResponse);
+        }
+
+        this.resources = allHits
+            .filter(hit => hit?._source?.geometries && hit._source.geometries.length > 0)
             .map(hit => hit._source);
     }
 
