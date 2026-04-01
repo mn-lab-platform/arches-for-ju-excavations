@@ -170,8 +170,31 @@ export class MapEngine {
             hideLayer(this.map, layerId);
         });
 
+        EventBusInstance.subscribe(events.LAYERS_REORDER, newlyOrderedLayerIds => {
+            console.log("Reordering layers to new order: ", newlyOrderedLayerIds);
+            this._reorderLayers(newlyOrderedLayerIds)
+        });
+
         EventBusInstance.subscribe(events.MAP_TO_DEFAULT, () => {
             this._centerMapToDefaultExtent();
+        });
+    }
+
+    _reorderLayers(newlyOrderedLayerIds) {
+        //order of layer matters, we move the ones that should be lower in the stack first, so we iterate from the end of the array
+        for (let i = newlyOrderedLayerIds.length -1; i >= 0; i--) {
+            const layerId = newlyOrderedLayerIds[i];
+            this._moveLayerToTop(layerId);
+        }
+    }
+
+     _moveLayerToTop(layerId) { 
+        const sufixes = ['-fill', '-line', '-circle'];
+        sufixes.forEach(sfx => {
+            const idToMove = `${layerId}${sfx}`;
+            if (this.map.getLayer(idToMove)) {
+                this.map.moveLayer(idToMove);
+            }
         });
     }
 }

@@ -90,6 +90,57 @@
   border-color: var(--vibrant-purple);
 }
 
+.layer-info-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.layer-control-group {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.layer-settings-btn {
+  color: white;
+
+  background: transparent;
+  border: none;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layer-settings-btn:hover {
+  color: var(--vibrant-purple);
+}
+
+.layer-order-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.layer-move-btn {
+  background: transparent;
+  color: var(--muted-text);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.layer-move-btn i {
+  font-size: 12px;
+}
+
+.layer-move-btn:hover {
+  color: var(--vibrant-purple);
+}
+
+.layer-move-btn:disabled {
+  color: var(--panel-border-soft);
+}
+
 .layer-list {
   flex: 1;
 
@@ -108,6 +159,7 @@
 .layer-menu-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.8rem;
 
   padding: 0.7rem;

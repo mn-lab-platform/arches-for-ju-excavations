@@ -13,6 +13,7 @@ export const events = {
     LAYER_REMOVE: 'layer:remove',
     LAYER_SHOW: 'layer:show',
     LAYER_HIDE: 'layer:hide',
+    LAYERS_REORDER: 'layer:reorder',
 
     MAP_TO_DEFAULT: 'map:to_default',
 }

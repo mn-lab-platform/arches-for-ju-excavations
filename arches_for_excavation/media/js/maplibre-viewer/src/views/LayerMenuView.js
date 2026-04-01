@@ -56,8 +56,6 @@ export class LayerMenuView {
             const layerAccentColor = this._generateRandomColor();
             const layerId = `layer-${this.layers.length}`;
 
-            this._createLayerMenuItem(layerId, layerAccentColor);
-
             const featureCollection = this._aggregateLayerGeometryFeatures(layerDataArray);
             const layerDefinition = {
                 source_info: {
@@ -73,17 +71,21 @@ export class LayerMenuView {
                     icon: 'fa fa-map-marker',
                 }
             }
-            this.layers.push(layerDefinition);
+            this.layers.unshift(layerDefinition);
+            this._refreshLayerMenuItems();
             
-            store.mapLayerIds = [...store.mapLayerIds, layerDefinition.id];
+            store.mapLayerIds = [...store.mapLayerIds, layerDefinition.layer_info.id];
             EventBusInstance.publish(events.LAYER_ADD, layerDefinition);
         });
     }
 
-    _createLayerMenuItem(layerId, accentColor) {
+    _createLayerMenuItem(layerId, accentColor, layerName, index) {
         const item = document.createElement('div');
         item.className = 'layer-menu-item';
         item.draggable = true;
+
+        const layerInfoGroup = document.createElement('div');
+        layerInfoGroup.className = 'layer-info-group';
 
         const visibilityCheckbox = document.createElement('input');
         visibilityCheckbox.type = 'checkbox';
@@ -104,14 +106,80 @@ export class LayerMenuView {
 
         const nameLabel = document.createElement('span');
         nameLabel.className = 'layer-name';
-        nameLabel.textContent = `New Layer ${this.layers.length > 0 ? this.layers.length : ''}`;
+        nameLabel.textContent = layerName;
 
-        item.appendChild(visibilityCheckbox);
-        item.appendChild(colorIndicator);
-        item.appendChild(nameLabel);
+        layerInfoGroup.appendChild(visibilityCheckbox);
+        layerInfoGroup.appendChild(colorIndicator);
+        layerInfoGroup.appendChild(nameLabel);
 
-        this.layerList.insertBefore(item, this.layerList.firstChild);
+        const layerControlGroup = document.createElement('div');
+        layerControlGroup.className = 'layer-control-group';
+
+        const settingsButton = document.createElement('button');
+        settingsButton.className = 'layer-settings-btn';
+        settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
+        settingsButton.title = 'Layer Settings';
+
+        const orderGroup = document.createElement('div');
+        orderGroup.className = 'layer-order-group';
+
+        const moveUpBtn = document.createElement('button');
+        moveUpBtn.className = 'layer-move-btn layer-move-up-btn';
+        moveUpBtn.innerHTML = '<i class="fa fa-chevron-up"></i>';
+        moveUpBtn.title = 'Move Layer Up';
+        moveUpBtn.disabled = this.layers[0].layer_info.id === layerId;
+
+        moveUpBtn.addEventListener('click', () => {
+            this._moveLayerUp(layerId);
+        });
+
+        const moveDownBtn = document.createElement('button');
+        moveDownBtn.className = 'layer-move-btn layer-move-down-btn';
+        moveDownBtn.innerHTML = '<i class="fa fa-chevron-down"></i>';
+        moveDownBtn.title = 'Move Layer Down';
+        moveDownBtn.disabled = this.layers[this.layers.length - 1].layer_info.id === layerId;
+
+        moveDownBtn.addEventListener('click', () => {
+            this._moveLayerDown(layerId);
+        });
+
+        orderGroup.appendChild(moveUpBtn);
+        orderGroup.appendChild(moveDownBtn);
+
+        layerControlGroup.appendChild(settingsButton);
+        layerControlGroup.appendChild(orderGroup);
+    
+        item.appendChild(layerInfoGroup);
+        item.appendChild(layerControlGroup);
+
+        this.layerList.appendChild(item);
     }
+
+    _moveLayerUp(layerId) {
+        const idx = this.layers.findIndex(l => l.layer_info.id === layerId);
+        if (idx > 0) {
+            [this.layers[idx - 1], this.layers[idx]] = [this.layers[idx], this.layers[idx - 1]];
+            this._refreshLayerMenuItems();
+            EventBusInstance.publish(events.LAYERS_REORDER, this.layers.map(l => l.layer_info.id));
+        }
+    }
+
+    _moveLayerDown(layerId) {
+        const idx = this.layers.findIndex(l => l.layer_info.id === layerId);
+        if (idx < this.layers.length - 1) {
+            [this.layers[idx + 1], this.layers[idx]] = [this.layers[idx], this.layers[idx + 1]];
+            this._refreshLayerMenuItems();
+            EventBusInstance.publish(events.LAYERS_REORDER, this.layers.map(l => l.layer_info.id));
+        }
+    }
+
+    _refreshLayerMenuItems() {
+        this.layerList.replaceChildren();
+        this.layers.forEach((layerDef, index) => {
+            this._createLayerMenuItem(layerDef.layer_info.id, layerDef.layer_info.accent, layerDef.layer_info.name, index);
+        });
+    }
+    
 
     _generateRandomColor() {
         return `#${Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, 0)}`;
