@@ -255,7 +255,7 @@
   margin: 0;
 }
 
-.flyout-create-layer-button {
+.flyout-submit-button {
   background: transparent;
   color: var(--vibrant-green);
   border: 1.5px solid var(--vibrant-green);
@@ -266,13 +266,13 @@
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 
-.flyout-create-layer-button:hover:not(:disabled) {
+.flyout-submit-button:hover:not(:disabled) {
   background: rgba(34, 211, 122, 0.08);
   color: #eafff4;
   border-color: var(--vibrant-green);
 }
 
-.flyout-create-layer-button:disabled {
+.flyout-submit-button:disabled {
   background: transparent;
   color: var(--muted-text);
   border-color: var(--panel-border-strong);

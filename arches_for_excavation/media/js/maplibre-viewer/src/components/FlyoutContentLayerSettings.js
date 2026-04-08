@@ -1,9 +1,14 @@
+import { EventBusInstance } from "../core/EventBus";
+import { events } from "../constants/events";
+
 export class FlyoutContentLayerSettings {
     constructor(layerInfo) {
         const { layerId, layerName, accentColor } = layerInfo;
         this.layerId = layerId;
         this.layerName = layerName;
         this.accentColor = accentColor;
+
+        this.altered = false;
     }
 
     build() {
@@ -26,7 +31,15 @@ export class FlyoutContentLayerSettings {
 
         this.introSection.appendChild(this.title);
         this.introSection.appendChild(this.subtitle);
+
+        this.applyButton = document.createElement('button');
+        this.applyButton.className = 'flyout-submit-button';
+        this.applyButton.textContent = 'Apply Changes';
+        this.applyButton.title = 'Apply layer settings changes';
+        this.applyButton.disabled = true;
+
         this.header.appendChild(this.introSection);
+        this.header.appendChild(this.applyButton);
 
         this.content.appendChild(this.header);
 
@@ -81,6 +94,17 @@ export class FlyoutContentLayerSettings {
 
         this.content.appendChild(this.settingsContainer);
 
+        this.nameInput.addEventListener('input', this._updateApplyButtonState);
+        this.colorInput.addEventListener('input', this._updateApplyButtonState);
+
         return this.content;
     }
+
+    _updateApplyButtonState = () => {
+    const nameChanged = this.nameInput.value !== this.layerName;
+    const colorChanged = this.colorInput.value !== this.accentColor;
+
+    this.altered = nameChanged || colorChanged;
+    this.applyButton.disabled = !this.altered;
+};
 }
