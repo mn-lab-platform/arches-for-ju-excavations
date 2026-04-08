@@ -3,7 +3,10 @@ export const events = {
     PREVIEW_REMOVE: 'preview:remove',
 
     CONTROL_ACTIVE: 'control:active',
+
     FLYOUT_CLOSED: 'flyout:closed',
+    FLYOUT_OPEN_RESOURCE_SEARCH: 'flyout:open_resource_search',
+    FLYOUT_OPEN_LAYER_SETTINGS: 'flyout:open_layer_settings',
 
     BASEMAP_ADD: 'basemap:add',
     OVERLAY_ADD: 'overlay:add',

@@ -207,6 +207,24 @@
   color: var(--light-text);
 }
 
+.flyout-close-btn-wrapper {
+  text-align: right;
+  padding: 0.5rem 0.3rem 0.2rem 0.5rem;
+}
+
+.flyout-close-btn {
+  background: transparent;
+  color: var(--muted-text);
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.flyout-close-btn:hover {
+  color: var(--vibrant-red);
+}
+
 .flyout-content {
   height: 100%;
 
@@ -229,7 +247,7 @@
 }
 
 .flyout-title {
-  margin-bottom: 0.25rem;
+  margin: 0;
 }
 
 .flyout-subtitle {

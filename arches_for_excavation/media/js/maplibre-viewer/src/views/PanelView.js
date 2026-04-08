@@ -1,8 +1,10 @@
 import { LayerMenuView } from './LayerMenuView.js';
 import { FlyoutView } from './FlyoutView.js';
+import { FlyoutContentResourceSearch } from '../components/FlyoutContentResourceSearch.js';
 
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
+import { FlyoutContentLayerSettings } from '../components/FlyoutContentLayerSettings.js';
 
 export class PanelView {
     constructor(parentContainerId) {
@@ -19,11 +21,26 @@ export class PanelView {
         this.layerMenu = new LayerMenuView(this.container);
         this.flyout = new FlyoutView(this.container);
 
-        this.flyoutVisible = false;
+        this.activeFlyoutMode = null;
 
         EventBusInstance.subscribe(events.FLYOUT_CLOSED, () => {
-            this.flyoutVisible = false;
+            this.activeFlyoutMode = null;
             this.addLayerBtn.textContent = 'Add Layer';
+            this.flyout.close();
+        });
+
+        EventBusInstance.subscribe(events.FLYOUT_OPEN_RESOURCE_SEARCH, () => {
+            this.activeFlyoutMode = 'search';
+            this.addLayerBtn.textContent = 'Close Flyout';
+            this.flyout.setContent(new FlyoutContentResourceSearch(this.flyout.container).build());
+            this.flyout.open(); 
+        });
+
+        EventBusInstance.subscribe(events.FLYOUT_OPEN_LAYER_SETTINGS, (layer) => {
+            this.activeFlyoutMode = 'settings';
+            this.addLayerBtn.textContent = 'Add Layer';
+            this.flyout.setContent(new FlyoutContentLayerSettings(this.flyout.container, layer).build());
+            this.flyout.open();
         });
     }
 
@@ -51,9 +68,19 @@ export class PanelView {
         btn.textContent = 'Add Layer';
 
         btn.addEventListener('click', () => {
-            this.flyoutVisible = !this.flyoutVisible;
-            this.flyout.container.classList.toggle('flyout--visible', this.flyoutVisible);
-            this.addLayerBtn.textContent = this.flyoutVisible ? 'Close Flyout' : 'Add Layer';
+            const isOpen = this.flyout.is_open();
+
+            if (!isOpen) {
+                EventBusInstance.publish(events.FLYOUT_OPEN_RESOURCE_SEARCH);
+                return;
+            }
+
+            if (this.activeFlyoutMode === 'search') {
+                EventBusInstance.publish(events.FLYOUT_CLOSED);
+                return;
+            }
+
+            EventBusInstance.publish(events.FLYOUT_OPEN_RESOURCE_SEARCH);
         });
 
         return btn;
