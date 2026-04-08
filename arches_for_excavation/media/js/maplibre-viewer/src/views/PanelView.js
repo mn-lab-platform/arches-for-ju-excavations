@@ -4,6 +4,7 @@ import { FlyoutContentResourceSearch } from '../components/FlyoutContentResource
 
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
+import store from '../core/store.js';
 import { FlyoutContentLayerSettings } from '../components/FlyoutContentLayerSettings.js';
 
 export class PanelView {
@@ -23,42 +24,34 @@ export class PanelView {
 
         this.activeFlyoutMode = null;
 
-        EventBusInstance.subscribe(events.FLYOUT_CLOSED, () => {
+        this._setupEventListeners();
+    }
+
+    _setupEventListeners() {
+        EventBusInstance.subscribe(events.FLYOUT_CLOSE, () => {
             this.activeFlyoutMode = null;
             this.addLayerBtn.textContent = 'Add Layer';
             this.flyout.close();
+            EventBusInstance.publish(events.PREVIEW_REMOVE_ALL);
+            store.mapOffsetX = 0;
         });
 
         EventBusInstance.subscribe(events.FLYOUT_OPEN_RESOURCE_SEARCH, () => {
             this.activeFlyoutMode = 'search';
             this.addLayerBtn.textContent = 'Close Flyout';
-            this.flyout.setContent(new FlyoutContentResourceSearch(this.flyout.container).build());
+            this.flyout.setContent(new FlyoutContentResourceSearch().build());
             this.flyout.open(); 
+            store.mapOffsetX = this.flyout.getWidth();
         });
 
-        EventBusInstance.subscribe(events.FLYOUT_OPEN_LAYER_SETTINGS, (layer) => {
+        EventBusInstance.subscribe(events.FLYOUT_OPEN_LAYER_SETTINGS, (layerInfo) => {
             this.activeFlyoutMode = 'settings';
             this.addLayerBtn.textContent = 'Add Layer';
-            this.flyout.setContent(new FlyoutContentLayerSettings(this.flyout.container, layer).build());
+            this.flyout.setContent(new FlyoutContentLayerSettings(layerInfo).build());
             this.flyout.open();
+            store.mapOffsetX = this.flyout.getWidth();
         });
     }
-
-    // _createToggleButton() {
-    //     const btn = document.createElement('button');
-    //     btn.className = 'panel__toggle';
-    //     btn.type = 'button';
-    //     btn.setAttribute('aria-label', 'Toggle layer panel');
-    //     btn.textContent = '<';
-
-    //     btn.addEventListener('click', () => {
-    //         this.isCollapsed = !this.isCollapsed;
-    //         this.container.classList.toggle('panel--collapsed', this.isCollapsed);
-    //         btn.textContent = this.isCollapsed ? '>' : '<';
-    //     });
-
-    //     return btn;
-    // }
 
     _createAddLayerButton() {
         const btn = document.createElement('button');
@@ -76,7 +69,7 @@ export class PanelView {
             }
 
             if (this.activeFlyoutMode === 'search') {
-                EventBusInstance.publish(events.FLYOUT_CLOSED);
+                EventBusInstance.publish(events.FLYOUT_CLOSE);
                 return;
             }
 

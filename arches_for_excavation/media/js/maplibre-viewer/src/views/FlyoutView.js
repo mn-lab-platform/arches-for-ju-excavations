@@ -1,6 +1,5 @@
 import { EventBusInstance } from '../core/EventBus.js';
 import { events } from '../constants/events.js';
-import store from '../core/store.js';
 
 export class FlyoutView {
     constructor(parentElement) {
@@ -25,8 +24,7 @@ export class FlyoutView {
         this.closeButton.title = 'Close Flyout';
 
         this.closeButton.addEventListener('click', () => {
-            EventBusInstance.publish(events.FLYOUT_CLOSED);
-            store.mapOffsetX = 0;
+            EventBusInstance.publish(events.FLYOUT_CLOSE);
         });
 
         this.closeButtonWrapper.appendChild(this.closeButton);
@@ -36,10 +34,9 @@ export class FlyoutView {
 
     open() {
         this.container.classList.add('flyout--visible');
-        store.mapOffsetX = this.container.offsetWidth;
         this._escListener = (e) => {
             if (e.key === 'Escape') {
-                EventBusInstance.publish(events.FLYOUT_CLOSED);
+                EventBusInstance.publish(events.FLYOUT_CLOSE);
             }
         };
         document.addEventListener('keydown', this._escListener);
@@ -51,7 +48,10 @@ export class FlyoutView {
             document.removeEventListener('keydown', this._escListener);
             this._escListener = null;
         }
-        store.mapOffsetX = 0;
+    }
+
+    getWidth() {
+        return this.container.offsetWidth;
     }
 
     is_open() {

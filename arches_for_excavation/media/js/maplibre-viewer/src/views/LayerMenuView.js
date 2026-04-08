@@ -128,7 +128,9 @@ export class LayerMenuView {
 
         settingsButton.addEventListener('click', () => {
             EventBusInstance.publish(events.FLYOUT_OPEN_LAYER_SETTINGS, {
-                
+                layerId: layerId,
+                layerName: layerName,
+                accentColor: accentColor
             });
         });
 

@@ -140,6 +140,11 @@ export class MapEngine {
             }
         });
 
+        EventBusInstance.subscribe(events.PREVIEW_REMOVE_ALL, () => {
+            this.previewFeatures.clear();
+            updateGeojsonSource(this.map, this.previewSourceId, {});
+        });
+
         EventBusInstance.subscribe(events.BASEMAP_ADD, (layerInfo) => {
             addSourceAndLayersToMap(this.map, layerInfo, store.basemapLayerId);
         });

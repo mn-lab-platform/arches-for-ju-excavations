@@ -5,8 +5,7 @@ import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 
 export class FlyoutContentResourceSearch {
-    constructor(parentElement) {
-        this.container = parentElement;
+    constructor() {
         this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
         this.resources = [];
         this.selectedForLayer = new Map();
@@ -55,8 +54,7 @@ export class FlyoutContentResourceSearch {
 
         this.createLayerButton.addEventListener('click', () => {
             EventBusInstance.publish(events.LAYER_CREATE_TRIGGER, Array.from(this.selectedForLayer.values()));
-            EventBusInstance.publish(events.FLYOUT_CLOSED);
-            this.container.classList.toggle('flyout--visible', false);
+            EventBusInstance.publish(events.FLYOUT_CLOSE);
             this._removeAllPreviews();
             this.selectedForLayer.clear();
             this.searchInput.value = '';
@@ -79,7 +77,7 @@ export class FlyoutContentResourceSearch {
         this.searchContainer.className = 'flyout-search-group';
 
         this.searchInput = document.createElement('input');
-        this.searchInput.className = 'flyout-search-input';
+        this.searchInput.className = 'flyout-text-input';
         this.searchInput.type = 'search';
         this.searchInput.placeholder = 'Search resources...';
         this.searchInput.setAttribute('aria-label', 'Search resources');
@@ -492,9 +490,7 @@ export class FlyoutContentResourceSearch {
     }
 
     _removeAllPreviews() {
-        this.previewedIds.forEach(id => {
-            EventBusInstance.publish(events.PREVIEW_REMOVE, id);
-        });
+        EventBusInstance.publish(events.PREVIEW_REMOVE_ALL);
         this.previewedIds.clear();
     }
 
