@@ -17,7 +17,6 @@ export const fitMapToGeojson = (map, geojsonData) => {
     const padding = 50;
     const overlayWidth = store.mapOffsetX || 0;
     const shift = Math.max(0, Math.round(overlayWidth / 2 - padding));
-    console.log(`fitMapToGeojson: Calculated shift is ${shift}px based on overlay width of ${overlayWidth}px and padding of ${padding}px.`);
     try {
         const bounds = bbox(geojsonData);
         map.fitBounds(bounds, {
@@ -109,7 +108,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         source: layerInfo.source,
         paint: {
             'fill-color': layerInfo.accent || '#22d37a',
-            'fill-opacity': layerInfo.opacity || 0.5,
+            'fill-opacity': layerInfo.opacity ?? 0.5,
         },  
         filter: ['==', ['geometry-type'], 'Polygon'],
         layout: {
@@ -125,7 +124,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         paint: {
             'line-color': layerInfo.accent|| '#22d37a',
             'line-width': 2,
-            'line-opacity': layerInfo.opacity || 0.5,
+            'line-opacity': layerInfo.opacity ?? 0.5,
         },
         filter: ['!=', ['geometry-type'], 'Point'],
         layout: {
@@ -143,7 +142,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
             'circle-color': layerInfo.accent || '#22d37a',
             'circle-stroke-width': 2,
             'circle-stroke-color': '#ffffff',
-            'circle-opacity': layerInfo.opacity || 0.5,
+            'circle-opacity': layerInfo.opacity ?? 0.5,
         },
         filter: ['==', ['geometry-type'], 'Point'], 
         layout: {
@@ -192,13 +191,13 @@ export const refreshGeojsonLayer = (map, layerDefinition) => {
             if (map.getLayer(layerId)) {
                 if (layerId.endsWith('-fill')) {
                     map.setPaintProperty(layerId, 'fill-color', layerInfo.accent || '#22d37a');
-                    map.setPaintProperty(layerId, 'fill-opacity', layerInfo.opacity || 0.5);
+                    map.setPaintProperty(layerId, 'fill-opacity', layerInfo.opacity ?? 0.5);
                 } else if (layerId.endsWith('-line')) {
                     map.setPaintProperty(layerId, 'line-color', layerInfo.accent || '#22d37a');
-                    map.setPaintProperty(layerId, 'line-opacity', layerInfo.opacity || 0.5);
+                    map.setPaintProperty(layerId, 'line-opacity', layerInfo.opacity ?? 0.5);
                 } else if (layerId.endsWith('-circle')) {
                     map.setPaintProperty(layerId, 'circle-color', layerInfo.accent || '#22d37a');
-                    map.setPaintProperty(layerId, 'circle-opacity', layerInfo.opacity || 0.5);
+                    map.setPaintProperty(layerId, 'circle-opacity', layerInfo.opacity ?? 0.5);
                 }
             }
         });

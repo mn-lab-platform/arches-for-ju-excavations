@@ -7,7 +7,7 @@ export class FlyoutContentLayerSettings {
         this.layerId = layerId;
         this.layerName = layerName;
         this.accentColor = accentColor;
-        this.opacity = opacity || 0.5;
+        this.opacity = opacity ?? 0.5;
 
         this.altered = false;
     }
@@ -40,6 +40,8 @@ export class FlyoutContentLayerSettings {
         this.applyButton.disabled = true;
 
         this.applyButton.addEventListener('click', () => {
+            console.log('Applying layer settings changes for layerId:', this.layerId);
+            console.log('New settings - Name:', this.nameInput.value, 'Color:', this.colorInput.value, 'Opacity:', this.opacityInput.value);
             EventBusInstance.publish(events.LAYER_SETTINGS_UPDATE, {
                 layerId: this.layerId,
                 newName: this.nameInput.value,
