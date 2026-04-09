@@ -16,7 +16,7 @@ export class PanelView {
         
         parentContainer.appendChild(this.container);
 
-        this.addLayerBtn = this._createAddLayerButton();
+        this.addLayerBtn = this._initializeAddLayerButton();
         this.container.appendChild(this.addLayerBtn);
 
         this.layerMenu = new LayerMenuView(this.container);
@@ -53,7 +53,7 @@ export class PanelView {
         });
     }
 
-    _createAddLayerButton() {
+    _initializeAddLayerButton() {
         const btn = document.createElement('button');
         btn.className = 'add-layer-button';
         btn.type = 'button';
@@ -70,6 +70,7 @@ export class PanelView {
 
             if (this.activeFlyoutMode === 'search') {
                 EventBusInstance.publish(events.FLYOUT_CLOSE);
+                this.activeFlyoutMode = null;
                 return;
             }
 

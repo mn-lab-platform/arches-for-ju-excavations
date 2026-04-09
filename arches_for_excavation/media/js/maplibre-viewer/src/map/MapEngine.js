@@ -1,7 +1,7 @@
 import { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { centroid, polygon } from '@turf/turf';
-import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer } from './utils/utils';
+import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer, refreshGeojsonLayer } from './utils/utils';
 
 import {getMapExtent, getBasemapsAndOverlays} from '../api/archesService';
 
@@ -114,13 +114,10 @@ export class MapEngine {
                 features: Array.from(this.previewFeatures.values()).flat()
             });
 
-            const padding = 50;
-            const overlayWidth = store.mapOffsetX || 0;
-            const shift = Math.max(0, Math.round(overlayWidth / 2 - padding));
             fitMapToGeojson(this.map, {
                 type: 'FeatureCollection',
                 features: Array.from(this.previewFeatures.values()).flat()
-            }, { padding, duration: 800, offset: [shift, 0] });
+            });
         });
 
         EventBusInstance.subscribe(events.PREVIEW_REMOVE, (resourceId) => {
@@ -160,7 +157,7 @@ export class MapEngine {
                 fitMapToGeojson(this.map, {
                     type: 'FeatureCollection',
                     features: features
-                }, { padding: 50, duration: 800, offset: [50, 0] });
+                });
             }
             showLayer(this.map, layerDefinition.layer_info.id);
         });
@@ -178,6 +175,14 @@ export class MapEngine {
         EventBusInstance.subscribe(events.LAYERS_REORDER, newlyOrderedLayerIds => {
             console.log("Reordering layers to new order: ", newlyOrderedLayerIds);
             this._reorderLayers(newlyOrderedLayerIds)
+        });
+
+        EventBusInstance.subscribe(events.LAYER_REFRESH, (layerDefinition) => {
+            refreshGeojsonLayer(this.map, layerDefinition);
+            fitMapToGeojson(this.map, {
+                type: 'FeatureCollection',
+                features: layerDefinition.source_info.data.features
+            });
         });
 
         EventBusInstance.subscribe(events.MAP_TO_DEFAULT, () => {

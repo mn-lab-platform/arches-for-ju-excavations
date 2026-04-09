@@ -579,7 +579,7 @@
 .flyout-settings-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.5rem;
+  gap: 1rem 0.8rem;
 }
 
 .flyout-setting-group {
@@ -590,6 +590,25 @@
 
 .flyout-setting-group:last-child {
   grid-column: 1 / -1;
+}
+
+.flyout-opacity-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.flyout-layer-opacity-input {
+  flex: 1;
+  accent-color: var(--vibrant-purple);
+}
+
+.flyout-opacity-value {
+  border: 1px solid var(--panel-border-soft);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  background: rgba(0, 0, 0, 0.1);
+  margin-right: 0.5rem;
 }
 
 .map-control-button {

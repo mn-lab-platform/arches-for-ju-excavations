@@ -17,9 +17,8 @@ export const events = {
     LAYER_REMOVE: 'layer:remove',
     LAYER_SHOW: 'layer:show',
     LAYER_HIDE: 'layer:hide',
-    LAYER_CHANGE_NAME: 'layer:change_name',
-    LAYER_CHANGE_COLOR: 'layer:change_color',
-    LAYER_CHANGE_OPACITY: 'layer:change_opacity',
+    LAYER_SETTINGS_UPDATE: 'layer:settings_update',
+    LAYER_REFRESH: 'layer:refresh',
     LAYERS_REORDER: 'layer:reorder',
 
     MAP_TO_DEFAULT: 'map:to_default',

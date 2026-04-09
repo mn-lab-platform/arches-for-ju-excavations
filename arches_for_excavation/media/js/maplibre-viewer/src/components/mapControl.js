@@ -6,7 +6,7 @@ export class MapControl {
         this.iconClass = options.iconClass;
         this.title = options.title;
         this.hasPanel = options.hasPanel;
-        this.controlInstance = this;
+        this.controlInstance = options.controlInstance || this;
     }
 
     build() {

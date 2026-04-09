@@ -1,4 +1,5 @@
 import { bbox } from "@turf/turf";
+import store from "../../core/store";
 
 export const updateGeojsonSource = (map, sourceId, geojsonData) => {
     try {
@@ -12,10 +13,18 @@ export const updateGeojsonSource = (map, sourceId, geojsonData) => {
     }
 }
 
-export const fitMapToGeojson = (map, geojsonData, options = {}) => {
+export const fitMapToGeojson = (map, geojsonData) => {
+    const padding = 50;
+    const overlayWidth = store.mapOffsetX || 0;
+    const shift = Math.max(0, Math.round(overlayWidth / 2 - padding));
+    console.log(`fitMapToGeojson: Calculated shift is ${shift}px based on overlay width of ${overlayWidth}px and padding of ${padding}px.`);
     try {
         const bounds = bbox(geojsonData);
-        map.fitBounds(bounds, options);
+        map.fitBounds(bounds, {
+            padding: padding,
+            duration: 800,
+            offset: [shift > 0 ? shift : 50, 0]
+        });
     } catch (error) {
         console.error(`fitMapToGeojson: Error fitting map to geojson: ${error.message}`);
     }
@@ -100,7 +109,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         source: layerInfo.source,
         paint: {
             'fill-color': layerInfo.accent || '#22d37a',
-            'fill-opacity': 0.5
+            'fill-opacity': layerInfo.opacity || 0.5,
         },  
         filter: ['==', ['geometry-type'], 'Polygon'],
         layout: {
@@ -115,7 +124,8 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         source: layerInfo.source,
         paint: {
             'line-color': layerInfo.accent|| '#22d37a',
-            'line-width': 2
+            'line-width': 2,
+            'line-opacity': layerInfo.opacity || 0.5,
         },
         filter: ['!=', ['geometry-type'], 'Point'],
         layout: {
@@ -132,7 +142,8 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
             'circle-radius': 6,
             'circle-color': layerInfo.accent || '#22d37a',
             'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff'
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': layerInfo.opacity || 0.5,
         },
         filter: ['==', ['geometry-type'], 'Point'], 
         layout: {
@@ -169,3 +180,27 @@ export const showLayer = (map, layerId) => {
         }
     });
 };
+
+export const refreshGeojsonLayer = (map, layerDefinition) => {
+    const sourceInfo = layerDefinition.source_info;
+    const layerInfo = layerDefinition.layer_info;
+    //currently supports opacity and accent color change, name is handled externally and doesn't require map update
+    if (sourceInfo.type === "geojson") {
+        const layerIdsToUpdate = [`${layerInfo.id}-fill`, `${layerInfo.id}-line`, `${layerInfo.id}-circle`];
+
+        layerIdsToUpdate.forEach(layerId => {
+            if (map.getLayer(layerId)) {
+                if (layerId.endsWith('-fill')) {
+                    map.setPaintProperty(layerId, 'fill-color', layerInfo.accent || '#22d37a');
+                    map.setPaintProperty(layerId, 'fill-opacity', layerInfo.opacity || 0.5);
+                } else if (layerId.endsWith('-line')) {
+                    map.setPaintProperty(layerId, 'line-color', layerInfo.accent || '#22d37a');
+                    map.setPaintProperty(layerId, 'line-opacity', layerInfo.opacity || 0.5);
+                } else if (layerId.endsWith('-circle')) {
+                    map.setPaintProperty(layerId, 'circle-color', layerInfo.accent || '#22d37a');
+                    map.setPaintProperty(layerId, 'circle-opacity', layerInfo.opacity || 0.5);
+                }
+            }
+        });
+    }
+}

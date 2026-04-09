@@ -71,6 +71,7 @@ export class LayerMenuView {
                     name: `Layer ${this.layers.length}`,
                     source: layerId,
                     accent: layerAccentColor,
+                    opacity: 0.5,
                     icon: 'fa fa-map-marker',
                 }
             }
@@ -81,9 +82,21 @@ export class LayerMenuView {
             store.mapLayerIds = [...store.mapLayerIds, layerDefinition.layer_info.id];
             EventBusInstance.publish(events.LAYER_ADD, layerDefinition);
         });
+
+        EventBusInstance.subscribe(events.LAYER_SETTINGS_UPDATE, (newSettings) => {
+            const { layerId, newName, newColor, newOpacity } = newSettings;
+            const layerDef = this.layers.find(l => l.layer_info.id === layerId);
+            if (layerDef) {
+                layerDef.layer_info.name = newName;
+                layerDef.layer_info.accent = newColor;
+                layerDef.layer_info.opacity = newOpacity;
+                this._refreshLayerMenuItems();
+                EventBusInstance.publish(events.LAYER_REFRESH, layerDef);
+            }
+        });
     }
 
-    _createLayerMenuItem(layerId, accentColor, layerName) {
+    _createLayerMenuItem(layerId, accentColor, layerName, opacity) {
         const item = document.createElement('div');
         item.className = 'layer-menu-item';
         item.draggable = true;
@@ -130,7 +143,8 @@ export class LayerMenuView {
             EventBusInstance.publish(events.FLYOUT_OPEN_LAYER_SETTINGS, {
                 layerId: layerId,
                 layerName: layerName,
-                accentColor: accentColor
+                accentColor: accentColor,
+                opacity: opacity
             });
         });
 
@@ -190,7 +204,7 @@ export class LayerMenuView {
     _refreshLayerMenuItems() {
         this.layerList.replaceChildren();
         this.layers.forEach((layerDef) => {
-            this._createLayerMenuItem(layerDef.layer_info.id, layerDef.layer_info.accent, layerDef.layer_info.name);
+            this._createLayerMenuItem(layerDef.layer_info.id, layerDef.layer_info.accent, layerDef.layer_info.name, layerDef.layer_info.opacity);
         });
     }
     

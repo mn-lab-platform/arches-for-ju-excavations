@@ -19,7 +19,10 @@ export class RecenterMapControl {
         this._map = map;
 
         EventBusInstance.subscribe(events.CONTROL_ACTIVE, (activeControl) => {
+            console.log('Received CONTROL_ACTIVE event in RecenterMapControl with activeControl:', activeControl);
+            console.log('Current control instance:', this);
             if (activeControl === this) {
+                console.log('RecenterMapControl activated, recentering map to default extent');
                 EventBusInstance.publish(events.MAP_TO_DEFAULT);
             }
         });
