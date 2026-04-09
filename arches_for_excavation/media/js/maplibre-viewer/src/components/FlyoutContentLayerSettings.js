@@ -47,6 +47,9 @@ export class FlyoutContentLayerSettings {
                 newOpacity: parseFloat(this.opacityInput.value)
             });
             this.applyButton.disabled = true;
+            this.layerName = this.nameInput.value;
+            this.accentColor = this.colorInput.value;
+            this.opacity = parseFloat(this.opacityInput.value);
         })
 
         this.header.appendChild(this.introSection);
