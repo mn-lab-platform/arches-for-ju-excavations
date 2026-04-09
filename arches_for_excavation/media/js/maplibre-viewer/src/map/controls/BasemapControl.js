@@ -1,4 +1,4 @@
-import { createMapControl } from "../../components/mapControl";
+import { MapControl } from "../../components/MapControl";
 import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
 import store from "../../core/store";
@@ -27,12 +27,12 @@ export class BasemapControl {
         this._layers = areLayersProvided ? [...options?.layers, defaultBasemap] : [defaultBasemap];
         store.basemapLayerId = areLayersProvided ? [options.layers[0].layer_info.id] : [defaultBasemap.layer_info.id];
 
-        const { button, panel } = createMapControl({
+        const { button, panel } = new MapControl({
             iconClass: 'fa fa-map',
             title: 'Basemap Selector',
             hasPanel: true,
             controlInstance: this
-        });
+        }).build();
         this._controlButton = button;
         this._controlPanel = panel;
     }

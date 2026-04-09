@@ -1,4 +1,4 @@
-import { createMapControl } from "../../components/mapControl";
+import { MapControl } from "../../components/MapControl";
 import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
 import store from "../../core/store";
@@ -10,12 +10,12 @@ export class OverlayControl {
 
         this._layers = options?.layers || [];
         
-        const { button, panel } = createMapControl({
+        const { button, panel } = new MapControl({
             iconClass: 'fa fa-list',
             title: 'Overlay Selector',
             hasPanel: true,
             controlInstance: this
-        });
+        }).build();
         this._controlButton = button;
         this._controlPanel = panel;
     }
@@ -29,12 +29,7 @@ export class OverlayControl {
         }
 
         this._map.once('idle', () => {
-            ['','-fill','-line','-circle'].forEach(sfx => {
-                const lid = `${previewLayerId}${sfx}`;
-                if (this._map.getLayer(lid)) {
-                    this._map.moveLayer(lid);
-                }
-            });
+            EventBusInstance.publish(events.LAYERS_REORDER, [previewLayerId]); //move preview to the top on initial load
         });
 
         this._layers.forEach((layer) => {

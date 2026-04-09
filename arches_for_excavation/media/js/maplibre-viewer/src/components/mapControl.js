@@ -1,59 +1,68 @@
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
 
-export const createMapControl = ({ iconClass, title, hasPanel, controlInstance }) => {
-    const button = document.createElement("button");
-    const panel = document.createElement("div");
+export class MapControl {
+    constructor(options) {
+        this.iconClass = options.iconClass;
+        this.title = options.title;
+        this.hasPanel = options.hasPanel;
+        this.controlInstance = options.controlInstance || this;
+    }
 
-    button.classList.add("maplibregl-ctrl", "map-control-button");
-    button.title = title;
-    button.setAttribute("aria-haspopup", hasPanel ? "true" : "false");
-    button.setAttribute("aria-expanded", "false");
+    build() {
+        const button = document.createElement("button");
+        const panel = document.createElement("div");
 
-    button.addEventListener("click", () => {
-        const isActive = !button.classList.contains("--control-active");
+        button.classList.add("maplibregl-ctrl", "map-control-button");
+        button.title = this.title;
+        button.setAttribute("aria-haspopup", this.hasPanel ? "true" : "false");
+        button.setAttribute("aria-expanded", "false");
 
-        button.classList.toggle("--control-active", isActive);
-        button.setAttribute("aria-expanded", isActive ? "true" : "false");
+        button.addEventListener("click", () => {
+            const isActive = !button.classList.contains("--control-active");
 
-        if (isActive) {
-            EventBusInstance.publish(events.CONTROL_ACTIVE, controlInstance);
-        }
+            button.classList.toggle("--control-active", isActive);
+            button.setAttribute("aria-expanded", isActive ? "true" : "false");
 
-        if (hasPanel) {
-            panel.classList.toggle("--control-panel-open", isActive);
-        } else if (isActive) {
-            setTimeout(() => {
+            if (isActive) {
+                EventBusInstance.publish(events.CONTROL_ACTIVE, this.controlInstance);
+            }
+
+            if (this.hasPanel) {
+                panel.classList.toggle("--control-panel-open", isActive);
+            } else if (isActive) {
+                setTimeout(() => {
+                    button.classList.remove("--control-active");
+                    button.setAttribute("aria-expanded", "false");
+                }, 500);
+            }
+        });
+
+        EventBusInstance.subscribe(events.CONTROL_ACTIVE, (activeControl) => {
+            if (activeControl !== this.controlInstance) {
                 button.classList.remove("--control-active");
                 button.setAttribute("aria-expanded", "false");
-            }, 500);
-        }
-    });
-
-    EventBusInstance.subscribe(events.CONTROL_ACTIVE, (activeControl) => {
-        if (activeControl !== controlInstance) {
-            button.classList.remove("--control-active");
-            button.setAttribute("aria-expanded", "false");
-            if (hasPanel) {
-                panel.classList.remove("--control-panel-open");
+                if (this.hasPanel) {
+                    panel.classList.remove("--control-panel-open");
+                }
             }
-        }
-    });
+        });
 
-    const icon = document.createElement("i");
-    icon.className = iconClass;
-    button.appendChild(icon);
+        const icon = document.createElement("i");
+        icon.className = this.iconClass;
+        button.appendChild(icon);
 
-    if (!hasPanel) 
-        return { button };
+        if (!this.hasPanel) 
+            return { button };
 
-    panel.classList.add("control-panel");
-    panel.setAttribute("role", "menu");
-    button.appendChild(panel);
+        panel.classList.add("control-panel");
+        panel.setAttribute("role", "menu");
+        button.appendChild(panel);
 
-    panel.addEventListener("click", (event) => {
-        event.stopPropagation();
-    });
+        panel.addEventListener("click", (event) => {
+            event.stopPropagation();
+        }); 
 
-    return { button, panel };
+        return { button, panel };
+    }
 }
