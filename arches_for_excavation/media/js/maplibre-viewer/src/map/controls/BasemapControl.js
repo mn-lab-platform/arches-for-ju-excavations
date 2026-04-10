@@ -29,7 +29,7 @@ export class BasemapControl {
 
         const { button, panel } = new MapControl({
             iconClass: 'fa fa-map',
-            title: 'Basemap Selector',
+            title: 'Select Basemap',
             hasPanel: true,
             controlInstance: this
         }).build();

@@ -58,6 +58,12 @@ export class LayerMenuView {
             console.log("received layer data: ", layerDataArray);
             const layerAccentColor = this._generateRandomColor();
             const layerId = `layer-${this.layers.length}`;
+            let layerName;
+            if (layerDataArray.length === 1) {
+                layerName = layerDataArray[0].displayname;
+            } else {
+                layerName = `${layerDataArray[0].displayname} and ${layerDataArray.length - 1} other resource(s)`;
+            }
 
             const featureCollection = this._aggregateLayerGeometryFeatures(layerDataArray);
             const layerDefinition = {
@@ -68,7 +74,7 @@ export class LayerMenuView {
                 },
                 layer_info: {
                     id: layerId,
-                    name: `Layer ${this.layers.length}`,
+                    name: layerName,
                     source: layerId,
                     accent: layerAccentColor,
                     opacity: 0.5,
@@ -99,7 +105,6 @@ export class LayerMenuView {
     _createLayerMenuItem(layerId, accentColor, layerName, opacity) {
         const item = document.createElement('div');
         item.className = 'layer-menu-item';
-        item.draggable = true;
 
         const layerInfoGroup = document.createElement('div');
         layerInfoGroup.className = 'layer-info-group';
@@ -126,6 +131,7 @@ export class LayerMenuView {
         const nameLabel = document.createElement('span');
         nameLabel.className = 'layer-name';
         nameLabel.textContent = layerName;
+        this._enableHorizontalDragScroll(nameLabel);
 
         layerInfoGroup.appendChild(visibilityCheckbox);
         layerInfoGroup.appendChild(colorIndicator);
@@ -181,6 +187,42 @@ export class LayerMenuView {
         item.appendChild(layerControlGroup);
 
         this.layerList.appendChild(item);
+    }
+
+    _enableHorizontalDragScroll(el) {
+        let dragging = false;
+        let startX = 0;
+        let startScrollLeft = 0;
+
+        el.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            if (el.scrollWidth <= el.clientWidth) return;
+
+            dragging = true;
+            startX = e.clientX;
+            startScrollLeft = el.scrollLeft;
+            el.setPointerCapture(e.pointerId);
+            el.style.cursor = 'ew-resize';
+            e.preventDefault();
+        });
+
+        el.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const dx = e.clientX - startX;
+            el.scrollLeft = startScrollLeft - dx;
+        });
+
+        const stop = (e) => {
+            if (!dragging) return;
+            dragging = false;
+            if (el.hasPointerCapture(e.pointerId)) {
+                el.releasePointerCapture(e.pointerId);
+            }
+            el.style.cursor = '';
+        };
+
+        el.addEventListener('pointerup', stop);
+        el.addEventListener('pointercancel', stop);
     }
 
     _moveLayerUp(layerId) {

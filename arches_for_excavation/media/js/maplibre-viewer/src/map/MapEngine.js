@@ -1,4 +1,4 @@
-import { Map as MapLibreMap } from 'maplibre-gl';
+import { Map as MapLibreMap, ScaleControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { centroid, polygon } from '@turf/turf';
 import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer, refreshGeojsonLayer } from './utils/utils';
@@ -57,6 +57,10 @@ export class MapEngine {
     }
 
      _register_controls() {
+        this.map.addControl(new ScaleControl({
+            maxWidth: 200,
+            unit: 'metric'
+        }), 'bottom-right');
         return getBasemapsAndOverlays()
             .then(info => {
                 const basemapInfo = info.basemaps;

@@ -94,6 +94,25 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+
+  min-width: 0;
+}
+
+.layer-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.layer-name::-webkit-scrollbar {
+  display: none;
 }
 
 .layer-control-group {

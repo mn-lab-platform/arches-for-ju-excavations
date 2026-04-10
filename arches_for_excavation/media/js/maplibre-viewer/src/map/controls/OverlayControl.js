@@ -12,7 +12,7 @@ export class OverlayControl {
         
         const { button, panel } = new MapControl({
             iconClass: 'fa fa-list',
-            title: 'Overlay Selector',
+            title: 'Select Overlay',
             hasPanel: true,
             controlInstance: this
         }).build();
