@@ -99,7 +99,7 @@ export class FlyoutContentLayerSettings {
         
         this.opacityInput = document.createElement('input');
         this.opacityInput.type = 'range';
-        this.opacityInput.min = 0;
+        this.opacityInput.min = 0.1;
         this.opacityInput.max = 1;
         this.opacityInput.step = 0.1;
         this.opacityInput.className = 'flyout-layer-opacity-input';
