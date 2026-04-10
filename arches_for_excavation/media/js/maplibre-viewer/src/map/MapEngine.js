@@ -189,6 +189,13 @@ export class MapEngine {
             });
         });
 
+        EventBusInstance.subscribe(events.LAYER_ZOOM_TO, (layerId) => {
+            const source = this.map.getSource(layerId);
+            if (source && source._data) {
+                fitMapToGeojson(this.map, source._data.geojson);
+            }
+        });
+
         EventBusInstance.subscribe(events.MAP_TO_DEFAULT, () => {
             this._centerMapToDefaultExtent();
         });

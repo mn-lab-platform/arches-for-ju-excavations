@@ -140,6 +140,15 @@ export class LayerMenuView {
         const layerControlGroup = document.createElement('div');
         layerControlGroup.className = 'layer-control-group';
 
+        const zoomToBtn = document.createElement('button');
+        zoomToBtn.className = 'layer-settings-btn';
+        zoomToBtn.innerHTML = '<i class="fa fa-search"></i>';
+        zoomToBtn.title = 'Zoom to Layer';
+
+        zoomToBtn.addEventListener('click', () => {
+            EventBusInstance.publish(events.LAYER_ZOOM_TO, layerId);
+        });
+
         const settingsButton = document.createElement('button');
         settingsButton.className = 'layer-settings-btn';
         settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
@@ -180,6 +189,7 @@ export class LayerMenuView {
         orderGroup.appendChild(moveUpBtn);
         orderGroup.appendChild(moveDownBtn);
 
+        layerControlGroup.appendChild(zoomToBtn);
         layerControlGroup.appendChild(settingsButton);
         layerControlGroup.appendChild(orderGroup);
     

@@ -20,6 +20,7 @@ export const events = {
     LAYER_SETTINGS_UPDATE: 'layer:settings_update',
     LAYER_REFRESH: 'layer:refresh',
     LAYERS_REORDER: 'layer:reorder',
+    LAYER_ZOOM_TO: 'layer:zoom_to',
 
     MAP_TO_DEFAULT: 'map:to_default',
 }
