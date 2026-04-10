@@ -47,7 +47,7 @@ export class FlyoutContentResourceSearch {
         this.introSection.appendChild(this.subtitle);
 
         this.createLayerButton = document.createElement('button');
-        this.createLayerButton.className = 'flyout-submit-button';
+        this.createLayerButton.className = 'submit-button';
         this.createLayerButton.textContent = 'Select resource(s) to create layer';
         this.createLayerButton.title = 'Create a new layer';
         this.createLayerButton.disabled = true;

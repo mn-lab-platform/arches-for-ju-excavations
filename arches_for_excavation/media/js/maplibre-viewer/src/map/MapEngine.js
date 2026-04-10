@@ -8,6 +8,7 @@ import {getMapExtent, getBasemapsAndOverlays} from '../api/archesService';
 import { BasemapControl } from './controls/BasemapControl';
 import { OverlayControl } from './controls/OverlayControl';
 import { RecenterMapControl } from './controls/RecenterMapControl';
+import { PrintControl } from './controls/PrintControl';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import store from '../core/store';
@@ -79,6 +80,10 @@ export class MapEngine {
 
                 const recenterControl = new RecenterMapControl();
                 this.map.addControl(recenterControl, 'top-right');
+
+                const printControl = new PrintControl();
+                this.map.addControl(printControl, 'top-right');
+
             })
             .catch(error => {
                 console.error('Error registering controls:', error);

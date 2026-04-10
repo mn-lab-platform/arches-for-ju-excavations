@@ -34,7 +34,7 @@ export class FlyoutContentLayerSettings {
         this.introSection.appendChild(this.subtitle);
 
         this.applyButton = document.createElement('button');
-        this.applyButton.className = 'flyout-submit-button';
+        this.applyButton.className = 'submit-button';
         this.applyButton.textContent = 'Apply Changes';
         this.applyButton.title = 'Apply layer settings changes';
         this.applyButton.disabled = true;
