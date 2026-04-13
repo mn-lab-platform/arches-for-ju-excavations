@@ -1,25 +1,126 @@
 import { MapControl } from "../../components/MapControl";
 import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
+import store from "../../core/store";
 
 export class PrintControl {
-    constructor() {
+    constructor(mapRootContainer) {
         this._map = null;
+        this.mapRootContainer = mapRootContainer;
+
+        this.paperSizeDict = {
+            A5: [148, 210],
+            A4: [210, 297],
+            A3: [297, 420],
+            A2: [420, 594],
+        };
+
+        this.stateKeys = {
+            paperSize: "paperSize",
+            format: "format",
+            isHorizontal: "isHorizontal",
+        };
 
         this.state = {
-            paperSize: 'A4',
-            format: 'PDF',
-            isHorizontal: false
-        }
+            [this.stateKeys.paperSize]: "A4",
+            [this.stateKeys.format]: "PDF",
+            [this.stateKeys.isHorizontal]: false,
+        };
 
         const { button, panel } = new MapControl({
-            iconClass: 'fa fa-file-photo-o',
-            title: 'Export Map',
+            iconClass: "fa fa-file-photo-o",
+            title: "Export Map",
             hasPanel: true,
-            controlInstance: this
+            controlInstance: this,
         }).build();
+
         this._controlButton = button;
         this._controlPanel = panel;
+
+        this._previewOverlay = null;
+        this._previewPaper = null;
+        this._resizeHandler = () => this._renderPrintPreview();
+
+        EventBusInstance.subscribe(events.CONTROL_ACTIVATE, (activeControl) => {
+            if (activeControl === this) {
+                this._mountPrintPreview();
+                this._renderPrintPreview();
+                window.addEventListener("resize", this._resizeHandler);
+            } else {
+                this._unmountPrintPreview();
+                window.removeEventListener("resize", this._resizeHandler);
+            }
+        });
+
+        EventBusInstance.subscribe(events.CONTROL_DEACTIVATE, (deactiveControl) => {
+            if (deactiveControl === this) {
+                this._unmountPrintPreview();
+                window.removeEventListener("resize", this._resizeHandler);
+            }
+        });
+
+    }
+
+    _mountPrintPreview() {
+        if (!this.mapRootContainer || this._previewOverlay) return;
+
+        const overlay = document.createElement("div");
+        overlay.className = "print-preview-overlay";
+
+        const paper = document.createElement("div");
+        paper.className = "print-preview-paper";
+
+        overlay.appendChild(paper);
+        this.mapRootContainer.appendChild(overlay);
+
+        this._previewOverlay = overlay;
+        this._previewPaper = paper;
+    }
+
+    _unmountPrintPreview() {
+        if (this._previewOverlay?.parentNode) {
+            this._previewOverlay.parentNode.removeChild(this._previewOverlay);
+        }
+        this._previewOverlay = null;
+        this._previewPaper = null;
+    }
+
+    _renderPrintPreview() {
+        if (!this._previewPaper || !this.mapRootContainer) return;
+
+        const [paperWmm, paperHmm] = this.paperSizeDict[this.state.paperSize] ?? this.paperSizeDict.A4;
+        const isHorizontal = !!this.state.isHorizontal;
+
+        const paperW = isHorizontal ? paperHmm : paperWmm;
+        const paperH = isHorizontal ? paperWmm : paperHmm;
+        const ratio = paperW / paperH;
+
+        const rootRect = this.mapRootContainer.getBoundingClientRect();
+        const leftOffset = Math.max(0, store.menuPanelWidth || 0);
+
+        const availW = Math.max(0, rootRect.width - leftOffset);
+        const availH = rootRect.height;
+
+        const maxW = availW * 0.9;
+        const maxH = availH * 0.9;
+
+        let rectW = maxW;
+        let rectH = rectW / ratio;
+
+        if (rectH > maxH) {
+            rectH = maxH;
+            rectW = rectH * ratio;
+        }
+
+        const left = leftOffset + (availW - rectW) / 2;
+        const top = (availH - rectH) / 2;
+
+        Object.assign(this._previewPaper.style, {
+            width: `${rectW}px`,
+            height: `${rectH}px`,
+            left: `${left}px`,
+            top: `${top}px`,
+        });
     }
 
     onAdd(map) {
@@ -29,18 +130,18 @@ export class PrintControl {
         printOptionsContainer.classList.add("print-tiles-container");
 
         const paperSizeTile = this._createTile(
-            'fa fa-arrows',
-            'Paper Size: ',
-            'Select paper size for printing',
-            'paperSize'
+            "fa fa-arrows",
+            "Paper Size: ",
+            "Select paper size for printing",
+            [this.stateKeys.paperSize]
         );
         printOptionsContainer.appendChild(paperSizeTile);
 
         const formatTile = this._createTile(
-            'fa fa-tag',
-            'Format: ',
-            'Select format for printing',
-            'format'
+            "fa fa-tag",
+            "Format: ",
+            "Select format for printing",
+            [this.stateKeys.format]
         );
         printOptionsContainer.appendChild(formatTile);
 
@@ -56,13 +157,13 @@ export class PrintControl {
         
         const orientationBox = document.createElement("div");
         orientationBox.classList.add("print-orientation-box");
-        orientationBox.style.transform = this.state.isHorizontal ? "rotate(0deg)" : "rotate(90deg)";
         orientationBox.style.transition = "transform 0.3s ease";
 
         orientationGroup.addEventListener("click", () => {
             this.state.isHorizontal = !this.state.isHorizontal;
-            orientationBox.style.transform = this.state.isHorizontal ? "rotate(0deg)" : "rotate(90deg)";
+            orientationBox.style.transform = this.state.isHorizontal ? "rotate(90deg)" : "rotate(0deg)";
             orientationLabel.textContent = `${this.state.isHorizontal ? "Landscape" : "Portrait"}`;
+            this._renderPrintPreview();
         });
 
         orientationGroup.appendChild(orientationLabel);
@@ -120,6 +221,8 @@ export class PrintControl {
     }
 
     onRemove() {
+        window.removeEventListener("resize", this._resizeHandler);
+        this._unmountPrintPreview();
         this._controlButton.parentNode?.removeChild(this._controlButton);
         this._controlPanel.parentNode?.removeChild(this._controlPanel);
     }

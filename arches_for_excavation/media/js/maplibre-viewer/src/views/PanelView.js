@@ -21,6 +21,7 @@ export class PanelView {
 
         this.layerMenu = new LayerMenuView(this.container);
         this.flyout = new FlyoutView(this.container);
+        store.menuPanelWidth = this.container.offsetWidth;
 
         this.activeFlyoutMode = null;
 

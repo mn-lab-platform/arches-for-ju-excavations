@@ -17,6 +17,7 @@ export class MapEngine {
     constructor(containerId) {
         this.previewFeatures = new Map();
         this.previewSourceId = 'preview-source';
+        this.container = document.getElementById(containerId);
         this.extent = null;
         this.map = new MapLibreMap({
             container: containerId,
@@ -81,7 +82,7 @@ export class MapEngine {
                 const recenterControl = new RecenterMapControl();
                 this.map.addControl(recenterControl, 'top-right');
 
-                const printControl = new PrintControl();
+                const printControl = new PrintControl(this.container);
                 this.map.addControl(printControl, 'top-right');
 
             })

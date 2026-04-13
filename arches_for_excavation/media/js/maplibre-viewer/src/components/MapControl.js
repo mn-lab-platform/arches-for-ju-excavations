@@ -25,7 +25,9 @@ export class MapControl {
             button.setAttribute("aria-expanded", isActive ? "true" : "false");
 
             if (isActive) {
-                EventBusInstance.publish(events.CONTROL_ACTIVE, this.controlInstance);
+                EventBusInstance.publish(events.CONTROL_ACTIVATE, this.controlInstance);
+            } else {
+                EventBusInstance.publish(events.CONTROL_DEACTIVATE, this.controlInstance);
             }
 
             if (this.hasPanel) {
@@ -35,16 +37,6 @@ export class MapControl {
                     button.classList.remove("--control-active");
                     button.setAttribute("aria-expanded", "false");
                 }, 500);
-            }
-        });
-
-        EventBusInstance.subscribe(events.CONTROL_ACTIVE, (activeControl) => {
-            if (activeControl !== this.controlInstance) {
-                button.classList.remove("--control-active");
-                button.setAttribute("aria-expanded", "false");
-                if (this.hasPanel) {
-                    panel.classList.remove("--control-panel-open");
-                }
             }
         });
 
