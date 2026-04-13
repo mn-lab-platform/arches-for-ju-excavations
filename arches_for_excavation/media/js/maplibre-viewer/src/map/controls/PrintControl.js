@@ -15,6 +15,11 @@ export class PrintControl {
             A2: [420, 594],
         };
 
+        this.formatDict = {
+            PDF: "PDF",
+            PNG: "PNG",
+        }
+
         this.stateKeys = {
             paperSize: "paperSize",
             format: "format",
@@ -133,7 +138,7 @@ export class PrintControl {
             "fa fa-arrows",
             "Paper Size: ",
             "Select paper size for printing",
-            [this.stateKeys.paperSize]
+            this.stateKeys.paperSize
         );
         printOptionsContainer.appendChild(paperSizeTile);
 
@@ -141,7 +146,7 @@ export class PrintControl {
             "fa fa-tag",
             "Format: ",
             "Select format for printing",
-            [this.stateKeys.format]
+            this.stateKeys.format
         );
         printOptionsContainer.appendChild(formatTile);
 
@@ -172,13 +177,17 @@ export class PrintControl {
         const submitButton = document.createElement("button");
         submitButton.textContent = "Print";
         submitButton.classList.add("submit-button");
-        submitButton.disabled = true;
         
         nonExpandableGroup.appendChild(orientationGroup);
         nonExpandableGroup.appendChild(submitButton);
 
+        this.flyout = document.createElement("div");
+        this.flyout.classList.add("print-options-flyout");
+
         this._controlPanel.appendChild(printOptionsContainer);
         this._controlPanel.appendChild(nonExpandableGroup);
+        this._controlPanel.appendChild(this.flyout);
+
 
         return this._controlButton;
     }
@@ -217,7 +226,53 @@ export class PrintControl {
         tile.appendChild(leftSide);
         tile.appendChild(valueElement);
 
+        tile.addEventListener("click", () => {
+            this._closeTileFlyout();
+            this._populateFlyout(settingKey, valueElement);
+            this._openTileFlyout();
+        });
+
         return tile;
+    }
+
+    _populateFlyout(settingKey, valueElement) {
+        let options = [];
+        switch (settingKey) {
+            case this.stateKeys.paperSize:
+                options = Object.keys(this.paperSizeDict);
+                break;
+            case this.stateKeys.format:
+                options = Object.keys(this.formatDict);
+                break;
+            default:
+                break;
+        }
+
+        options.forEach(option => {
+            const optionElement = document.createElement("div");
+            optionElement.classList.add("print-flyout-option");
+            optionElement.textContent = option;
+            this.flyout.appendChild(optionElement);
+
+            optionElement.addEventListener("click", () => {
+                this.state[settingKey] = option;
+                valueElement.textContent = option;
+                this._closeTileFlyout();
+                this._renderPrintPreview();
+            });
+        })
+
+        return this.flyout;
+    }
+
+    _openTileFlyout() {
+        this._populateFlyout();
+        this.flyout.classList.add("open");
+    }
+
+    _closeTileFlyout() {
+        this.flyout.innerHTML = "";
+        this.flyout.classList.remove("open");
     }
 
     onRemove() {

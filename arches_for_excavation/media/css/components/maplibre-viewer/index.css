@@ -972,6 +972,28 @@
   box-sizing: border-box;
 }
 
+.print-options-flyout {
+  position: absolute;
+
+  right: 100%;
+  top: 0;
+  height: 100%;
+
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.print-options-flyout.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+  background-color: red;
+
+  color: var(--light-text);
+}
+
 
 
 
