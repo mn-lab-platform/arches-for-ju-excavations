@@ -164,7 +164,6 @@ export function installIiifInfoJsonPatch() {
         headers
       });
     } catch (e) {
-      // jak coś się wywali – nie blokuj, tylko zwróć oryginał
       return res;
     }
   };

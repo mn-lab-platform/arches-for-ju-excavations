@@ -28,7 +28,7 @@ export function createLeafletAnnotationController(opts = {}) {
   let draftSourceCanvasId = null;
   let draftSourceScale = null;
 
-  const DEBUG_AFFINE = true;
+  const DEBUG_AFFINE = false;
 
   function dbg(...args) {
     if (!DEBUG_AFFINE) return;
@@ -411,12 +411,12 @@ export function createLeafletAnnotationController(opts = {}) {
       // 3) Full-res -> displayed zoom-0 units
       let px = rawPx / dstDiv;
       let py = -rawPy / dstDiv;
-      console.log(LOG, 'Raw projected pixel:', { rawPx, rawPy, dstDiv, px, py });
+      //console.log(LOG, 'Raw projected pixel:', { rawPx, rawPy, dstDiv, px, py });
       if (dstW > 1 && dstH > 1) {
         px = clamp(px, 0, dstW - 1);
         py = clamp(py, -(dstH - 1), 0);
       }
-      console.log(LOG, 'Clamped projected pixel:', { px, py });
+      //console.log(LOG, 'Clamped projected pixel:', { px, py });
       const backLocal = affineForward(dstTr, px, py, 0);
       const errX = Array.isArray(backLocal) ? (backLocal[0] - localXY[0]) : null;
       const errY = Array.isArray(backLocal) ? (backLocal[1] - localXY[1]) : null;

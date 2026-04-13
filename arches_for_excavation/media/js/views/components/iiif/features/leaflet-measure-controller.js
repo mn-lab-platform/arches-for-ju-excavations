@@ -47,7 +47,7 @@ export function createLeafletMeasureController(opts = {}) {
 
       try {
         const marker = L.circleMarker([-pt.y, pt.x], {
-          pane : 'iiif-tools',
+          pane : 'iiif-tools-markers',
           radius: 6,
           color: idx === 0 ? 'blue' : 'red',
           fillColor: idx === 0 ? 'blue' : 'red',
@@ -63,10 +63,15 @@ export function createLeafletMeasureController(opts = {}) {
     if (pts.length === 2 && Number.isFinite(pts[0]?.x) && Number.isFinite(pts[0]?.y) && Number.isFinite(pts[1]?.x) && Number.isFinite(pts[1]?.y)) {
       try {
         line = L.polyline([[-pts[0].y, pts[0].x], [-pts[1].y, pts[1].x]], {
-          pane : 'iiif-tools',
+          pane : 'iiif-tools-line',
           color: 'red',
           weight: 3
         }).addTo(map);
+
+        // kropki nad linią
+        markers.forEach((m) => {
+          if (m && typeof m.bringToFront === 'function') m.bringToFront();
+        });
       } catch (e) {
         console.error(LOG, 'Failed to draw line:', e);
       }

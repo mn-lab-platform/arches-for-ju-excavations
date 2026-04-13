@@ -1,5 +1,4 @@
 import ko from 'knockout';
-import $ from 'jquery';
 import maplibregl from 'maplibre-gl';
 import '../../../../css/components/iiif_viewer/index.css';
 
@@ -15,10 +14,14 @@ import { createLeafletImageState } from './state/leaflet-image-state';
 import { createLeafletMeasureController } from './features/leaflet-measure-controller';
 import { createLeafletDemPickerController } from './features/leaflet-dem-picker-controller';
 import { createLeafletAnnotationController } from './features/leaflet-annotation-controller';
-import { canvasHasGeoref, ensureAbsoluteUrl,extractServiceUrlFromCanvas,
-  extractTitilerFilePathFromServiceUrl, manifestHasAnyGeoref, mdValue,
-  mdBool, parseTransformFromCanvas, pickDemCanvasFromManifest
-} from './lib/iiif-manifest-utils';
+import { manifestHasAnyGeoref, mdValue, parseTransformFromCanvas, pickDemCanvasFromManifest } from './lib/iiif-manifest-utils';
+import { fetchDemPixelValue } from './lib/dem-pixel-api';
+import {
+  findCanvasById,
+  formatLeafletClickReadout,
+  parseMapCoordsFromReadout,
+  parsePixelCoordsFromReadout
+} from './lib/leaflet-click-utils';
 
 import {affineForward, affineInverse, clamp} from './lib/affine-utils';
 // Binding: data-bind="iiifMapInit: initMap"
@@ -79,11 +82,7 @@ ko.components.register('iiif-map-viewer', {
         self.imageGroup(group);
         if (self.renderMode() === 'image') {
           await leafletViewer.setGroup(group);
-          // zsynchronizuj UI po rebuild
-          self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
-          self.leafletCanvasOptions(leafletViewer.canvasOptions());
-          self.leafletLayers(leafletViewer.layers());
-          //try { leafletAnnotation.refresh(); } catch (_) {}
+          syncLeafletViewerState();
         }
       };
 
@@ -128,12 +127,7 @@ ko.components.register('iiif-map-viewer', {
       // ---- Annotation public methods ----
       self.toggleAnnotationMode = () => {
         if (!self.annotationEnabled()) return;
-        const on = activateImageTool('annotate');
-        if (on) {
-          console.log('[iiif-map-viewer] Annotation mode ENABLED');
-        } else {
-          console.log('[iiif-map-viewer] Annotation mode DISABLED');
-        }
+        activateImageTool('annotate');
       };
 
       self.disableActiveImageTool = () => {
@@ -158,6 +152,105 @@ ko.components.register('iiif-map-viewer', {
         if (!el) return;
         el.style.cursor = (self.isActiveImageTool('dem-pick') || self.isActiveImageTool('annotate')) ? 'crosshair' : '';
       }
+
+      function getCurrentManifest() {
+        return ko.unwrap(self.manifest);
+      }
+
+      function resetElevationReadout() {
+        self.elevationLoading(false);
+        self.elevationError('');
+        self.elevationValue('');
+      }
+
+      function canUseMapRenderMode(manifest = getCurrentManifest()) {
+        return !!(manifest && self._map && self.mapReady() && manifestHasAnyGeoref(manifest));
+      }
+
+      function syncLeafletViewerState() {
+        self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
+        self.leafletCanvasOptions(leafletViewer.canvasOptions());
+        self.leafletLayers(leafletViewer.layers());
+      }
+
+      function getLeafletBaseContext(manifest = getCurrentManifest()) {
+        const baseId = self.leafletBaseCanvasId();
+        const canvas = findCanvasById(manifest, baseId);
+        return {
+          baseId,
+          canvas,
+          transform: parseTransformFromCanvas(canvas)
+        };
+      }
+
+      function refreshLeafletAnnotations() {
+        try { leafletAnnotation.refresh(); } catch (_) {}
+      }
+
+      async function sampleDemPixel(manifest, x, y) {
+        self.elevationLoading(true);
+        self.elevationError('');
+
+        try {
+          const json = await fetchDemPixelValue({ manifest, x, y });
+          self.elevationValue(`${json.value} m`);
+        } catch (err) {
+          self.elevationError('DEM pixel error: ' + String(err?.message || err));
+        } finally {
+          self.elevationLoading(false);
+        }
+      }
+
+      function resolveDemMeasurementTarget(manifest, readout) {
+        if (!manifest) return { error: 'Brak manifestu.' };
+
+        if (self.imageGroup() === 'dem') {
+          const pixelCoords = parsePixelCoordsFromReadout(readout);
+          if (!pixelCoords) {
+            return { error: 'Nie mozna odczytac wspolrzednych piksela.' };
+          }
+          return pixelCoords;
+        }
+
+        const mapCoords = parseMapCoordsFromReadout(readout);
+        if (!mapCoords) {
+          return { error: 'Nie mozna odczytac wspolrzednych mapy.' };
+        }
+
+        const demCanvas = pickDemCanvasFromManifest(manifest);
+        if (!demCanvas) {
+          return { error: 'Brak canvas DEM.' };
+        }
+
+        const transform = parseTransformFromCanvas(demCanvas);
+        if (!transform) {
+          return { error: 'Brak transformacji DEM.' };
+        }
+
+        const projected = affineInverse(transform, mapCoords.x, mapCoords.y);
+        if (!Array.isArray(projected) || projected.length !== 2) {
+          return { error: 'Nie mozna przeliczyc wspolrzednych DEM.' };
+        }
+
+        return { x: projected[0], y: projected[1] };
+      }
+
+      function ensureLeafletBaseSync() {
+        if (!self._leafletBaseSub) {
+          self._leafletBaseSub = self.leafletBaseCanvasId.subscribe(() => {
+            const locked = leafletViewer.baseCanvasId();
+            if (self.leafletBaseCanvasId() !== locked) self.leafletBaseCanvasId(locked);
+          });
+        }
+
+        if (!self._leafletBaseSub2) {
+          self._leafletBaseSub2 = leafletViewer.baseCanvasId.subscribe((id) => {
+            if (self.leafletBaseCanvasId() !== id) self.leafletBaseCanvasId(id);
+            refreshLeafletAnnotations();
+          });
+        }
+      }
+
       const layerManager = createAllmapsLayerManager({
         setStatus: self.status,
         setError: self.error
@@ -180,7 +273,7 @@ ko.components.register('iiif-map-viewer', {
         state: self,
         getMap: () => (leafletViewer && leafletViewer._map) ? leafletViewer._map : null,
         getLeaflet: () => (leafletViewer && leafletViewer._L) ? leafletViewer._L : window.L,
-        getManifest: () => ko.unwrap(self.manifest),
+        getManifest: () => getCurrentManifest(),
         getImageGroup: () => self.imageGroup(),
         parseTransformFromCanvas,
         pickDemCanvasFromManifest,
@@ -192,7 +285,7 @@ ko.components.register('iiif-map-viewer', {
         state: self,
         getMap: () => (leafletViewer && leafletViewer._map) ? leafletViewer._map : null,
         getLeaflet: () => (leafletViewer && leafletViewer._L) ? leafletViewer._L : window.L,
-        getManifest: () => ko.unwrap(self.manifest),
+        getManifest: () => getCurrentManifest(),
         getBaseCanvasId: () => self.leafletBaseCanvasId(),
         getExistingAnnotations: () => ko.unwrap(self.existingAnnotations) || [],
         getCanvasMaxZoom: (canvasId) =>
@@ -218,34 +311,9 @@ ko.components.register('iiif-map-viewer', {
         setStatus: self.status,
         setError: self.error,
         onMapClick: (info) => {
-          const m = ko.unwrap(self.manifest);
-          const baseId = self.leafletBaseCanvasId();
-          const canvas = Array.isArray(m?.items)
-            ? m.items.find(c => (c.id || c['@id']) === baseId)
-            : null;
-          const tr = parseTransformFromCanvas(canvas);
-
-          // DODATKOWE LOGI
-          const container = self._leafletDiv;
-          const mapBounds = leafletViewer._map?.getBounds?.();
-          const mapZoom = leafletViewer._map?.getZoom?.();
-          const mapSize = leafletViewer._map?.getSize?.();
-
-
-          // Jeśli chcesz zobaczyć event kliknięcia:
-          // (dodaj do createLeafletViewer przekazywanie e.originalEvent)
-          // console.log('Original event:', info.originalEvent);
-
-          if (tr) {
-            const [X, Y] = affineForward(tr, info.x, info.y, info.s);
-            self.clickedCoords(
-              `Pixel: ${info.x *2**info.s}, ${info.y *2**info.s} / ${info.width}x${info.height} | Map: ${X.toFixed(6)}, ${Y.toFixed(6)}`
-            );
-          } else {
-            self.clickedCoords(
-              `Pixel: ${info.x}, ${info.y} / ${info.width}x${info.height}`
-            );
-          }
+          const manifest = getCurrentManifest();
+          const { canvas, transform } = getLeafletBaseContext(manifest);
+          self.clickedCoords(formatLeafletClickReadout(info, transform, affineForward));
 
           // ---- Annotation mode: collect polygon vertices ----
           if (self.isActiveImageTool('annotate')) {
@@ -258,15 +326,14 @@ ko.components.register('iiif-map-viewer', {
             deactivateImageTool('dem-pick');
             self.clearActiveImageTool();
             setLeafletCursor();
-            leafletDemPicker.handleMapClick(info, canvas, tr).catch((e) => {
+            leafletDemPicker.handleMapClick(info, canvas, transform).catch((e) => {
               self.elevationError('DEM pixel error: ' + String(e?.message || e));
             });
             return;
           }
 
           if (self.isActiveImageTool('measure')) {
-            leafletMeasure.handleMapClick(info, tr);
-            return;
+            leafletMeasure.handleMapClick(info, transform);
           }
         }
       });
@@ -284,8 +351,8 @@ ko.components.register('iiif-map-viewer', {
         self.renderMode(mode);
         self.fallbackReason(reason || '');
 
-        const m = ko.unwrap(self.manifest);
-        const canMap = !!(self._map && self.mapReady() && manifestHasAnyGeoref(m));
+        const manifest = getCurrentManifest();
+        const canMap = canUseMapRenderMode(manifest);
         const canImage = !!(self._leafletDiv);
         self.canToggleRenderMode(Boolean(canMap && canImage));
       }
@@ -327,33 +394,19 @@ ko.components.register('iiif-map-viewer', {
           await leafletViewer.init(self._leafletDiv);
           leafletAnnotation.attachDoubleClickFinish();
         }
+        
+        // Keep the current manifest in the viewer before switching the canvas group.
+        await leafletViewer.setManifest(manifest);
         if (typeof leafletViewer.setGroup === 'function') {
           await leafletViewer.setGroup(self.imageGroup());
-        } else {
-          await leafletViewer.setManifest(manifest);
         }
 
-
-        self.leafletBaseCanvasId(leafletViewer.baseCanvasId());
-        self.leafletCanvasOptions(leafletViewer.canvasOptions());
-        self.leafletLayers(leafletViewer.layers());
+        syncLeafletViewerState();
         setLeafletCursor();
 
-        leafletAnnotation.refresh();
+        refreshLeafletAnnotations();
 
-        // Base is locked in Leaflet viewer: keep UI synced one-way only.
-        if (!self._leafletBaseSub) {
-          self._leafletBaseSub = self.leafletBaseCanvasId.subscribe(() => {
-            const locked = leafletViewer.baseCanvasId();
-            if (self.leafletBaseCanvasId() !== locked) self.leafletBaseCanvasId(locked);
-          });
-        }
-        if (!self._leafletBaseSub2) {
-          self._leafletBaseSub2 = leafletViewer.baseCanvasId.subscribe((id) => {
-            if (self.leafletBaseCanvasId() !== id) self.leafletBaseCanvasId(id);
-            try { leafletAnnotation.refresh(); } catch (_) {}
-          });
-        }
+        ensureLeafletBaseSync();
       }
 
       self.initMap = (rootEl) => {
@@ -392,42 +445,36 @@ ko.components.register('iiif-map-viewer', {
 
       async function render(force, nonce) {
         if (self._disposed) return;
-        const m = ko.unwrap(self.manifest);
-        if (!m) return;
+        const manifest = getCurrentManifest();
+        if (!manifest) return;
 
         self.error('');
 
-        const hasGeoref = manifestHasAnyGeoref(m);
+        const hasGeoref = manifestHasAnyGeoref(manifest);
 
-        // AUTO mode decision: if no georef -> Leaflet image-only
         if (!hasGeoref) {
           setMode('image', 'No georeference metadata (has_georef=false). Showing raster as image layers.');
           self.elevationMode(false);
-          self.elevationError('');
-          self.elevationValue('');          
-          await ensureLeafletReady(m);
+          resetElevationReadout();
+          await ensureLeafletReady(manifest);
           return;
         }
 
-        // Has georef -> try map mode Allmaps
         if (!self._map || !self.mapReady()) return;
 
-        // Clear previous map layers
         const prev = self.layers();
         if (Array.isArray(prev) && prev.length) layerManager.clear(self._map, prev);
 
-        const built = await layerManager.build(self._map, m);
+        const built = await layerManager.build(self._map, manifest);
 
-        // Stale render guard
         if (self._disposed || nonce !== self._renderNonce) {
           layerManager.clear(self._map, built);
           return;
         }
 
         if (!Array.isArray(built) || built.length === 0) {
-          // georef exists, but cannot build -> fallback to Leaflet
           setMode('image', 'Allmaps could not build any displayable layers. Falling back to image-only Leaflet view.');
-          await ensureLeafletReady(m);
+          await ensureLeafletReady(manifest);
           return;
         }
 
@@ -475,11 +522,11 @@ ko.components.register('iiif-map-viewer', {
       };
 
       self.toggleRenderMode = async () => {
-        const m = ko.unwrap(self.manifest);
-        if (!m) return;
+        const manifest = getCurrentManifest();
+        if (!manifest) return;
 
         if (self.renderMode() === 'image') {
-          if (!manifestHasAnyGeoref(m)) {
+          if (!manifestHasAnyGeoref(manifest)) {
             self.fallbackReason('Cannot switch to map mode: no georeference metadata.');
             return;
           }
@@ -491,11 +538,11 @@ ko.components.register('iiif-map-viewer', {
 
         self.renderMode('image');
         self.fallbackReason('User switched to image-only mode.');
-        await ensureLeafletReady(m);
+        await ensureLeafletReady(manifest);
       };
 
       self._renderSub = ko.computed(() => {
-        ko.unwrap(self.manifest);
+        getCurrentManifest();
         if (!self.mapReady()) return;
         scheduleRender(false);
       });
@@ -506,7 +553,7 @@ ko.components.register('iiif-map-viewer', {
         const mode = self.renderMode();
         const ready = leafletViewer && leafletViewer.ready && leafletViewer.ready();
         if (mode === 'image' && ready) {
-          try { leafletAnnotation.refresh(); } catch (e) { console.error(e); }
+          refreshLeafletAnnotations();
         }
         return _;
       });
@@ -538,83 +585,28 @@ ko.components.register('iiif-map-viewer', {
         self.disableActiveImageTool();
       };
 
-      // Nowa funkcja do pomiaru wartości piksela DEM
+      // Read DEM value from the last clicked point in the image view.
       self.measureDemPixel = async () => {
-        const m = ko.unwrap(self.manifest);
+        const manifest = getCurrentManifest();
         const coords = self.clickedCoords();
+        const target = coords ? resolveDemMeasurementTarget(manifest, coords) : null;
         if (!coords) {
-          self.elevationError('Najpierw kliknij na mapie, aby pobrać współrzędne.');
+          self.elevationError('Najpierw kliknij na mapie, aby pobrac wspolrzedne.');
           return;
         }
 
-        // Sprawdź, czy jesteśmy na warstwie DEM (imageGroup === 'dem')
-        if (self.imageGroup && self.imageGroup() === 'dem') {
-          // Wyciągnij pixel x, y z tekstu np. "Pixel: 123, 456 / ..."
-          const match = coords.match(/Pixel:\s*(\d+),\s*(\d+)/);
-          if (!match) {
-            self.elevationError('Nie można odczytać współrzędnych piksela.');
-            return;
-          }
-          const x = parseInt(match[1], 10);
-          const y = parseInt(match[2], 10);
-          console.log('Pixel coords for DEM sampling:', { x, y });
-          try {
-            self.elevationLoading(true);
-            self.elevationError('');
-            const resp = await fetch('/api/iiif/dem/pixel-value', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ manifest: m, x, y })
-            });
-            const json = await resp.json();
-            if (!resp.ok) throw new Error(json?.error || 'HTTP ' + resp.status);
-            self.elevationValue(`${json.value} m`);
-          } catch (err) {
-            self.elevationError('DEM pixel error: ' + String(err?.message || err));
-          } finally {
-            self.elevationLoading(false);
-          }
+        if (target?.error) {
+          self.elevationError(target.error);
           return;
         }
 
-        // W przeciwnym razie (np. orto) użyj transformacji afinicznej
-        const match = coords.match(/Map:\s*([-\d.]+),\s*([-\d.]+)/);
-        if (!match) {
-          self.elevationError('Nie można odczytać współrzędnych mapy.');
+        if (!target) {
+          self.elevationError('Nie mozna przygotowac punktu DEM.');
           return;
         }
-        const X = parseFloat(match[1]);
-        const Y = parseFloat(match[2]);
-        const demCanvas = pickDemCanvasFromManifest(m);
-        if (!demCanvas) {
-          self.elevationError('Brak canvas DEM.');
-          return;
-        }
-        const tr = parseTransformFromCanvas(demCanvas);
-        if (!tr) {
-          self.elevationError('Brak transformacji DEM.');
-          return;
-        }
-        const [demX, demY] = affineInverse(tr, X, Y);
-        console.log('Affine inverse coords:', { X, Y, demX, demY });
-        try {
-          self.elevationLoading(true);
-          self.elevationError('');
-          const resp = await fetch('/api/iiif/dem/pixel-value', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ manifest: m, x: demX, y: demY })
-          });
-          const json = await resp.json();
-          if (!resp.ok) throw new Error(json?.error || 'HTTP ' + resp.status);
-          self.elevationValue(`${json.value} m`);
-        } catch (err) {
-          self.elevationError('DEM pixel error: ' + String(err?.message || err));
-        } finally {
-          self.elevationLoading(false);
-        }
+
+        await sampleDemPixel(manifest, target.x, target.y);
+        return;
       };
 
       return self;
