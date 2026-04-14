@@ -21,6 +21,7 @@ export class MapEngine {
         this.extent = null;
         this.map = new MapLibreMap({
             container: containerId,
+            preserveDrawingBuffer: true,
             style: {
                 version: 8,
                 sources: {},

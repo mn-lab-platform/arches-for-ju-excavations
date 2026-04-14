@@ -1,35 +1,49 @@
 import { MapControl } from "../../components/MapControl";
+import { PrintPreview } from "../../components/PrintPreview";
+import { PrintManager } from "../PrintManager";
 import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
-import store from "../../core/store";
 
 export class PrintControl {
     constructor(mapRootContainer) {
         this._map = null;
         this.mapRootContainer = mapRootContainer;
+        this.printManager = null;
 
-        this.paperSizeDict = {
+        this._paperSizeDict = {
             A5: [148, 210],
             A4: [210, 297],
             A3: [297, 420],
             A2: [420, 594],
         };
 
-        this.formatDict = {
+        this._formatDict = {
             PDF: "PDF",
-            PNG: "PNG",
         }
 
-        this.stateKeys = {
+        this._dpiDict = {
+            "72": 72,
+            "96": 96,
+            "150": 150,
+            "300": 300,
+            "400": 400
+        };
+
+        this._dpiArr = [72, 96, 150, 300, 400];
+
+        this.tileStateKeys = {
             paperSize: "paperSize",
             format: "format",
-            isHorizontal: "isHorizontal",
+            dpi: "dpi",
         };
 
         this.state = {
-            [this.stateKeys.paperSize]: "A4",
-            [this.stateKeys.format]: "PDF",
-            [this.stateKeys.isHorizontal]: false,
+            [this.tileStateKeys.paperSize]: "A4",
+            [this.tileStateKeys.format]: "PDF",
+            [this.tileStateKeys.dpi]: 96,
+
+            isHorizontal: false,
+            currentlySelectedTileKey: null,
         };
 
         const { button, panel } = new MapControl({
@@ -41,95 +55,33 @@ export class PrintControl {
 
         this._controlButton = button;
         this._controlPanel = panel;
+        this.printPreview = new PrintPreview(this.mapRootContainer);
 
-        this._previewOverlay = null;
-        this._previewPaper = null;
-        this._resizeHandler = () => this._renderPrintPreview();
+        this._resizeHandler = () => this.printPreview.renderPrintPreview(this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4, this.state.isHorizontal);
 
         EventBusInstance.subscribe(events.CONTROL_ACTIVATE, (activeControl) => {
             if (activeControl === this) {
-                this._mountPrintPreview();
-                this._renderPrintPreview();
+                this.printPreview.mountPrintPreview();
+                this.printPreview.renderPrintPreview(this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4, this.state.isHorizontal);
                 window.addEventListener("resize", this._resizeHandler);
             } else {
-                this._unmountPrintPreview();
+                this.printPreview.unmountPrintPreview();
                 window.removeEventListener("resize", this._resizeHandler);
             }
         });
 
         EventBusInstance.subscribe(events.CONTROL_DEACTIVATE, (deactiveControl) => {
             if (deactiveControl === this) {
-                this._unmountPrintPreview();
+                this.printPreview.unmountPrintPreview();
                 window.removeEventListener("resize", this._resizeHandler);
             }
         });
 
     }
 
-    _mountPrintPreview() {
-        if (!this.mapRootContainer || this._previewOverlay) return;
-
-        const overlay = document.createElement("div");
-        overlay.className = "print-preview-overlay";
-
-        const paper = document.createElement("div");
-        paper.className = "print-preview-paper";
-
-        overlay.appendChild(paper);
-        this.mapRootContainer.appendChild(overlay);
-
-        this._previewOverlay = overlay;
-        this._previewPaper = paper;
-    }
-
-    _unmountPrintPreview() {
-        if (this._previewOverlay?.parentNode) {
-            this._previewOverlay.parentNode.removeChild(this._previewOverlay);
-        }
-        this._previewOverlay = null;
-        this._previewPaper = null;
-    }
-
-    _renderPrintPreview() {
-        if (!this._previewPaper || !this.mapRootContainer) return;
-
-        const [paperWmm, paperHmm] = this.paperSizeDict[this.state.paperSize] ?? this.paperSizeDict.A4;
-        const isHorizontal = !!this.state.isHorizontal;
-
-        const paperW = isHorizontal ? paperHmm : paperWmm;
-        const paperH = isHorizontal ? paperWmm : paperHmm;
-        const ratio = paperW / paperH;
-
-        const rootRect = this.mapRootContainer.getBoundingClientRect();
-        const leftOffset = Math.max(0, store.menuPanelWidth || 0);
-
-        const availW = Math.max(0, rootRect.width - leftOffset);
-        const availH = rootRect.height;
-
-        const maxW = availW * 0.9;
-        const maxH = availH * 0.9;
-
-        let rectW = maxW;
-        let rectH = rectW / ratio;
-
-        if (rectH > maxH) {
-            rectH = maxH;
-            rectW = rectH * ratio;
-        }
-
-        const left = leftOffset + (availW - rectW) / 2;
-        const top = (availH - rectH) / 2;
-
-        Object.assign(this._previewPaper.style, {
-            width: `${rectW}px`,
-            height: `${rectH}px`,
-            left: `${left}px`,
-            top: `${top}px`,
-        });
-    }
-
     onAdd(map) {
         this._map = map;
+        this.printManager = new PrintManager(this._map, this.mapRootContainer);
 
         const printOptionsContainer = document.createElement("div");
         printOptionsContainer.classList.add("print-tiles-container");
@@ -138,7 +90,7 @@ export class PrintControl {
             "fa fa-arrows",
             "Paper Size: ",
             "Select paper size for printing",
-            this.stateKeys.paperSize
+            this.tileStateKeys.paperSize
         );
         printOptionsContainer.appendChild(paperSizeTile);
 
@@ -146,40 +98,19 @@ export class PrintControl {
             "fa fa-tag",
             "Format: ",
             "Select format for printing",
-            this.stateKeys.format
+            this.tileStateKeys.format
         );
         printOptionsContainer.appendChild(formatTile);
 
-        const nonExpandableGroup = document.createElement("div");
-        nonExpandableGroup.classList.add("non-expandable-group");
+        const dpiTile = this._createTile(
+            "fa fa-th",
+            "DPI: ",
+            "Select resolution for printing",
+            this.tileStateKeys.dpi
+        );
+        printOptionsContainer.appendChild(dpiTile);
 
-        const orientationGroup = document.createElement("div");
-        orientationGroup.classList.add("orientation-group");
-        orientationGroup.title = "Toggle between portrait and landscape orientation";
-
-        const orientationLabel = document.createElement("span");
-        orientationLabel.textContent = `${this.state.isHorizontal ? "Landscape" : "Portrait"}`;
-        
-        const orientationBox = document.createElement("div");
-        orientationBox.classList.add("print-orientation-box");
-        orientationBox.style.transition = "transform 0.3s ease";
-
-        orientationGroup.addEventListener("click", () => {
-            this.state.isHorizontal = !this.state.isHorizontal;
-            orientationBox.style.transform = this.state.isHorizontal ? "rotate(90deg)" : "rotate(0deg)";
-            orientationLabel.textContent = `${this.state.isHorizontal ? "Landscape" : "Portrait"}`;
-            this._renderPrintPreview();
-        });
-
-        orientationGroup.appendChild(orientationLabel);
-        orientationGroup.appendChild(orientationBox);
-
-        const submitButton = document.createElement("button");
-        submitButton.textContent = "Print";
-        submitButton.classList.add("submit-button");
-        
-        nonExpandableGroup.appendChild(orientationGroup);
-        nonExpandableGroup.appendChild(submitButton);
+        const nonExpandableGroup = this._createNonExpandableTile();
 
         this.flyout = document.createElement("div");
         this.flyout.classList.add("print-options-flyout");
@@ -187,7 +118,6 @@ export class PrintControl {
         this._controlPanel.appendChild(printOptionsContainer);
         this._controlPanel.appendChild(nonExpandableGroup);
         this._controlPanel.appendChild(this.flyout);
-
 
         return this._controlButton;
     }
@@ -228,21 +158,76 @@ export class PrintControl {
 
         tile.addEventListener("click", () => {
             this._closeTileFlyout();
-            this._populateFlyout(settingKey, valueElement);
-            this._openTileFlyout();
+
+            if (this.state.currentlySelectedTileKey && this.state.currentlySelectedTileKey === settingKey) {
+                this.state.currentlySelectedTileKey = null;
+            }
+            else {
+                this.state.currentlySelectedTileKey = settingKey;
+                this._populateFlyout(settingKey, valueElement);
+                this._openTileFlyout();
+            }
         });
 
         return tile;
     }
 
+    _createNonExpandableTile() {
+        const nonExpandableGroup = document.createElement("div");
+        nonExpandableGroup.classList.add("non-expandable-group");
+
+        const orientationGroup = document.createElement("div");
+        orientationGroup.classList.add("orientation-group");
+        orientationGroup.title = "Toggle between portrait and landscape orientation";
+
+        const orientationLabel = document.createElement("span");
+        orientationLabel.textContent = `${this.state.isHorizontal ? "Landscape" : "Portrait"}`;
+        
+        const orientationBox = document.createElement("div");
+        orientationBox.classList.add("print-orientation-box");
+        orientationBox.style.transition = "transform 0.3s ease";
+
+        orientationGroup.addEventListener("click", () => {
+            this.state.isHorizontal = !this.state.isHorizontal;
+            orientationBox.style.transform = this.state.isHorizontal ? "rotate(90deg)" : "rotate(0deg)";
+            orientationLabel.textContent = `${this.state.isHorizontal ? "Landscape" : "Portrait"}`;
+            this.printPreview.renderPrintPreview(this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4, this.state.isHorizontal);
+        });
+
+        orientationGroup.appendChild(orientationLabel);
+        orientationGroup.appendChild(orientationBox);
+
+        const submitButton = document.createElement("button");
+        submitButton.textContent = "Print";
+        submitButton.classList.add("submit-button");
+
+        submitButton.addEventListener("click", () => {
+            this._closeTileFlyout();
+            this.printManager.exportPdf(
+                this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4,
+                this.state.isHorizontal,
+                this._dpiDict[this.state.dpi] ?? 96,
+                this.printPreview._previewPaper.getBoundingClientRect()
+            )
+        });
+        
+        nonExpandableGroup.appendChild(orientationGroup);
+        nonExpandableGroup.appendChild(submitButton);
+
+        return nonExpandableGroup;
+    }
+
     _populateFlyout(settingKey, valueElement) {
         let options = [];
         switch (settingKey) {
-            case this.stateKeys.paperSize:
-                options = Object.keys(this.paperSizeDict);
+            case this.tileStateKeys.paperSize:
+                options = Object.keys(this._paperSizeDict);
                 break;
-            case this.stateKeys.format:
-                options = Object.keys(this.formatDict);
+            case this.tileStateKeys.format:
+                options = Object.keys(this._formatDict);
+                break;
+            case this.tileStateKeys.dpi:
+                options = Object.keys(this._dpiDict);
                 break;
             default:
                 break;
@@ -255,10 +240,12 @@ export class PrintControl {
             this.flyout.appendChild(optionElement);
 
             optionElement.addEventListener("click", () => {
+                console.log(`Selected ${option} for ${settingKey}`);
                 this.state[settingKey] = option;
                 valueElement.textContent = option;
                 this._closeTileFlyout();
-                this._renderPrintPreview();
+                this.printPreview.renderPrintPreview(this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4, this.state.isHorizontal);
+                this.state.currentlySelectedTileKey = null;
             });
         })
 
@@ -266,13 +253,14 @@ export class PrintControl {
     }
 
     _openTileFlyout() {
-        this._populateFlyout();
         this.flyout.classList.add("open");
+        this._controlPanel.classList.toggle("flat-border-left", true);
     }
 
     _closeTileFlyout() {
         this.flyout.innerHTML = "";
         this.flyout.classList.remove("open");
+        this._controlPanel.classList.toggle("flat-border-left", false);
     }
 
     onRemove() {
@@ -281,4 +269,4 @@ export class PrintControl {
         this._controlButton.parentNode?.removeChild(this._controlButton);
         this._controlPanel.parentNode?.removeChild(this._controlPanel);
     }
-}
+}   

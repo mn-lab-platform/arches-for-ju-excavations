@@ -7,6 +7,8 @@ export class MapControl {
         this.title = options.title;
         this.hasPanel = options.hasPanel;
         this.controlInstance = options.controlInstance || this;
+
+        
     }
 
     build() {
@@ -37,6 +39,17 @@ export class MapControl {
                     button.classList.remove("--control-active");
                     button.setAttribute("aria-expanded", "false");
                 }, 500);
+            }
+        });
+
+        EventBusInstance.subscribe(events.CONTROL_ACTIVATE, (activeControl) => {
+            if (activeControl !== this.controlInstance) {
+                button.classList.remove("--control-active");
+                button.setAttribute("aria-expanded", "false");
+                
+                if (this.hasPanel) {
+                    panel.classList.remove("--control-panel-open");
+                }
             }
         });
 

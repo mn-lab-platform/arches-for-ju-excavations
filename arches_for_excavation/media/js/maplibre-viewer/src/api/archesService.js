@@ -18,6 +18,7 @@ const getCookie = (name) => {
 
 const _extractProjectExtentCoordinates = (payload) => {
     const firstEntry = Object.values(payload)[0];
+    console.log('Extracted first entry from map extent API response: ', firstEntry);
     const coordinates =
         firstEntry.resource['Map Settings']['Project Extent'].DEFAULT_BOUNDS.geojson.features[0].geometry.coordinates;
     return coordinates.flat();

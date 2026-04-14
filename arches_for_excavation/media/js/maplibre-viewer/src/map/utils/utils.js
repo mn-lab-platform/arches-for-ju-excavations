@@ -15,7 +15,7 @@ export const updateGeojsonSource = (map, sourceId, geojsonData) => {
 
 export const fitMapToGeojson = (map, geojsonData) => {
     const padding = 50;
-    const overlayWidth = store.mapOffsetX || 0;
+    const overlayWidth = store.searchFlyoutWidth || 0;
     const shift = Math.max(0, Math.round(overlayWidth / 2 - padding));
     try {
         const bounds = bbox(geojsonData);
