@@ -99,6 +99,13 @@ export function createLeafletAnnotationController(opts = {}) {
     if (state.annotationCanFinish) state.annotationCanFinish(false);
   }
 
+  function resetAnnotations() {
+    clearDraft();
+    createdAnnotations = [];
+    refresh();
+    if (state.annotationStatus) state.annotationStatus('Annotation reset.');
+  }
+
   function clearLayer() {
     if (layerGroup) {
       try { layerGroup.clearLayers(); } catch (_) {}
@@ -664,6 +671,7 @@ export function createLeafletAnnotationController(opts = {}) {
 
   return {
     clearDraft,
+    resetAnnotations,
     handleMapClick,
     finishDraft,
     refresh,

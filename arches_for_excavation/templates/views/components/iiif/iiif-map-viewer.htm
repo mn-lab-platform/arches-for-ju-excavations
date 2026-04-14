@@ -40,13 +40,26 @@
               Finish
             </button>
             <button class="iiif-btn"
-                    data-bind="click: cancelAnnotation, enable: annotationMode()">
+                    data-bind="click: cancelAnnotation">
               Reset
             </button>
-            <label class="iiif-color-chip">
+            <label class="iiif-btn iiif-color-chip">
               <span>Stroke</span>
               <input class="iiif-color-input" type="color" data-bind="value: annotationColor, enable: true" />
             </label>
+
+            <!-- NOWE: potwierdzenie zapisu w panelu adnotacji -->
+            <button class="iiif-btn iiif-btn--accent"
+                    data-bind="click: confirmPendingAnnotations, visible: pendingAnnotationsCount() > 0">
+              Potwierdź zapis (<span data-bind="text: pendingAnnotationsCount()"></span>)
+            </button>
+
+            <button class="iiif-btn"
+                    data-bind="click: resetPendingAnnotations,
+                               visible: pendingAnnotationsCount() > 0,
+                               enable: canResetPendingAnnotations">
+              Reset niezapisanych
+            </button>
           </div>
 
           <!-- ko if: annotationStatus -->

@@ -44,6 +44,31 @@ ko.components.register('iiif-map-viewer', {
       self.onAnnotationCreated = typeof params.onAnnotationCreated === 'function' ? params.onAnnotationCreated : null;
       self.onAnnotationDeleted = typeof params.onAnnotationDeleted === 'function' ? params.onAnnotationDeleted : null;
 
+      self.onConfirmPendingAnnotations =
+        typeof params.onConfirmPendingAnnotations === 'function' ? params.onConfirmPendingAnnotations : null;
+
+      self.onResetPendingAnnotations =
+        typeof params.onResetPendingAnnotations === 'function' ? params.onResetPendingAnnotations : null;
+
+      self.canResetPendingAnnotations = ko.pureComputed(function() {
+        return !!ko.unwrap(params.canResetPendingAnnotations);
+      });
+
+      self.resetPendingAnnotations = () => {
+        if (!self.onResetPendingAnnotations) return;
+        self.onResetPendingAnnotations();
+      };
+
+      self.pendingAnnotationsCount = ko.pureComputed(function() {
+        const n = Number(ko.unwrap(params.pendingAnnotationsCount));
+        return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+      });
+
+      self.confirmPendingAnnotations = () => {
+        if (!self.onConfirmPendingAnnotations) return;
+        self.onConfirmPendingAnnotations();
+      };
+
       self.status = ko.observable('');
       self.error = ko.observable('');
 
@@ -144,8 +169,14 @@ ko.components.register('iiif-map-viewer', {
       };
 
       self.cancelAnnotation = () => {
-        leafletAnnotation.clearDraft();
+        if (!leafletAnnotation) return;
+        if (typeof leafletAnnotation.resetAnnotations === 'function') {
+          leafletAnnotation.resetAnnotations();
+        } else {
+          leafletAnnotation.clearDraft();
+        }
       };
+
       function setLeafletCursor() {
         const map = leafletViewer && leafletViewer._map;
         const el = map && typeof map.getContainer === 'function' ? map.getContainer() : null;
