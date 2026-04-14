@@ -1,4 +1,4 @@
-import { Map as MapLibreMap } from 'maplibre-gl';
+import { Map as MapLibreMap, ScaleControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { centroid, polygon } from '@turf/turf';
 import { updateGeojsonSource, fitMapToGeojson, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer, refreshGeojsonLayer } from './utils/utils';
@@ -8,6 +8,7 @@ import {getMapExtent, getBasemapsAndOverlays} from '../api/archesService';
 import { BasemapControl } from './controls/BasemapControl';
 import { OverlayControl } from './controls/OverlayControl';
 import { RecenterMapControl } from './controls/RecenterMapControl';
+import { PrintControl } from './controls/PrintControl';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import store from '../core/store';
@@ -16,9 +17,11 @@ export class MapEngine {
     constructor(containerId) {
         this.previewFeatures = new Map();
         this.previewSourceId = 'preview-source';
+        this.container = document.getElementById(containerId);
         this.extent = null;
         this.map = new MapLibreMap({
             container: containerId,
+            preserveDrawingBuffer: true,
             style: {
                 version: 8,
                 sources: {},
@@ -57,6 +60,10 @@ export class MapEngine {
     }
 
      _register_controls() {
+        this.map.addControl(new ScaleControl({
+            maxWidth: 200,
+            unit: 'metric'
+        }), 'bottom-right');
         return getBasemapsAndOverlays()
             .then(info => {
                 const basemapInfo = info.basemaps;
@@ -75,6 +82,10 @@ export class MapEngine {
 
                 const recenterControl = new RecenterMapControl();
                 this.map.addControl(recenterControl, 'top-right');
+
+                const printControl = new PrintControl(this.container);
+                this.map.addControl(printControl, 'top-right');
+
             })
             .catch(error => {
                 console.error('Error registering controls:', error);
@@ -183,6 +194,13 @@ export class MapEngine {
                 type: 'FeatureCollection',
                 features: layerDefinition.source_info.data.features
             });
+        });
+
+        EventBusInstance.subscribe(events.LAYER_ZOOM_TO, (layerId) => {
+            const source = this.map.getSource(layerId);
+            if (source && source._data) {
+                fitMapToGeojson(this.map, source._data.geojson);
+            }
         });
 
         EventBusInstance.subscribe(events.MAP_TO_DEFAULT, () => {

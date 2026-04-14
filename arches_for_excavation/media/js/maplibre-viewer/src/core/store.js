@@ -4,7 +4,8 @@ const store = {
     mapLayerIds: [],
     basemapLayerId: [], //in order to keep map layers and sources loading logic modular we keep it as array
     overlayLayerIds: [],
-    mapOffsetX: 0,
+    searchFlyoutWidth: 0,
+    menuPanelWidth: 0,
     flyoutOpen: false,
 }
 

@@ -34,7 +34,7 @@ export class FlyoutContentLayerSettings {
         this.introSection.appendChild(this.subtitle);
 
         this.applyButton = document.createElement('button');
-        this.applyButton.className = 'flyout-submit-button';
+        this.applyButton.className = 'submit-button';
         this.applyButton.textContent = 'Apply Changes';
         this.applyButton.title = 'Apply layer settings changes';
         this.applyButton.disabled = true;
@@ -99,7 +99,7 @@ export class FlyoutContentLayerSettings {
         
         this.opacityInput = document.createElement('input');
         this.opacityInput.type = 'range';
-        this.opacityInput.min = 0;
+        this.opacityInput.min = 0.1;
         this.opacityInput.max = 1;
         this.opacityInput.step = 0.1;
         this.opacityInput.className = 'flyout-layer-opacity-input';

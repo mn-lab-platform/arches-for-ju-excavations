@@ -21,6 +21,7 @@ export class PanelView {
 
         this.layerMenu = new LayerMenuView(this.container);
         this.flyout = new FlyoutView(this.container);
+        store.menuPanelWidth = this.container.offsetWidth;
 
         this.activeFlyoutMode = null;
 
@@ -33,7 +34,7 @@ export class PanelView {
             this.addLayerBtn.textContent = 'Add Layer';
             this.flyout.close();
             EventBusInstance.publish(events.PREVIEW_REMOVE_ALL);
-            store.mapOffsetX = 0;
+            store.searchFlyoutWidth = 0;
         });
 
         EventBusInstance.subscribe(events.FLYOUT_OPEN_RESOURCE_SEARCH, () => {
@@ -41,7 +42,7 @@ export class PanelView {
             this.addLayerBtn.textContent = 'Close Flyout';
             this.flyout.setContent(new FlyoutContentResourceSearch().build());
             this.flyout.open(); 
-            store.mapOffsetX = this.flyout.getWidth();
+            store.searchFlyoutWidth = this.flyout.getWidth();
         });
 
         EventBusInstance.subscribe(events.FLYOUT_OPEN_LAYER_SETTINGS, (layerInfo) => {
@@ -49,7 +50,7 @@ export class PanelView {
             this.addLayerBtn.textContent = 'Add Layer';
             this.flyout.setContent(new FlyoutContentLayerSettings(layerInfo).build());
             this.flyout.open();
-            store.mapOffsetX = this.flyout.getWidth();
+            store.searchFlyoutWidth = this.flyout.getWidth();
         });
     }
 

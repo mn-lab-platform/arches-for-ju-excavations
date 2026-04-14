@@ -28,6 +28,8 @@
 
 .menu-panel {
   position: absolute;
+  z-index: 10;
+
   height: 100%;
 
   display: flex;
@@ -78,6 +80,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  z-index: 10;
 }
 
 .control-panel-btn i {
@@ -94,6 +98,25 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+
+  min-width: 0;
+}
+
+.layer-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.layer-name::-webkit-scrollbar {
+  display: none;
 }
 
 .layer-control-group {
@@ -255,7 +278,7 @@
   margin: 0;
 }
 
-.flyout-submit-button {
+.submit-button {
   background: transparent;
   color: var(--vibrant-green);
   border: 1.5px solid var(--vibrant-green);
@@ -266,13 +289,13 @@
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 
-.flyout-submit-button:hover:not(:disabled) {
+.submit-button:hover:not(:disabled) {
   background: rgba(34, 211, 122, 0.08);
   color: #eafff4;
   border-color: var(--vibrant-green);
 }
 
-.flyout-submit-button:disabled {
+.submit-button:disabled {
   background: transparent;
   color: var(--muted-text);
   border-color: var(--panel-border-strong);
@@ -648,7 +671,7 @@
   transform: translateY(-1px);
 }
 
-.map-control-button.--control-active i {
+.map-control-button.--control-active > i {
   color: var(--vibrant-purple);
 }
 
@@ -673,7 +696,7 @@
 
   opacity: 0;
   visibility: hidden;
-  pointer-events: none;
+  cursor: default;
 }
 
 .control-panel.--control-panel-open {
@@ -684,7 +707,7 @@
   width: max-content;
 }
 
-.maplayer-option {
+.control-tile {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -699,28 +722,28 @@
     transition: all 0.2s ease;
 }
 
-.maplayer-option:hover {
+.control-tile:hover {
     background: rgba(162, 89, 247, 0.1);
     border-color: var(--deep-purple);
     color: var(--light-text);
 }
 
-.maplayer-option:hover i {
+.control-tile:hover i {
   color: #c084fc;
 }
 
-.maplayer-option.active {
+.control-tile.active {
   background: rgba(162, 89, 247, 0.15);
   border-color: #a259f7;
   color: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(162, 89, 247, 0.3);
 }
 
-.maplayer-option.active i {
+.control-tile.active i {
   color: #a259f7;
 }
 
-.maplayer-option i {
+.control-tile i {
     font-size: 16px;
     color: var(--muted-text);
 }
@@ -838,8 +861,181 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.print-tiles-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
+.print-option-tile {
+  display: grid;
+  grid-template-columns: 1fr 1.5rem;
+  column-gap: 0.5rem;
+}
 
+.print-option-tile:hover i {
+  color: var(--light-text);
+}
+
+.print-option-tile:hover .print-expand-icon {
+  transform: translateX(-5px);
+  color: var(--vibrant-purple);
+}
+
+.print-tile-left-side {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.print-tile-main-info {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.print-tile-value {
+  font-weight: 500;
+  color: var(--light-text);
+}
+
+.non-expandable-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.orientation-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  color: var(--muted-text);
+
+  border: 1px solid var(--panel-border-soft);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+
+  background-color: rgba(0, 0, 0, 0.1);
+
+  cursor: pointer;
+}
+
+.orientation-group:hover {
+  background: rgba(162, 89, 247, 0.1);
+  border-color: var(--deep-purple);
+  color: var(--light-text);
+}
+
+.orientation-group:hover .print-orientation-box {
+  border-color: var(--vibrant-purple);
+}
+
+.orientation-group:hover .print-orientation-box::after {
+  border-top-color: var(--vibrant-purple);
+  border-right-color: var(--vibrant-purple);
+}
+
+.print-orientation-box {
+  width: 0.9rem;
+  height: 1.2rem;
+  background: transparent;
+  border: 2px solid var(--muted-text);
+  border-radius: 3px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.print-orientation-box::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 0.22rem;
+  height: 0.22rem;
+  border-top: 2px solid var(--muted-text);
+  border-right: 2px solid var(--muted-text);
+  opacity: 0.7;
+}
+
+.print-preview-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.print-preview-paper {
+  position: absolute;
+  border: 2px solid rgba(255,255,255,0.95);
+  box-shadow: 0 0 0 9999px rgba(255,255,255,0.35);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.print-options-flyout {
+  position: absolute;
+
+  right: 100%;
+  top: -1px;
+  bottom: -1px;
+
+  width: max-content;
+
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+
+  border-radius: 12px 0 0 12px;
+}
+
+.print-options-flyout.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  gap: 0.2rem;
+
+  box-sizing: border-box;
+
+  color: var(--muted-text);
+
+  background: rgba(22, 22, 28, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.flat-border-left {
+  border-radius: 0 12px 12px 0 !important;
+}
+
+.print-flyout-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  padding: 0.1rem 0.8rem;
+
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+
+  font-weight: 550;
+
+  box-sizing: border-box;
+
+  cursor: pointer;
+}
+
+.print-flyout-option:hover {
+  background: rgba(162, 89, 247, 0.1);
+  border-color: var(--deep-purple);
+  color: var(--light-text);
+}
 
 
 

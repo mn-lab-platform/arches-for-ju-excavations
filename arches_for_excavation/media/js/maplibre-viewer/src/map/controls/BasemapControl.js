@@ -29,7 +29,7 @@ export class BasemapControl {
 
         const { button, panel } = new MapControl({
             iconClass: 'fa fa-map',
-            title: 'Basemap Selector',
+            title: 'Select Basemap',
             hasPanel: true,
             controlInstance: this
         }).build();
@@ -44,7 +44,7 @@ export class BasemapControl {
             const layerInfo = layer.layer_info;
 
             const basemapContainer = document.createElement("div");
-            basemapContainer.classList.add("maplayer-option");
+            basemapContainer.classList.add("control-tile");
 
             if (store.basemapLayerId.includes(layerInfo.id)) {
                 basemapContainer.classList.add("active");
@@ -78,7 +78,7 @@ export class BasemapControl {
         EventBusInstance.publish(events.LAYER_HIDE, oldLayerId);
         EventBusInstance.publish(events.LAYER_SHOW, newLayerId);
         
-        this._controlButton.querySelectorAll('.maplayer-option').forEach(el => {
+        this._controlButton.querySelectorAll('.control-tile').forEach(el => {
             el.classList.remove('active');
         });
         newContainer.classList.add('active');

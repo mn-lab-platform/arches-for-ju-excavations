@@ -3,7 +3,8 @@ export const events = {
     PREVIEW_REMOVE: 'preview:remove',
     PREVIEW_REMOVE_ALL: 'preview:remove_all',
 
-    CONTROL_ACTIVE: 'control:active',
+    CONTROL_ACTIVATE: 'control:activate',
+    CONTROL_DEACTIVATE: 'control:deactivate',
 
     FLYOUT_CLOSE: 'flyout:close',
     FLYOUT_OPEN_RESOURCE_SEARCH: 'flyout:open_resource_search',
@@ -20,6 +21,7 @@ export const events = {
     LAYER_SETTINGS_UPDATE: 'layer:settings_update',
     LAYER_REFRESH: 'layer:refresh',
     LAYERS_REORDER: 'layer:reorder',
+    LAYER_ZOOM_TO: 'layer:zoom_to',
 
     MAP_TO_DEFAULT: 'map:to_default',
 }

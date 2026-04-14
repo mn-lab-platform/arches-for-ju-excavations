@@ -12,7 +12,7 @@ export class OverlayControl {
         
         const { button, panel } = new MapControl({
             iconClass: 'fa fa-list',
-            title: 'Overlay Selector',
+            title: 'Select Overlay',
             hasPanel: true,
             controlInstance: this
         }).build();
@@ -36,7 +36,7 @@ export class OverlayControl {
             const layerInfo = layer.layer_info;
 
             const overlayContainer = document.createElement("div");
-            overlayContainer.classList.add("maplayer-option");
+            overlayContainer.classList.add("control-tile");
 
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
