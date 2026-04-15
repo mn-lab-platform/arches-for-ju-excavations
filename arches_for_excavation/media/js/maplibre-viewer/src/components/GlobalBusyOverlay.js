@@ -10,12 +10,10 @@ export class GlobalBusyOverlay {
         this._createLoader();
 
         EventBusInstance.subscribe(events.APP_BUSY_ON, () => {
-            console.log("GlobalBusyOverlay: Received APP_BUSY_ON event, showing loader.");
             this._showLoader();
         });
 
         EventBusInstance.subscribe(events.APP_BUSY_OFF, () => {
-            console.log("GlobalBusyOverlay: Received APP_BUSY_OFF event, hiding loader.");
             this._hideLoader();
         });
     }
