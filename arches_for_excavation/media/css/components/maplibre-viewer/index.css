@@ -939,8 +939,8 @@
 }
 
 .print-orientation-box {
-  width: 0.9rem;
-  height: 1.2rem;
+  width: 15px;
+  height: 20px;
   background: transparent;
   border: 2px solid var(--muted-text);
   border-radius: 3px;
