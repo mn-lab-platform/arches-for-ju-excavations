@@ -14,15 +14,18 @@ export const updateGeojsonSource = (map, sourceId, geojsonData) => {
 }
 
 export const fitMapToGeojson = (map, geojsonData) => {
-    const padding = 50;
-    const overlayWidth = store.searchFlyoutWidth || 0;
-    const shift = Math.max(0, Math.round(overlayWidth / 2 - padding));
+    const blockedLeftWidth = (store.searchFlyoutWidth || 0) + (store.menuPanelWidth || 0);
+    
     try {
         const bounds = bbox(geojsonData);
         map.fitBounds(bounds, {
-            padding: padding,
             duration: 800,
-            offset: [shift > 0 ? shift : 50, 0]
+            padding: {
+                top: 50,
+                bottom: 50,
+                right: 50,
+                left: blockedLeftWidth + 50
+            }
         });
     } catch (error) {
         console.error(`fitMapToGeojson: Error fitting map to geojson: ${error.message}`);

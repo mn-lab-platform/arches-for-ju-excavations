@@ -28,7 +28,7 @@
 
 .menu-panel {
   position: absolute;
-  z-index: 10;
+  z-index: 1;
 
   height: 100%;
 
@@ -81,7 +81,7 @@
   align-items: center;
   justify-content: center;
 
-  z-index: 10;
+  z-index: 1;
 }
 
 .control-panel-btn i {
@@ -1035,6 +1035,29 @@
   background: rgba(162, 89, 247, 0.1);
   border-color: var(--deep-purple);
   color: var(--light-text);
+}
+
+.global-busy-overlay {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  z-index: 1000;
+  width: 60px;
+  aspect-ratio: 1;
+  --g: conic-gradient(from -90deg at 10px 10px,var(--vibrant-purple) 90deg,#0000 0);
+  background: var(--g), var(--g), var(--g);
+  background-size: 50% 50%;
+  animation: l16 1s infinite;
+}
+
+@keyframes l16 {
+   0%   {background-position:0    0   ,10px 10px,20px 20px} 
+   50%  {background-position:0    20px,10px 10px,20px 0   } 
+   100% {background-position:20px 20px,10px 10px,0    0   } 
+}
+
+.global-busy-overlay.hidden {
+  display: none;
 }
 
 

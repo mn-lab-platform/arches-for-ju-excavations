@@ -1,5 +1,7 @@
 import { jsPDF } from "jspdf";
 import maplibregl from "maplibre-gl";
+import { EventBusInstance } from "../core/EventBus";
+import { events } from "../constants/events";
 
 export class PrintManager {
     constructor(maplibreMapInstance) {
@@ -7,6 +9,7 @@ export class PrintManager {
     }
 
     exportPdf(paperSizeMm, isHorizontal, dpi, previewRect) {
+        EventBusInstance.publish(events.APP_BUSY_ON);
         if (!this.map) throw new Error("PrintManager: map instance is missing.");
 
         const baseDpi = 96; 
@@ -73,11 +76,14 @@ export class PrintManager {
             
             pdf.addImage(imageData, "JPEG", 0, 0, pageWmm, pageHmm, undefined, "FAST");
 
-            const filename = `map_export.pdf`; 
+            const filename = `map_export.pdf`;
+            
             pdf.save(filename);
 
             printMap.remove();
             document.body.removeChild(hiddenContainer);
+
+            EventBusInstance.publish(events.APP_BUSY_OFF);
         });
     }
 }
