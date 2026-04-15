@@ -1,11 +1,12 @@
 define([
     'knockout',
+    'jquery',
     'views/components/iiif/iiif-map-viewer',
     'viewmodels/resource-instance-select',
     'utils/iiif-annotation-utils',
     'services/iiif-annotation-service',
     'templates/views/components/workflows/iiif-annotation/iiif-annotator-step.htm'
-], function(ko, _MapViewer, ResourceInstanceSelectModule, iiifAnnotationUtils, iiifAnnotationService, template) {
+], function(ko, $, _MapViewer, ResourceInstanceSelectModule, iiifAnnotationUtils, iiifAnnotationService, template) {
     'use strict';
 
     var RIS = iiifAnnotationUtils.unwrapCtor(ResourceInstanceSelectModule);
@@ -287,6 +288,7 @@ define([
 
         function rebuildRiVm(graphId) {
             var gid = String(graphId || '').trim();
+            var finalizeModal = $('#iiif-annotator-finalize-modal');
 
             self.riVm(null);
             self.riVmReady(false);
@@ -302,7 +304,10 @@ define([
                     allowInstanceCreation: true,
                     graphids: ko.observableArray([gid]),
                     label: 'Target resource',
-                    placeholder: 'Search or create new resourceâ€¦',
+                    config: ko.observable({
+                        placeholder: 'Search or create new resource...'
+                    }),
+                    placeholder: 'Search or create new resource…',
                     displayOntologyTable: false,
                     onlyManageResourceIds: true,
                     form: params.form || null,
@@ -310,10 +315,25 @@ define([
                     pageVm: params.pageVm
                 });
 
+                if (newVm.select2Config && finalizeModal.length) {
+                    newVm.select2Config.dropdownParent = finalizeModal;
+                }
+
                 self.riVm(newVm);
 
+                // jak w summary-step: daj VM chwilę na zbudowanie select2Config
                 window.setTimeout(function() {
-                    self.riVmReady(true);
+                    // czasem select2Config pojawia się asynchronicznie
+                    self.riVm(newVm); // wymusza refresh bindingu KO
+                    self.riVmReady(!!(newVm && newVm.select2Config));
+
+                    // fallback: druga próba po krótkiej chwili
+                    if (!self.riVmReady()) {
+                        window.setTimeout(function() {
+                            self.riVm(newVm);
+                            self.riVmReady(!!(newVm && newVm.select2Config));
+                        }, 150);
+                    }
                 }, 50);
 
                 iiifAnnotationService.fetchCreatorCardId(gid).then(function(cardId) {
@@ -330,6 +350,13 @@ define([
 
             if (mode !== 'annotation-and-resource') {
                 resetTargetResourceState();
+                return;
+            }
+
+            // gdy wracamy do trybu linkowania i graph już jest wybrany -> odbuduj RIS
+            var gid = String(self.targetGraphId() || '').trim();
+            if (gid && !self.riVm()) {
+                rebuildRiVm(gid);
             }
         });
 
@@ -368,6 +395,11 @@ define([
         function checkTargetGraphStructure() {
             var selectedGraphId = self.targetGraphId();
 
+            console.log('[iiif-annotator-step] checkTargetGraphStructure:start', {
+                selectedGraphId: selectedGraphId,
+                targetResourceId: self.riValue()
+            });
+
             if (!selectedGraphId) {
                 return Promise.resolve({
                     hasRelatedNode: false,
@@ -377,10 +409,13 @@ define([
 
             return iiifAnnotationService.checkGraphForRelatedResourceNode(selectedGraphId)
                 .then(function(graphInfo) {
-                    return Object.assign({}, graphInfo, {
+                    var result = Object.assign({}, graphInfo, {
                         resourceGraphId: selectedGraphId,
                         resourceId: self.riValue()
                     });
+
+                    console.log('[iiif-annotator-step] checkTargetGraphStructure:result', result);
+                    return result;
                 });
         }
 
@@ -405,9 +440,18 @@ define([
             var hostResourceId = self.hostResourceId();
             var sourceManifest = self.manifest() || null;
 
+            console.log('[iiif-annotator-step] saveAnnotationsOnly:start', {
+                hostResourceId: hostResourceId,
+                annotationCount: annotations.length
+            });
+
             return Promise.all(annotations.map(function(annotation) {
                 return self.createAnnotationResource(annotation, hostResourceId);
             })).then(function(annotationResourceIds) {
+                console.log('[iiif-annotator-step] saveAnnotationsOnly:created-annotation-resources', {
+                    annotationResourceIds: annotationResourceIds
+                });
+
                 return Promise.all(annotations.map(function(annotation, index) {
                     var withResourceId = Object.assign({}, annotation, {
                         annotationResourceId: annotationResourceIds[index]
@@ -426,23 +470,46 @@ define([
             var hostResourceId = self.hostResourceId();
             var sourceManifest = self.manifest() || null;
 
+            console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:start', {
+                hostResourceId: hostResourceId,
+                targetResourceId: targetResourceId,
+                targetResourceInfo: targetResourceInfo,
+                annotationCount: annotations.length
+            });
+
             return Promise.all(annotations.map(function(annotation) {
                 return self.createAnnotationResource(annotation, hostResourceId);
             }))
                 .then(function(annotationResourceIds) {
+                    console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:created-annotation-resources', {
+                        annotationResourceIds: annotationResourceIds
+                    });
+
                     if (targetResourceInfo.hasRelatedNode) {
+                        console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:linking-to-target-resource', {
+                            targetResourceId: targetResourceId,
+                            annotationResourceIds: annotationResourceIds
+                        });
+
                         return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo)
                             .then(function() {
+                                console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:linked-to-target-resource', {
+                                    targetResourceId: targetResourceId,
+                                    annotationResourceIds: annotationResourceIds
+                                });
                                 return annotationResourceIds;
                             });
                     }
 
+                    console.warn('[iiif-annotator-step] saveAnnotationsWithTargetResource:no-related-node-found', targetResourceInfo);
                     return annotationResourceIds;
                 })
                 .then(function(annotationResourceIds) {
                     return Promise.all(annotations.map(function(annotation, index) {
                         var withResourceId = Object.assign({}, annotation, {
-                            annotationResourceId: annotationResourceIds[index]
+                            annotationResourceId: annotationResourceIds[index],
+                            targetResourceId: targetResourceId,
+                            linkedResourceIds: targetResourceId ? [targetResourceId] : []
                         });
 
                         return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest)
@@ -454,6 +521,14 @@ define([
         };
 
         self.saveAll = function() {
+            console.log('[iiif-annotator-step] saveAll:start', {
+                outputMode: self.outputMode(),
+                hostResourceId: self.hostResourceId(),
+                targetGraphId: self.targetGraphId(),
+                targetResourceId: self.riValue(),
+                annotationCount: self.newAnnotations().length
+            });
+
             if (!self.manifest()) {
                 self.error('Manifest not loaded.');
                 return Promise.reject(new Error('Manifest not loaded.'));
@@ -486,17 +561,43 @@ define([
             self.success('');
             self.isSaved(false);
 
+            var targetResourcePromise = (self.outputMode() === 'annotation-and-resource')
+                ? iiifAnnotationService.fetchResourceReference(self.riValue())
+                : Promise.resolve(null);
+
             var savePromise = (self.outputMode() === 'annotation-and-resource')
                 ? checkTargetGraphStructure().then(function(targetInfo) {
                     return self.saveAnnotationsWithTargetResource(self.riValue(), targetInfo);
                 })
                 : self.saveAnnotationsOnly();
 
-            return savePromise
-                .then(function(savedAnnotations) {
+            return Promise.all([savePromise, targetResourcePromise])
+                .then(function(results) {
+                    var savedAnnotations = results[0] || [];
+                    var targetResource = results[1];
+
+                    console.log('[iiif-annotator-step] saveAll:save-results', {
+                        savedAnnotations: savedAnnotations,
+                        targetResource: targetResource
+                    });
+
+                    if (targetResource) {
+                        savedAnnotations = savedAnnotations.map(function(annotation) {
+                            return Object.assign({}, annotation, {
+                                linkedResources: [targetResource]
+                            });
+                        });
+                    }
+
                     var mergedExisting = self.existingAnnotations().slice().concat(
                         (savedAnnotations || []).map(function(annotation) {
-                            return iiifAnnotationUtils.buildV3Annotation(annotation);
+                            var normalizedAnnotation = iiifAnnotationUtils.buildV3Annotation(annotation);
+
+                            if (Array.isArray(annotation.linkedResources) && annotation.linkedResources.length) {
+                                normalizedAnnotation.linkedResources = annotation.linkedResources.slice();
+                            }
+
+                            return normalizedAnnotation;
                         })
                     );
 

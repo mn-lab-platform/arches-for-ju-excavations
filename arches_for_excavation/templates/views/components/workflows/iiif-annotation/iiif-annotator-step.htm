@@ -66,7 +66,7 @@
 
   <!-- finalize modal -->
   <div class="wf-modal-backdrop" data-bind="visible: showFinalizeModal, click: cancelFinalizeModal"></div>
-  <div class="wf-modal" data-bind="visible: showFinalizeModal">
+  <div id="iiif-annotator-finalize-modal" class="wf-modal" data-bind="visible: showFinalizeModal">
     <div class="wf-modal-card wf-modal-card--wide" data-bind="click: function(_, e){ e.stopPropagation(); }">
       <div class="wf-modal-header">
         <h4>Finalize output</h4>
@@ -281,6 +281,11 @@
 
   .wf-modal-card--wide {
     width: 900px;
+  }
+
+  #iiif-annotator-finalize-modal .select2-dropdown,
+  #iiif-annotator-finalize-modal .select2-container--open {
+    z-index: 9100;
   }
 
   .wf-modal-header {

@@ -137,6 +137,49 @@ define(['arches'], function(arches) {
         return null;
     }
 
+    function linkedResourceIdsFromAnnotation(annotation) {
+        if (!annotation) return [];
+
+        var seen = {};
+        var out = [];
+
+        function add(value) {
+            var normalized = String(value || '').trim();
+            if (!normalized || seen[normalized]) return;
+            seen[normalized] = true;
+            out.push(normalized);
+        }
+
+        if (Array.isArray(annotation.linkedResourceIds)) {
+            annotation.linkedResourceIds.forEach(add);
+        }
+
+        if (annotation.targetResourceId) add(annotation.targetResourceId);
+
+        if (Array.isArray(annotation.linkedResources)) {
+            annotation.linkedResources.forEach(function(resource) {
+                if (!resource || typeof resource !== 'object') return;
+                add(resource.id || resource.resourceId || resource.resourceinstanceid);
+            });
+        }
+
+        var body = annotation.body;
+        if (Array.isArray(body)) {
+            body.forEach(function(item) {
+                if (!item || typeof item !== 'object') return;
+                if (item.purpose === 'linked-resource-id' || item.purpose === 'target-resource-id') {
+                    add(item.value);
+                }
+            });
+        } else if (body && typeof body === 'object') {
+            if (body.purpose === 'linked-resource-id' || body.purpose === 'target-resource-id') {
+                add(body.value);
+            }
+        }
+
+        return out;
+    }
+
     function normalizeSelector(selector) {
         if (!selector || !selector.value) return null;
 
@@ -190,10 +233,16 @@ define(['arches'], function(arches) {
         var annotationResourceId = hasOwn(overrides, 'annotationResourceId')
             ? overrides.annotationResourceId
             : annotationResourceIdFromAnnotation(annotation);
+        var linkedResourceIds = hasOwn(overrides, 'linkedResourceIds')
+            ? overrides.linkedResourceIds
+            : linkedResourceIdsFromAnnotation(annotation);
 
         title = String(title || '').trim();
         note = String(note || '').trim();
         color = String(color || '').trim();
+        linkedResourceIds = Array.isArray(linkedResourceIds)
+            ? linkedResourceIds.map(function(resourceId) { return String(resourceId || '').trim(); }).filter(Boolean)
+            : [];
 
         var body = [];
 
@@ -201,6 +250,9 @@ define(['arches'], function(arches) {
         if (note) body.push(buildTextualBody(note, 'commenting'));
         if (color) body.push(buildTextualBody(color, 'color'));
         if (annotationResourceId) body.push(buildTextualBody(annotationResourceId, 'resource-id'));
+        linkedResourceIds.forEach(function(resourceId) {
+            body.push(buildTextualBody(resourceId, 'linked-resource-id'));
+        });
 
         if (!body.length) {
             body.push(buildTextualBody('Annotation', 'commenting'));
@@ -217,6 +269,11 @@ define(['arches'], function(arches) {
         if (annotationResourceId) {
             out.annotationResourceId = annotationResourceId;
             out.annotation_resource_id = annotationResourceId;
+        }
+
+        if (linkedResourceIds.length) {
+            out.linkedResourceIds = linkedResourceIds.slice();
+            out.targetResourceId = linkedResourceIds[0];
         }
 
         if (title) {
@@ -244,6 +301,7 @@ define(['arches'], function(arches) {
         collectV3AnnotationsFromManifest: collectV3AnnotationsFromManifest,
         canvasIdFromAnnotation: canvasIdFromAnnotation,
         annotationResourceIdFromAnnotation: annotationResourceIdFromAnnotation,
+        linkedResourceIdsFromAnnotation: linkedResourceIdsFromAnnotation,
         normalizeSelector: normalizeSelector,
         buildV3Annotation: buildV3Annotation,
         buildResourceLinkValue: buildResourceLinkValue

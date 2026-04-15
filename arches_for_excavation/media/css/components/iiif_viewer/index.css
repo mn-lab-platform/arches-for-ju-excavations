@@ -249,9 +249,9 @@ iiif-map-viewer {
 
 .iiif-btn {
   box-sizing: border-box;
-  height: 34px;          /* stała wysokość jak Reset/Finish */
+  height: 34px;         
   min-height: 34px;
-  padding: 0 0.85rem;    /* pionowy padding na 0, żeby wysokość była identyczna */
+  padding: 0 0.85rem;   
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.06);
