@@ -32,9 +32,9 @@ export class PrintControl {
         this._dpiArr = [72, 96, 150, 300, 400];
 
         this._northArrowDict = {
-            "Arrow 1": "/arrow-1.svg",
-            "Arrow 2": "/arrow-2.svg",
-            "Arrow 3": "/arrow-3.svg",
+            "Arrow 1": "/static/img/maplibre-viewer/north-icons/arrow-1.svg",
+            "Arrow 2": "/static/img/maplibre-viewer/north-icons/arrow-2.svg",
+            "Arrow 3": "/static/img/maplibre-viewer/north-icons/arrow-3.svg",
         };
 
         this.tileStateKeys = {
@@ -48,7 +48,7 @@ export class PrintControl {
             [this.tileStateKeys.paperSize]: "A4",
             [this.tileStateKeys.format]: "PDF",
             [this.tileStateKeys.dpi]: 96,
-            [this.tileStateKeys.northArrow]: "/arrow-1.svg",
+            [this.tileStateKeys.northArrow]: this._northArrowDict["Arrow 1"],
 
             isHorizontal: false,
             currentlySelectedTileKey: null,

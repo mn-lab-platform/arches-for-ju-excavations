@@ -40,12 +40,14 @@ export class MapEngine {
         if (this.extent) {
             this.map.setCenter(this._getCenterFromExtent(this.extent));
             this.map.setZoom(16.5);
+            this.map.setBearings(0);
         } else {
             getMapExtent()
                 .then(extent => {
                     this.map.setCenter(this._getCenterFromExtent(extent));
                     this.extent = extent;
                     this.map.setZoom(16.5);
+                    this.map.setBearings(0);
                 })
                 .catch(error => {
                     console.error('Error fetching map extent:', error);
