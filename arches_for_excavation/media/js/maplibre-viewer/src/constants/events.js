@@ -24,5 +24,8 @@ export const events = {
     LAYER_ZOOM_TO: 'layer:zoom_to',
 
     MAP_TO_DEFAULT: 'map:to_default',
+
+    APP_BUSY_ON: 'app:busy_on',
+    APP_BUSY_OFF: 'app:busy_off'
 }
 

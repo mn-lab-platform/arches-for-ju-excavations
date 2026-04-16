@@ -31,24 +31,37 @@ export class PrintControl {
 
         this._dpiArr = [72, 96, 150, 300, 400];
 
+        this._northArrowDict = {
+            "Arrow 1": "/arrow-1.svg",
+            "Arrow 2": "/arrow-2.svg",
+            "Arrow 3": "/arrow-3.svg",
+        };
+
         this.tileStateKeys = {
             paperSize: "paperSize",
             format: "format",
             dpi: "dpi",
+            northArrow: "northArrow",
         };
 
         this.state = {
             [this.tileStateKeys.paperSize]: "A4",
             [this.tileStateKeys.format]: "PDF",
             [this.tileStateKeys.dpi]: 96,
+            [this.tileStateKeys.northArrow]: "/arrow-1.svg",
 
             isHorizontal: false,
             currentlySelectedTileKey: null,
         };
 
+        this.tileTypes = {
+            standard: "standard",
+            icon: "icon"
+        }
+
         const { button, panel } = new MapControl({
             iconClass: "fa fa-file-photo-o",
-            title: "Export Map",
+            title: "Print Map",
             hasPanel: true,
             controlInstance: this,
         }).build();
@@ -110,6 +123,15 @@ export class PrintControl {
         );
         printOptionsContainer.appendChild(dpiTile);
 
+        const northArrowTile = this._createTile(
+            "fa fa-compass",
+            "North Arrow: ",
+            "Choose north arrow icon for the printout",
+            this.tileStateKeys.northArrow,
+            this.tileTypes.icon
+        );
+        printOptionsContainer.appendChild(northArrowTile);
+
         const nonExpandableGroup = this._createNonExpandableTile();
 
         this.flyout = document.createElement("div");
@@ -122,7 +144,7 @@ export class PrintControl {
         return this._controlButton;
     }
 
-    _createTile(icon, label, title, settingKey) {
+    _createTile(icon, label, title, settingKey, type = this.tileTypes.standard) {
         const tile = document.createElement("div");
         tile.classList.add("control-tile", "print-option-tile");
         tile.title = title;
@@ -136,7 +158,7 @@ export class PrintControl {
         const mainInfo = document.createElement("div");
         mainInfo.classList.add("print-tile-main-info");
 
-        const iconElement = document.createElement("i");
+        const iconElement = document.createElement("img");
         iconElement.className = icon;
 
         const labelElement = document.createElement("span");
@@ -149,10 +171,18 @@ export class PrintControl {
         leftSide.appendChild(chevron);
         leftSide.appendChild(mainInfo);
 
-        const valueElement = document.createElement("span");
-        valueElement.classList.add("print-tile-value");
-        valueElement.textContent = this.state[settingKey] || "";
+        let valueElement;
 
+        if (type !== this.tileTypes.standard) {
+            valueElement = document.createElement("img");
+            valueElement.className = 'print-tile-icon-value';
+            valueElement.src = this.state[settingKey] || "";
+        } else {
+            valueElement = document.createElement("span");
+            valueElement.classList.add("print-tile-value");
+            valueElement.textContent = this.state[settingKey] || "";
+        }
+        
         tile.appendChild(leftSide);
         tile.appendChild(valueElement);
 
@@ -207,8 +237,10 @@ export class PrintControl {
                 this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4,
                 this.state.isHorizontal,
                 this._dpiDict[this.state.dpi] ?? 96,
-                this.printPreview._previewPaper.getBoundingClientRect()
+                this.printPreview._previewPaper.getBoundingClientRect(),
+                this.state.northArrow
             )
+            EventBusInstance.publish(events.CONTROL_DEACTIVATE, this);
         });
         
         nonExpandableGroup.appendChild(orientationGroup);
@@ -218,6 +250,7 @@ export class PrintControl {
     }
 
     _populateFlyout(settingKey, valueElement) {
+        const isIconValue = settingKey === this.tileStateKeys.northArrow;
         let options = [];
         switch (settingKey) {
             case this.tileStateKeys.paperSize:
@@ -229,6 +262,9 @@ export class PrintControl {
             case this.tileStateKeys.dpi:
                 options = Object.keys(this._dpiDict);
                 break;
+            case this.tileStateKeys.northArrow:
+                options = Object.entries(this._northArrowDict);
+                break;
             default:
                 break;
         }
@@ -237,16 +273,37 @@ export class PrintControl {
             const optionElement = document.createElement("div");
             optionElement.classList.add("print-flyout-option");
             optionElement.textContent = option;
-            this.flyout.appendChild(optionElement);
 
-            optionElement.addEventListener("click", () => {
-                console.log(`Selected ${option} for ${settingKey}`);
-                this.state[settingKey] = option;
-                valueElement.textContent = option;
-                this._closeTileFlyout();
-                this.printPreview.renderPrintPreview(this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4, this.state.isHorizontal);
-                this.state.currentlySelectedTileKey = null;
-            });
+            if (isIconValue) {
+                const [label, iconUrl] = option;
+                console.log(option);
+                console.log(iconUrl);
+                optionElement.textContent = "";
+                const iconImg = document.createElement("img");
+                iconImg.src = iconUrl;
+                iconImg.alt = label;
+                optionElement.appendChild(iconImg);
+                optionElement.title = label;
+                optionElement.addEventListener("click", () => {
+                    this.state[settingKey] = iconUrl;
+                    valueElement.src = iconUrl;
+                    this._closeTileFlyout();
+                    this.state.currentlySelectedTileKey = null;
+                });
+            } else {
+                optionElement.addEventListener("click", () => {
+                    this.state[settingKey] = option;
+                    valueElement.textContent = option;
+                    if (isIconValue) {
+                        valueElement.textContent = "";
+                        valueElement.src = option;
+                    }
+                    this._closeTileFlyout();
+                    this.printPreview.renderPrintPreview(this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4, this.state.isHorizontal);
+                    this.state.currentlySelectedTileKey = null;
+                });
+            }
+            this.flyout.appendChild(optionElement);
         })
 
         return this.flyout;
@@ -269,4 +326,4 @@ export class PrintControl {
         this._controlButton.parentNode?.removeChild(this._controlButton);
         this._controlPanel.parentNode?.removeChild(this._controlPanel);
     }
-}   
+}

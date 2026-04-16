@@ -44,9 +44,14 @@ export class MapControl {
 
         EventBusInstance.subscribe(events.CONTROL_ACTIVATE, (activeControl) => {
             if (activeControl !== this.controlInstance) {
+                EventBusInstance.publish(events.CONTROL_DEACTIVATE, this.controlInstance);
+            }
+        });
+
+        EventBusInstance.subscribe(events.CONTROL_DEACTIVATE, (deactivatedControl) => {
+            if (deactivatedControl === this.controlInstance) {
                 button.classList.remove("--control-active");
                 button.setAttribute("aria-expanded", "false");
-                
                 if (this.hasPanel) {
                     panel.classList.remove("--control-panel-open");
                 }
