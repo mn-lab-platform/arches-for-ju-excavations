@@ -2,6 +2,8 @@ import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
 import { extractGeommetryFeaturesFromArchesResourceInfo } from "../core/utils/utils";
 import store from "../core/store";
+import layerWorkspaceFileService from "../storage/layerWorkspaceFileService";
+
 
 export class LayerMenuView {
     constructor(parentElement) {
@@ -29,7 +31,35 @@ export class LayerMenuView {
         saveBtn.innerHTML = '<i class="fa fa-save"></i>';
 
         saveBtn.addEventListener('click', () => {
-            window.alert('Oops! This feature is not implemented yet.'); //TODO: implement export functionality
+            layerWorkspaceFileService.downloadLayerWorkspaceFile(this.layers);
+        });
+
+        const hiddenFileINput = document.createElement('input');
+        hiddenFileINput.type = 'file';
+        hiddenFileINput.accept = layerWorkspaceFileService.EXTENSION;
+        hiddenFileINput.style.display = 'none';
+
+        hiddenFileINput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const content = event.target.result;
+                    const layersArray = JSON.parse(content);
+                    if (Array.isArray(layersArray)) {
+                        layersArray.forEach(layerDef => {
+                            this._addLayer(layerDef, false);
+                        });
+                    } else {
+                        window.alert('Invalid file format: expected an array of layer definitions.');
+                    }
+                } catch (error) {
+                    window.alert('Error reading file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
         });
 
         const loadBtn = document.createElement('button');
@@ -38,7 +68,8 @@ export class LayerMenuView {
         loadBtn.innerHTML = '<i class="fa fa-folder-open"></i>';
 
         loadBtn.addEventListener('click', () => {
-            window.alert('Oops! This feature is not implemented yet.'); //TODO: implement import functionality
+            hiddenFileINput.value = null;
+            hiddenFileINput.click();
         });
 
         this.controlPanel.appendChild(saveBtn);
@@ -81,12 +112,7 @@ export class LayerMenuView {
                     icon: 'fa fa-map-marker',
                 }
             }
-            this.layers.unshift(layerDefinition);
-            this._visibleLayers.add(layerId);
-            this._refreshLayerMenuItems();
-            
-            store.mapLayerIds = [...store.mapLayerIds, layerDefinition.layer_info.id];
-            EventBusInstance.publish(events.LAYER_ADD, layerDefinition);
+            this._addLayer(layerDefinition, true);
         });
 
         EventBusInstance.subscribe(events.LAYER_SETTINGS_UPDATE, (newSettings) => {
@@ -100,6 +126,14 @@ export class LayerMenuView {
                 EventBusInstance.publish(events.LAYER_REFRESH, layerDef);
             }
         });
+    }
+
+    _addLayer(layerDefinition, onTop = false) {
+        onTop ? this.layers.unshift(layerDefinition) : this.layers.push(layerDefinition);
+        this._visibleLayers.add(layerDefinition.layer_info.id);
+        this._refreshLayerMenuItems();
+        store.mapLayerIds = [...store.mapLayerIds, layerDefinition.layer_info.id];
+        EventBusInstance.publish(events.LAYER_ADD, layerDefinition);
     }
 
     _createLayerMenuItem(layerId, accentColor, layerName, opacity) {

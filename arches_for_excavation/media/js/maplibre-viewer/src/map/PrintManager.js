@@ -63,6 +63,42 @@ export class PrintManager {
             
             pdf.addImage(exportCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageWmm, pageHmm, undefined, "MEDIUM");
 
+            const scale = this._getScaleInfo(printMap);
+            const boxPadding = 8;
+            const barHeight = 2;
+            const startXMm = 6;
+            const startYMm = pageHmm - 15; 
+
+            const totalBoxWidth = scale.widthMm + (boxPadding * 2);
+
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(startXMm, startYMm, totalBoxWidth, 10, "F"); 
+
+            const barY = startYMm + 2; 
+            const barX = startXMm + boxPadding;
+            const segments = 4;
+            const segWidth = scale.widthMm / segments;
+            
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.2);
+            for (let i = 0; i < segments; i++) {
+                if (i % 2 === 0) {
+                    pdf.setFillColor(0, 0, 0);
+                } else {
+                    pdf.setFillColor(255, 255, 255);
+                }
+                pdf.rect(barX + (i * segWidth), barY, segWidth, barHeight, "FD");
+            }
+
+            pdf.setFontSize(8);
+            pdf.setTextColor(0, 0, 0);
+            const halfLabel = (scale.labelDistance / 2).toString();
+            const fullLabel = `${scale.labelDistance} ${scale.unit}`;
+            
+            pdf.text("0", barX, barY + barHeight + 3.5, { align: "center" });
+            pdf.text(halfLabel, barX + (scale.widthMm / 2), barY + barHeight + 3.5, { align: "center" });
+            pdf.text(fullLabel, barX + scale.widthMm, barY + barHeight + 3.5, { align: "center" });
+
             const finalizeExport = () => {
                 pdf.save(`map_export.pdf`);
                 printMap.remove();
@@ -117,5 +153,46 @@ export class PrintManager {
                     img.src = blobUrl;
                 });
             });
+    }
+
+    _getScaleInfo(map) {
+        const optWidthPx = 100;
+        const y = map._container.clientHeight / 2;
+        const x = map._container.clientWidth / 2;
+        
+        const left = map.unproject([x - optWidthPx / 2, y]);
+        const right = map.unproject([x + optWidthPx / 2, y]);
+        const maxMeters = left.distanceTo(right);
+
+        const getDecimalRoundNum = (d) => {
+            const multiplier = Math.pow(10, Math.ceil(-Math.log(d) / Math.LN10));
+            return Math.round(d * multiplier) / multiplier;
+        };
+
+        const getRoundNum = (num) => {
+            const pow10 = Math.pow(10, (`${Math.floor(num)}`).length - 1);
+            let d = num / pow10;
+            d = d >= 10 ? 10 : d >= 5 ? 5 : d >= 3 ? 3 : d >= 2 ? 2 : d >= 1 ? 1 : getDecimalRoundNum(d);
+            return pow10 * d;
+        };
+
+        const distance = getRoundNum(maxMeters);
+        const ratio = distance / maxMeters;
+        const widthPx = optWidthPx * ratio;
+        
+        const widthMm = widthPx * (25.4 / 96);
+        
+        let unit = 'm';
+        let labelDistance = distance;
+        if (distance >= 1000) {
+            labelDistance = distance / 1000;
+            unit = 'km';
+        }
+
+        return { 
+            widthMm, 
+            unit,
+            labelDistance
+        };
     }
 }
