@@ -4,11 +4,13 @@ import { AnnotationsTool } from '../cesium/tools/AnnotationsTool.js';
 import { PickerTool } from '../cesium/tools/PickerTool.js';
 import { TOOL_CALLBACKS, TOOL_NAMES, TOOL_TITLES } from '../const/const.js';
 import { createAnnotationModal } from './templates/AnnotationModal.js';
+import { GlobeTool } from '../cesium/tools/GlobeTool.js';
 
 export class UIController {
     constructor(scene, externalCallbacks = {}) {
         this.allowAnnotationsEdits = scene.allowAnnotationsEdits;
         this.allowObjectPicking = scene.allowObjectPicking;
+        this.sceneGeoreferenced = scene.georeferenced;
         this.toolDisplays = new Map();
         this.parentContainerId = scene.containerId;
         this.customCallbacks = externalCallbacks;
@@ -27,7 +29,8 @@ export class UIController {
                 [TOOL_CALLBACKS.ON_ANNOTATION_PICKED]: (annotationData) => this._showAnnotationModalForTool(TOOL_NAMES.PICKER, annotationData),
                 [TOOL_CALLBACKS.ON_ANNOTATION_SAVED]: (annotationData) => this._onAnnotationSaved(annotationData),
                 [TOOL_CALLBACKS.ON_ANNOTATION_DELETED]: (annotationId) => this._onAnnotationDeleted(annotationId)
-            })
+            }),
+            new GlobeTool(scene, TOOL_NAMES.GLOBE, {})
         ];
         this._addCreditAnchor();
         this._setupTools();
@@ -50,13 +53,16 @@ export class UIController {
     }
 
     _setupTools() {
-        this._initializeToolUi(this.tools[0], 'fa-undo');
+        this._initializeToolUi(this.tools[0], 'fa-home');
         this._initializeToolUi(this.tools[1], 'fa-arrows-h');
         if (this.allowAnnotationsEdits) {
             this._initializeToolUi(this.tools[2], 'fa-pencil');
         }
         if (this.allowObjectPicking) {
             this._initializeToolUi(this.tools[3], 'fa-crosshairs');
+        }
+        if (this.sceneGeoreferenced) {
+            this._initializeToolUi(this.tools[4], 'fa-globe');
         }
     }
 

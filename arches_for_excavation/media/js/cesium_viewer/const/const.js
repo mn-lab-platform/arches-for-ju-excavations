@@ -2,7 +2,8 @@ export const TOOL_NAMES = {
   DISTANCE: 'distance',
   ANNOTATIONS: 'annotations',
   PICKER: 'picker',
-  BACK_TO_DEFAULT: 'back_to_default'
+  BACK_TO_DEFAULT: 'back_to_default',
+  GLOBE: 'globe'
 };
 
 export const TOOL_CALLBACKS = {
@@ -23,5 +24,6 @@ export const TOOL_TITLES = {
   [TOOL_NAMES.BACK_TO_DEFAULT]: 'Reset camera to default view',
   [TOOL_NAMES.DISTANCE]: 'Measure distance between points',
   [TOOL_NAMES.ANNOTATIONS]: 'Draw and annotate polygons',
-  [TOOL_NAMES.PICKER]: 'Select and edit existing annotations'
+  [TOOL_NAMES.PICKER]: 'Select and edit existing annotations',
+  [TOOL_NAMES.GLOBE]: 'Toggle globe view'
 };
