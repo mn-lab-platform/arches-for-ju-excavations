@@ -11,7 +11,8 @@ export class BackToDefaultTool extends Tool {
         const onDone = () => {
             this._triggerCallback(TOOL_CALLBACKS.ON_TOOL_SELF_DEACTIVATE);
         };
-        this.widget.camera.flyToBoundingSphere(this.objectBoundingSphere, {
+        this.widget.camera.flyTo({
+            destination: this.objectBbox,
             complete: onDone,
             cancel: onDone
         });

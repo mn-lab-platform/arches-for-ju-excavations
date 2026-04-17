@@ -12,7 +12,6 @@ export async function initializeCesiumViewer(cesiumContainerId, viewerOptions = 
     };
 
     const scene = new Scene(cesiumContainerId, sceneOptions);
-    console.log("Scene scale: ", scene.scale);
     await scene.loadTileset(viewerOptions.modelUrl);
 
     const externalCallbacks = {

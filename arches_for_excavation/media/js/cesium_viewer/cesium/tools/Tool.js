@@ -5,7 +5,7 @@ export class Tool {
     this.name = name;
     this.callbacks = callbacks;
     this.active = false;
-    this.objectBoundingSphere = scene.objectBoundingSphere;
+    this.objectBbox = scene.objectBbox;
   }
   
   activate() {

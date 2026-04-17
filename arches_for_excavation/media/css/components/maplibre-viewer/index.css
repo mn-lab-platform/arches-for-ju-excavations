@@ -899,6 +899,14 @@
   color: var(--light-text);
 }
 
+.print-tile-icon-value {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .non-expandable-group {
   display: flex;
   align-items: center;
