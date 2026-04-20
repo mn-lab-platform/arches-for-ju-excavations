@@ -334,7 +334,7 @@ export function createLeafletAnnotationController(opts = {}) {
     const fallbackLinkedResources = linkedResourceIds.map((id) => ({
       id,
       name: id,
-      reportUrl: `/resources/${encodeURIComponent(id)}`
+      reportUrl: `/report/${encodeURIComponent(id)}`
     }));
 
     return linkedResources
@@ -348,7 +348,7 @@ export function createLeafletAnnotationController(opts = {}) {
         return {
           id,
           name: resource.name || resource.displayname || id,
-          reportUrl: resource.reportUrl || `/resources/${encodeURIComponent(id)}`
+          reportUrl: resource.reportUrl || `/report/${encodeURIComponent(id)}`
         };
       })
       .filter(Boolean)
@@ -362,7 +362,7 @@ export function createLeafletAnnotationController(opts = {}) {
     const linkedResourcesHtml = linkedResources.length
       ? `
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e5e5e5;">
-        <div style="font-weight:600;font-size:12px;color:#555;margin-bottom:4px;">Powiązany resource</div>
+        <div style="font-weight:600;font-size:12px;color:#555;margin-bottom:4px;">Related Resource</div>
         ${linkedResources.map((resource) => `
           <div>
             <a href="${escapeHtml(resource.reportUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resource.name)}</a>
