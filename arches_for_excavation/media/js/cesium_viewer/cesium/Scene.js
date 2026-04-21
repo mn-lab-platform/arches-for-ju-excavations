@@ -1,4 +1,4 @@
-import { CesiumWidget, Cesium3DTileset, Color, Matrix4, Cartesian3, Transforms, Rectangle, OrientedBoundingBox, UrlTemplateImageryProvider } from 'cesium';
+import { CesiumWidget, Cesium3DTileset, Color, Matrix4, Cartesian3, Transforms, Rectangle, OrientedBoundingBox, UrlTemplateImageryProvider, Cartographic } from 'cesium';
 import { SCALE_FACTORS } from '../const/const';
 
 export class Scene {
@@ -9,7 +9,7 @@ export class Scene {
         this.existingAnnotations = existingAnnotations;
         this.scale = SCALE_FACTORS.METERS;
         this.containerId = containerId;
-        this.objectBbox = null;
+        this.cameraDestination = null;
         
         this.widget = new CesiumWidget(containerId, {
             baseLayer: false,
@@ -87,14 +87,16 @@ export class Scene {
         const fixedFrame = Transforms.eastNorthUpToFixedFrame(fakePosition);
 
         const center = tileset.boundingSphere.center;
-        const centerOffset = Cartesian3.negate(center, new Cartesian3());
+        const radius = tileset.boundingSphere.radius;
+        const centerOffset = new Cartesian3(-center.x, -center.y, -center.z + radius);
+
         const translationMatrix = Matrix4.fromTranslation(centerOffset);
 
         const scaleMatrix = Matrix4.fromUniformScale(this.scale);
 
         const finalMatrix = new Matrix4();
         Matrix4.multiply(scaleMatrix, translationMatrix, finalMatrix); 
-        Matrix4.multiply(fixedFrame, finalMatrix, finalMatrix);        
+        Matrix4.multiply(fixedFrame, finalMatrix, finalMatrix);
 
         tileset.modelMatrix = finalMatrix;
 
@@ -117,16 +119,27 @@ export class Scene {
 
     _zoomToTileset(tileset) {
         const rootTile = tileset.root;
-
         const boundingVolumeToUse = rootTile.contentBoundingVolume.boundingVolume;
-
         const corners = OrientedBoundingBox.computeCorners(boundingVolumeToUse);
-
         const boundingRectangle = Rectangle.fromCartesianArray(corners);
-        this.widget.camera.flyTo({
-            destination: boundingRectangle,
-        });
 
-        this.objectBbox = boundingRectangle;
+        const fitCartesian = this.widget.camera.getRectangleCameraCoordinates(boundingRectangle);
+        const fitCarto = Cartographic.fromCartesian(fitCartesian);
+
+        const radius = tileset.boundingSphere.radius;
+        const zOffset = radius;
+        const finalHeight = fitCarto.height + zOffset;
+
+        const center = Rectangle.center(boundingRectangle);
+        const cameraDestination = Cartesian3.fromRadians(center.longitude, center.latitude, finalHeight);
+        this.cameraDestination = cameraDestination;
+
+        this.widget.camera.setView({
+            destination: cameraDestination,
+            orientation: {
+                heading: 0.0,
+                roll: 0.0
+            }
+        });
     }
 }
