@@ -7,6 +7,7 @@ const store = {
     searchFlyoutWidth: 0,
     menuPanelWidth: 0,
     flyoutOpen: false,
+    legendData: null,
 }
 
 
