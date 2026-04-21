@@ -37,10 +37,10 @@
       <label>Upload mode</label>
       <div>
         <label class="radio-inline">
-          <input type="radio" name="iiif-upload-mode" value="geotiff" data-bind="checked: uploadMode"> GeoTIFF (DEM/Ortho)
+          <input type="radio" name="iiif-upload-mode" value="geotiff" data-bind="checked: uploadMode, disable: modeLocked"> GeoTIFF (DEM/Ortho)
         </label>
         <label class="radio-inline">
-          <input type="radio" name="iiif-upload-mode" value="photo" data-bind="checked: uploadMode"> Photo (JPG/PNG)
+          <input type="radio" name="iiif-upload-mode" value="photo" data-bind="checked: uploadMode, disable: modeLocked"> Photo (JPG/PNG)
         </label>
       </div>
       <small class="text-muted" data-bind="visible: isPhotoMode">Photo mode uses IIIF Image API without DEM processing.</small>

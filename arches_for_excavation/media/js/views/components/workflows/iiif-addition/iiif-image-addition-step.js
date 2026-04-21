@@ -14,7 +14,7 @@ define([
   var NODE_IIIF_LABEL = '78422c09-4994-4eff-b764-60f21f3290cd';
   var NODE_IIIF_URL = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
   var NODE_RELATED_RESOURCE = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
-  var NODE_USED_FILES = 'ba3a8689-8bb6-4759-b4e2-328e8cf9bdf8';
+  var NODE_USED_FILES = 'b1947f78-f339-4e32-b24d-11f78a2b52bd';
 
   var REL_ONTOLOGY_PROPERTY_ID = "";
   var REL_INVERSE_PROPERTY_ID = "";
@@ -74,7 +74,7 @@ define([
 
     function _isAllowedForCurrentMode(file) {
       var name = (file && file.name ? file.name : '').toLowerCase();
-      if (self.isPhotoMode()) return /\.(jpe?g|png)$/.test(name);
+      if (self.isPhotoMode()) return /\.(jpe?g|png|tiff?)$/.test(name);
       return /\.(tif|tiff)$/.test(name);
     }
 

@@ -1,5 +1,6 @@
 from django.http import HttpResponse, StreamingHttpResponse, HttpResponseBadRequest, JsonResponse
 from django.views.decorators.http import require_GET
+from django.conf import settings
 import requests
 import re
 from urllib.parse import quote
@@ -7,9 +8,16 @@ from urllib.parse import quote
 TITILER_INTERNAL_URL = "http://titiler:8000"
 
 def _public_base(request, file_path: str) -> str:
-    # hard-fix na mixed content
-    proto = "https"
     host = (request.headers.get("X-Forwarded-Host") or request.get_host() or "").split(",")[0].strip()
+
+    xf_proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower()
+    if settings.DEBUG:
+        proto = "http"
+    elif xf_proto in ("http", "https"):
+        proto = xf_proto
+    else:
+        proto = (request.scheme or "http")
+
     p = quote(file_path.rstrip("/"), safe="/")
     return f"{proto}://{host}{request.path}?path={p}"
 

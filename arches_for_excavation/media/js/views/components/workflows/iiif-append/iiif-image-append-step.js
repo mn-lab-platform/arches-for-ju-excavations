@@ -64,6 +64,7 @@ define([
 
     self.humanSize = utils.humanSize;
     self.uploadMode = ko.observable('geotiff');
+    self.modeLocked = ko.observable(false); // NOWE: blokada trybu
     self.isPhotoMode = ko.pureComputed(function() {
       return self.uploadMode() === 'photo';
     });
@@ -143,13 +144,39 @@ define([
           self.tiles.fileListTileId(ctx.tiles.used_files_tile_id || null);
         }
 
+        var files = _normalizeUsedFileEntriesForStore(ctx.used_files);
+        
         // append workflow: ładujemy istniejące USED_FILES, ale ich nie kasujemy docelowo
         self.fileStore.clear();
         self.fileStore.tileId(self.tiles.fileListTileId());
-        self.fileStore.upsert(_normalizeUsedFileEntriesForStore(ctx.used_files));
+        self.fileStore.upsert(files);
 
-        self.resourceContextLoaded(true);
-        return ctx;
+        // Sprawdzamy tryb na podstawie pliku manifestu (odczytujemy 'label')
+        var mUrl = ctx.manifest_url;
+        if (!mUrl) {
+          self.modeLocked(false);
+          self.resourceContextLoaded(true);
+          return ctx;
+        }
+
+        var absoluteManifestUrl = mUrl.indexOf('http') === 0 ? mUrl : (baseUrl + mUrl.replace(/^\/+/, ''));
+        
+        return fetch(absoluteManifestUrl)
+          .then(function(r) { return r.json(); })
+          .then(function(manifest) {
+            var label = _extractText(manifest && manifest.label || '').toLowerCase();
+            var isPhoto = label.indexOf('photo') !== -1;
+            
+            self.uploadMode(isPhoto ? 'photo' : 'geotiff');
+            self.modeLocked(true);
+            self.resourceContextLoaded(true);
+            return ctx;
+          })
+          .catch(function(err) {
+            console.warn('[IIIF-APPEND] Could not fetch manifest to detect mode', err);
+            self.resourceContextLoaded(true);
+            return ctx;
+          });
       })
       .finally(function() {
         self.loading(false);
@@ -169,7 +196,7 @@ define([
 
     function _isAllowedForCurrentMode(file) {
       var name = (file && file.name ? file.name : '').toLowerCase();
-      if (self.isPhotoMode()) return /\.(jpe?g|png)$/.test(name);
+      if (self.isPhotoMode()) return /\.(jpe?g|png|tiff?)$/.test(name);
       return /\.(tif|tiff)$/.test(name);
     }
 
@@ -246,7 +273,7 @@ define([
           if (!_isAllowedForCurrentMode(file)) {
             self.errorMessage(
               self.isPhotoMode()
-                ? 'Photo mode: only JPG/PNG are allowed.'
+                ? 'Photo mode: only JPG/PNG/TIFF are allowed.'
                 : 'GeoTIFF mode: only TIF/TIFF are allowed.'
             );
             try {

@@ -28,7 +28,7 @@ export function createLeafletAnnotationController(opts = {}) {
   let draftSourceCanvasId = null;
   let draftSourceScale = null;
 
-  const DEBUG_AFFINE = true;
+  const DEBUG_AFFINE = false;
 
   function dbg(...args) {
     if (!DEBUG_AFFINE) return;
@@ -97,6 +97,13 @@ export function createLeafletAnnotationController(opts = {}) {
     draftSourceScale = null;
 
     if (state.annotationCanFinish) state.annotationCanFinish(false);
+  }
+
+  function resetAnnotations() {
+    clearDraft();
+    createdAnnotations = [];
+    refresh();
+    if (state.annotationStatus) state.annotationStatus('Annotation reset.');
   }
 
   function clearLayer() {
@@ -247,7 +254,7 @@ export function createLeafletAnnotationController(opts = {}) {
 
     if (Array.isArray(b)) {
       const vals = b
-        .filter((x) => x && typeof x === 'object' && x.purpose !== 'tagging' && x.purpose!=='color') // <- kluczowa zmiana
+        .filter((x) => x && typeof x === 'object' && !['tagging', 'color', 'resource-id', 'arch-resource-id', 'linked-resource-id', 'target-resource-id'].includes(x.purpose))
         .map((x) => x.value || x.chars || '')
         .filter((v) => typeof v === 'string' && v.trim());
 
@@ -271,6 +278,104 @@ export function createLeafletAnnotationController(opts = {}) {
     <div style="min-width:180px;max-width:320px;font-size:14px;line-height:1.45;">
       <div style="font-weight:600;font-size:16px;margin-bottom:6px;">${escapeHtml(title)}</div>
       <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;">${escapeHtml(txt)}</div>
+      ${onAnnotationDeleted ? '<div style="margin-top:8px;color:#666;font-size:12px;">Shift+Click = usuń</div>' : ''}
+    </div>
+  `;
+  }
+
+  function annotationTextFromBody(anno) {
+    const b = anno?.body;
+
+    if (Array.isArray(b)) {
+      const vals = b
+        .filter((x) => x && typeof x === 'object' && !['tagging', 'color', 'resource-id', 'arch-resource-id', 'linked-resource-id', 'target-resource-id'].includes(x.purpose))
+        .map((x) => x.value || x.chars || '')
+        .filter((v) => typeof v === 'string' && v.trim());
+
+      if (vals.length) return vals.join('\n');
+      return '';
+    }
+
+    if (b && typeof b === 'object') {
+      if (['tagging', 'color', 'resource-id', 'arch-resource-id', 'linked-resource-id', 'target-resource-id'].includes(b.purpose)) return '';
+      if (typeof b.value === 'string' && b.value.trim()) return b.value;
+      if (typeof b.chars === 'string' && b.chars.trim()) return b.chars;
+    }
+
+    return '';
+  }
+
+  function annotationLinkedResources(anno) {
+    const linkedResources = Array.isArray(anno?.linkedResources) ? anno.linkedResources.slice() : [];
+    const linkedResourceIds = Array.isArray(anno?.linkedResourceIds) ? anno.linkedResourceIds.slice() : [];
+    const body = anno?.body;
+
+    const addLinkedResourceId = (value) => {
+      const normalized = String(value || '').trim();
+      if (!normalized) return;
+      linkedResourceIds.push(normalized);
+    };
+
+    if (anno?.targetResourceId) addLinkedResourceId(anno.targetResourceId);
+
+    if (Array.isArray(body)) {
+      body.forEach((item) => {
+        if (!item || typeof item !== 'object') return;
+        if (item.purpose === 'linked-resource-id' || item.purpose === 'target-resource-id') {
+          addLinkedResourceId(item.value);
+        }
+      });
+    } else if (body && typeof body === 'object') {
+      if (body.purpose === 'linked-resource-id' || body.purpose === 'target-resource-id') {
+        addLinkedResourceId(body.value);
+      }
+    }
+
+    const fallbackLinkedResources = linkedResourceIds.map((id) => ({
+      id,
+      name: id,
+      reportUrl: `/report/${encodeURIComponent(id)}`
+    }));
+
+    return linkedResources
+      .concat(fallbackLinkedResources)
+      .map((resource) => {
+        if (!resource || typeof resource !== 'object') return null;
+
+        const id = resource.id || resource.resourceId || resource.resourceinstanceid || null;
+        if (!id) return null;
+
+        return {
+          id,
+          name: resource.name || resource.displayname || id,
+          reportUrl: resource.reportUrl || `/report/${encodeURIComponent(id)}`
+        };
+      })
+      .filter(Boolean)
+      .filter((resource, index, arr) => arr.findIndex((candidate) => candidate.id === resource.id) === index);
+  }
+
+  function annotationPopupHtml(anno, idx) {
+    const title = annotationTitle(anno, idx);
+    const txt = annotationTextFromBody(anno) || '(brak treści)';
+    const linkedResources = annotationLinkedResources(anno);
+    const linkedResourcesHtml = linkedResources.length
+      ? `
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e5e5e5;">
+        <div style="font-weight:600;font-size:12px;color:#555;margin-bottom:4px;">Related Resource</div>
+        ${linkedResources.map((resource) => `
+          <div>
+            <a href="${escapeHtml(resource.reportUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resource.name)}</a>
+          </div>
+        `).join('')}
+      </div>`
+      : '';
+
+    return `
+    <div style="min-width:180px;max-width:320px;font-size:14px;line-height:1.45;">
+      <div style="font-weight:600;font-size:16px;margin-bottom:6px;">${escapeHtml(title)}</div>
+      <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;">${escapeHtml(txt)}</div>
+      ${linkedResourcesHtml}
       ${onAnnotationDeleted ? '<div style="margin-top:8px;color:#666;font-size:12px;">Shift+Click = usuń</div>' : ''}
     </div>
   `;
@@ -411,12 +516,12 @@ export function createLeafletAnnotationController(opts = {}) {
       // 3) Full-res -> displayed zoom-0 units
       let px = rawPx / dstDiv;
       let py = -rawPy / dstDiv;
-      console.log(LOG, 'Raw projected pixel:', { rawPx, rawPy, dstDiv, px, py });
+      //console.log(LOG, 'Raw projected pixel:', { rawPx, rawPy, dstDiv, px, py });
       if (dstW > 1 && dstH > 1) {
         px = clamp(px, 0, dstW - 1);
         py = clamp(py, -(dstH - 1), 0);
       }
-      console.log(LOG, 'Clamped projected pixel:', { px, py });
+      //console.log(LOG, 'Clamped projected pixel:', { px, py });
       const backLocal = affineForward(dstTr, px, py, 0);
       const errX = Array.isArray(backLocal) ? (backLocal[0] - localXY[0]) : null;
       const errY = Array.isArray(backLocal) ? (backLocal[1] - localXY[1]) : null;
@@ -664,6 +769,7 @@ export function createLeafletAnnotationController(opts = {}) {
 
   return {
     clearDraft,
+    resetAnnotations,
     handleMapClick,
     finishDraft,
     refresh,

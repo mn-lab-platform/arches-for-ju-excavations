@@ -61,26 +61,26 @@ define([
               }
             }]
           }]
-        },
-        {
-          title: 'Review & finish',
-          name: 'iiif-annotation-summary',
-          required: true,
-          informationboxdata: {
-            heading: 'Review annotation payload',
-            text: 'Check what will be saved/used in the next processing step.'
-          },
-          layoutSections: [{
-            componentConfigs: [{
-              componentName: 'iiif-annotation-summary-step',
-              uniqueInstanceName: 'iiif-annotation-summary-instance',
-              tilesManaged: 'none',
-              parameters: {
-                payload: "['iiif-image-selection']['iiif-annotator-instance']['value']"
-              }
-            }]
-          }]
-        }
+        }//,
+        // {
+        //   title: 'Review & finish',
+        //   name: 'iiif-annotation-summary',
+        //   required: true,
+        //   informationboxdata: {
+        //     heading: 'Review annotation payload',
+        //     text: 'Check what will be saved/used in the next processing step.'
+        //   },
+        //   layoutSections: [{
+        //     componentConfigs: [{
+        //       componentName: 'iiif-annotation-summary-step',
+        //       uniqueInstanceName: 'iiif-annotation-summary-instance',
+        //       tilesManaged: 'none',
+        //       parameters: {
+        //         payload: "['iiif-image-selection']['iiif-annotator-instance']['value']"
+        //       }
+        //     }]
+        //   }]
+        // }
       ];
 
       // Apply Workflow base

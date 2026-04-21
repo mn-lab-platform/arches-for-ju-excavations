@@ -1,330 +1,651 @@
 define([
     'knockout',
     'jquery',
-    'arches',
-    // komponent mapy (V3)
     'views/components/iiif/iiif-map-viewer',
+    'viewmodels/resource-instance-select',
+    'utils/iiif-annotation-utils',
+    'services/iiif-annotation-service',
     'templates/views/components/workflows/iiif-annotation/iiif-annotator-step.htm'
-    ], function(ko, $, arches, _MapViewer, template) {
+], function(ko, $, _MapViewer, ResourceInstanceSelectModule, iiifAnnotationUtils, iiifAnnotationService, template) {
     'use strict';
+
+    var RIS = iiifAnnotationUtils.unwrapCtor(ResourceInstanceSelectModule);
 
     function viewModel(params) {
         var self = this;
 
-        // ---- workflow params ----
         if (typeof params.value !== 'function') params.value = ko.observable(null);
         self.value = params.value;
 
         self.hostResourceId = ko.observable(ko.unwrap(params.hostResourceId) || null);
 
-        // ---- state ----
         self.loading = ko.observable(false);
         self.error = ko.observable('');
+        self.success = ko.observable('');
+        self.isSaved = ko.observable(false);
+        self.isSaving = ko.observable(false);
 
-        // V3 manifest (source of truth)
         self.manifest = ko.observable(null);
-
-        // optional: extracted iiif service url (debug/legacy)
         self.imageServiceUrl = ko.observable('');
 
-        // existing + new annotations (workflow payload uses NEW only)
         self.existingAnnotations = ko.observableArray([]);
         self.newAnnotations = ko.observableArray([]);
 
-        // --- Finalize Modal ---
         self.showFinalizeModal = ko.observable(false);
         self.outputMode = ko.observable('annotation-only');
-        self.targetGraphId = ko.observable('');
+
         self.availableOutputGraphs = ko.observableArray([]);
+        self.targetGraphId = ko.observable('');
 
-        // =====================================================================
-        // helpers
-        // =====================================================================
+        self.riValue = ko.observable(null);
+        self.riVm = ko.observable(null);
+        self.riVmReady = ko.observable(false);
+        self.creatorCardId = ko.observable(null);
 
-        function baseRoot() {
-        var root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
-        return root.replace(/\/+$/, '/') ;
-        }
+        self.showAnnoMetaModal = ko.observable(false);
+        self.pendingAnnotation = ko.observable(null);
+        self.pendingTitle = ko.observable('');
+        self.pendingDescription = ko.observable('');
+        self.pendingColor = ko.observable('#64ff64');
 
-        function getCookie(name) {
-        var cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            var cookies = document.cookie.split(';');
-            for (var i = 0; i < cookies.length; i++) {
-            var cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+        self.handlePendingColorInput = function(_, e) {
+            var v = e && e.target ? e.target.value : null;
+            if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) {
+                self.pendingColor(v);
             }
+        };
+
+        self.setPendingColor = function(color) {
+            if (typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color)) {
+                self.pendingColor(color);
+            }
+        };
+
+        self.resetUnsavedAnnotations = function() {
+            self.showFinalizeModal(false);
+            self.showAnnoMetaModal(false);
+
+            self.pendingAnnotation(null);
+            self.pendingTitle('');
+            self.pendingDescription('');
+            self.pendingColor('#64ff64');
+
+            self.newAnnotations.removeAll();
+
+            self.error('');
+            self.success('');
+            invalidateSavedState();
+
+            if (self.hostResourceId()) {
+                return self.loadHostResource(self.hostResourceId());
+            }
+            return Promise.resolve();
+        };
+
+        function invalidateSavedState() {
+            if (self.isSaved()) {
+                self.isSaved(false);
+                self.success('');
             }
         }
-        return cookieValue;
+
+        function resetLoadedState() {
+            self.manifest(null);
+            self.imageServiceUrl('');
+            self.existingAnnotations.removeAll();
+            self.newAnnotations.removeAll();
         }
 
-        function safeJsonGet(url) {
-        return $.ajax({
-            url: url,
-            method: 'GET',
-            dataType: 'json',
-            xhrFields: { withCredentials: true }
-        });
+        function resetTargetResourceState() {
+            self.targetGraphId('');
+            self.riValue(null);
+            self.creatorCardId(null);
+            self.riVm(null);
+            self.riVmReady(false);
         }
 
-        // Walk object and try to find iiif-ish URLs (legacy convenience)
-        function extractIiifFromTiles(tilesResp) {
-        var candidates = [];
-        function walk(o) {
-            if (!o) return;
-            if (typeof o === 'string') {
-            if (o.indexOf('/iiif/') >= 0 || /\/info\.json$/i.test(o)) candidates.push(o);
-            return;
+        function buildPendingAnnotation(annotationPayload) {
+            return {
+                id: annotationPayload.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
+                type: annotationPayload.type || 'Polygon',
+                canvasId: annotationPayload.canvasId || null,
+                selector: annotationPayload.selector || null,
+                geometry: annotationPayload.geometry || null,
+                localGeometry: annotationPayload.localGeometry || null,
+                created: annotationPayload.created || new Date().toISOString(),
+                color: annotationPayload.color || '#64ff64',
+                label: '',
+                description: '',
+                body: annotationPayload.body || null
+            };
+        }
+        function normalizeHexColor(input, fallback) {
+            var fb = (typeof fallback === 'string' && /^#[0-9a-fA-F]{6}$/.test(fallback)) ? fallback : '#64ff64';
+            if (typeof input !== 'string') return fb;
+
+            var v = input.trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase();
+            if (/^[0-9a-fA-F]{6}$/.test(v)) return ('#' + v).toLowerCase();
+            if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+                return ('#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3]).toLowerCase();
             }
-            if (Array.isArray(o)) { o.forEach(walk); return; }
-            if (typeof o === 'object') { Object.keys(o).forEach(function(k){ walk(o[k]); }); }
-        }
-        walk(tilesResp);
-        return (candidates[0] || '').replace(/\/info\.json$/i, '');
+
+            return fb;
         }
 
-        // IIIF Presentation 3: collect annotations from canvas.annotations[*].items
-        function collectV3AnnotationsFromManifest(manifest) {
-        var out = [];
-        try {
-            var canvases = (manifest && Array.isArray(manifest.items)) ? manifest.items : [];
-            canvases.forEach(function(canvas) {
-            var canvasId = canvas && canvas.id ? canvas.id : null;
-            var pages = Array.isArray(canvas.annotations) ? canvas.annotations : [];
-            pages.forEach(function(page) {
-                if (page && Array.isArray(page.items)) {
-                page.items.forEach(function(anno) {
-                    var a = Object.assign({}, anno);
-                    if (!a.canvasId) a.canvasId = canvasId;
-                    out.push(a);
-                });
+        function upsertColorBody(annotation, color) {
+            var normalized = normalizeHexColor(color, '#64ff64');
+            var body = annotation.body;
+            var arr = [];
+
+            if (Array.isArray(body)) {
+                arr = body.slice();
+            } else if (body && typeof body === 'object') {
+                arr = [body];
+            }
+
+            arr = arr.filter(function(x) {
+                return !(x && typeof x === 'object' && x.purpose === 'color');
+            });
+
+            arr.push({
+                type: 'TextualBody',
+                purpose: 'color',
+                value: normalized
+            });
+
+            annotation.body = arr;
+            return annotation;
+        }        
+        function buildStepPayload() {
+            return {
+                hostResourceId: self.hostResourceId(),
+                digitalResourceId: self.hostResourceId(),
+                iiifServiceUrl: self.imageServiceUrl(),
+                manifest: self.manifest(),
+                annotations: self.newAnnotations(),
+                output: {
+                    mode: self.outputMode(),
+                    targetGraphId: self.targetGraphId(),
+                    targetResourceId: self.riValue()
                 }
-            });
-            });
-        } catch (e) {}
-        return out;
+            };
         }
-
-        // =====================================================================
-        // data loading
-        // =====================================================================
 
         self.loadHostResource = function(resourceId) {
-        if (!resourceId) return;
+            if (!resourceId) return Promise.resolve();
 
-        self.loading(true);
-        self.error('');
-        self.manifest(null);
-        self.existingAnnotations.removeAll();
-        self.newAnnotations.removeAll();
+            self.loading(true);
+            self.error('');
+            self.success('');
+            self.isSaved(false);
+            resetLoadedState();
 
-        var root = baseRoot();
+            return iiifAnnotationService.loadHostResource(resourceId)
+                .then(function(bundle) {
+                    if (bundle.imageServiceUrl) self.imageServiceUrl(bundle.imageServiceUrl);
 
-        // 1) optional: fetch tiles to extract iiif service url (not required by viewer)
-        var tilesUrl = root + 'resource/' + encodeURIComponent(resourceId) + '/tiles';
+                    if (!bundle.manifest || !Array.isArray(bundle.manifest.items)) {
+                        self.error('Manifest does not look like IIIF Presentation 3 (missing items[]).');
+                        return;
+                    }
 
-        // 2) fetch V3 manifest (this is required)
-        var manifestUrl = root + 'api/iiif/geotiff-manifest/' + encodeURIComponent(resourceId);
-
-        var tilesReq = $.ajax({
-            url: tilesUrl,
-            method: 'GET',
-            dataType: 'json',
-            xhrFields: { withCredentials: true }
-        });
-
-        var manifestReq = safeJsonGet(manifestUrl);
-
-        $.when(tilesReq, manifestReq)
-            .done(function(tilesResp, manifestResp) {
-            // jQuery returns [data, status, xhr] tuples for $.when
-            var tilesJson = tilesResp && tilesResp[0] ? tilesResp[0] : tilesResp;
-            var manifestJson = manifestResp && manifestResp[0] ? manifestResp[0] : manifestResp;
-
-            var iiif = extractIiifFromTiles(tilesJson);
-            if (iiif) self.imageServiceUrl(iiif);
-
-            // sanity: must look like IIIF v3
-            if (!manifestJson || !Array.isArray(manifestJson.items)) {
-                self.error('Manifest does not look like IIIF Presentation 3 (missing items[]).');
-                self.loading(false);
-                return;
-            }
-
-            self.manifest(manifestJson);
-
-            // collect existing annotations (embedded only)
-            var existing = collectV3AnnotationsFromManifest(manifestJson);
-            self.existingAnnotations(existing);
-
-            self.loading(false);
-            })
-            .fail(function(xhr) {
-            self.loading(false);
-            var msg = 'Failed to load manifest/tiles';
-            try {
-                if (xhr && xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
-                else if (xhr && xhr.responseText) msg = xhr.responseText;
-            } catch (_) {}
-            self.error(msg);
-            });
-        };
-
-        // init
-        if (self.hostResourceId()) {
-        self.loadHostResource(self.hostResourceId());
-        }
-
-        // =====================================================================
-        // handlers from map-viewer (future-proof)
-        // =====================================================================
-
-        self.handleNewAnnotation = function(annoPayload) {
-        // viewer should send a normalized payload; we store it verbatim + stable id
-        self.newAnnotations.push({
-            id: annoPayload.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
-            type: annoPayload.type || 'Polygon',
-            canvasId: annoPayload.canvasId || null,
-            selector: annoPayload.selector || null,        // SvgSelector / FragmentSelector
-            geometry: annoPayload.geometry || null,        // optional GeoJSON (pixel or local)
-            localGeometry: annoPayload.localGeometry || null, // optional GeoJSON local CRS
-            created: annoPayload.created || new Date().toISOString(),
-            body: annoPayload.body || null,
-            color: annoPayload.color || '#64ff64' 
-        });
-        };
-
-        function canvasIdFromAnnotation(annotation) {
-            if (!annotation) return null;
-            if (annotation.canvasId) return annotation.canvasId;
-            var t = annotation.target;
-            if (typeof t === 'string') return t;
-            if (t && typeof t === 'object') return t.source || t.id || null;
-            return null;
-        }
-
-        function annotationResourceIdFromAnnotation(annotation) {
-            if (!annotation) return null;
-            if (annotation.annotationResourceId) return annotation.annotationResourceId;
-            if (annotation.annotation_resource_id) return annotation.annotation_resource_id;
-
-            var b = annotation.body;
-            if (Array.isArray(b)) {
-                var rid = b.find(function(x) {
-                    return x && typeof x === 'object' &&
-                           (x.purpose === 'resource-id' || x.purpose === 'arch-resource-id') &&
-                           typeof x.value === 'string' && x.value.trim();
+                    self.manifest(bundle.manifest);
+                    self.existingAnnotations(bundle.annotations || []);
+                })
+                .catch(function(error) {
+                    self.error(error && error.message ? error.message : 'Failed to load manifest/tiles');
+                })
+                .finally(function() {
+                    self.loading(false);
                 });
-                if (rid) return rid.value.trim();
-            } else if (b && typeof b === 'object') {
-                if ((b.purpose === 'resource-id' || b.purpose === 'arch-resource-id') &&
-                    typeof b.value === 'string' && b.value.trim()) {
-                    return b.value.trim();
-                }
-            }
-            return null;
+        };
+
+        if (self.hostResourceId()) {
+            self.loadHostResource(self.hostResourceId());
         }
+
+        self.handleNewAnnotation = function(annotationPayload) {
+            self.pendingAnnotation(buildPendingAnnotation(annotationPayload));
+            self.pendingTitle('');
+            self.pendingDescription('');
+            self.showAnnoMetaModal(true);
+        };
+
+        self.cancelAnnoMetaModal = function() {
+            self.pendingAnnotation(null);
+            self.pendingTitle('');
+            self.pendingDescription('');
+            self.pendingColor('#64ff64');
+            self.showAnnoMetaModal(false);
+        };
+
+        self.confirmAnnoMetaModal = function() {
+            var annotation = self.pendingAnnotation();
+            if (!annotation) return;
+
+            annotation.label = (self.pendingTitle() || '').trim() || 'Annotation';
+            annotation.description = (self.pendingDescription() || '').trim();
+
+            var finalColor = normalizeHexColor(annotation.color, '#64ff64');
+            annotation.color = finalColor;
+            upsertColorBody(annotation, finalColor);
+
+            self.newAnnotations.push(annotation);
+            self.pendingAnnotation(null);
+            self.showAnnoMetaModal(false);
+
+            invalidateSavedState();
+        };
 
         self.handleAnnotationDeleted = function(annotationOrIndex) {
-            var annos = self.existingAnnotations().slice();
-            var anno = null;
+            var existing = self.existingAnnotations().slice();
+            var annotation = null;
 
             if (typeof annotationOrIndex === 'number') {
-                var idx = annotationOrIndex;
-                if (idx >= 0 && idx < annos.length) anno = annos[idx];
-                if (idx >= 0 && idx < annos.length) {
-                    annos.splice(idx, 1);
-                    self.existingAnnotations(annos);
+                if (annotationOrIndex >= 0 && annotationOrIndex < existing.length) {
+                    annotation = existing[annotationOrIndex];
+                    existing.splice(annotationOrIndex, 1);
+                    self.existingAnnotations(existing);
                 }
             } else if (annotationOrIndex && typeof annotationOrIndex === 'object') {
-                anno = annotationOrIndex;
-                self.existingAnnotations(annos.filter(function(a){ return a.id !== anno.id; }));
+                annotation = annotationOrIndex;
+                self.existingAnnotations(existing.filter(function(item) {
+                    return item.id !== annotation.id;
+                }));
             }
 
-            var canvasId = canvasIdFromAnnotation(anno);
-            if (anno && anno.id && canvasId) {
-                self.deleteAnnotationFromServer(anno);
+            if (annotation && annotation.id && iiifAnnotationUtils.canvasIdFromAnnotation(annotation)) {
+                self.deleteAnnotationFromServer(annotation);
             }
         };
 
         self.deleteAnnotationFromServer = function(annotation) {
-            var root = baseRoot();
-            var rid = self.hostResourceId();
-            var deleteUrl = root + 'api/iiif/geotiff-manifest/edit/' + encodeURIComponent(rid);
+            if (!self.hostResourceId()) return Promise.resolve();
 
-            var canvasId = canvasIdFromAnnotation(annotation);
-            var annotationResourceId = annotationResourceIdFromAnnotation(annotation);
+            return iiifAnnotationService.deleteAnnotation(self.hostResourceId(), annotation)
+                .catch(function(error) {
+                    console.error('[iiif-annotator-step] Failed to delete annotation:', error);
+                    alert('Failed to delete annotation from server (state may be inconsistent).');
+                });
+        };
 
-            return $.ajax({
-                url: deleteUrl,
-                method: 'POST',
-                contentType: 'application/json',
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                data: JSON.stringify({
-                    mode: 'delete_annotation_everywhere',
-                    canvas_id: canvasId,
-                    annotation_id: annotation.id,
-                    annotation_resource_id: annotationResourceId
-                })
-            }).fail(function(err) {
-                console.error('[iiif-annotator-step] Failed to delete annotation:', err);
-                alert('Failed to delete annotation from server (state may be inconsistent).');
+        ko.computed(function() {
+            var pageVm = params.pageVm || {};
+            var rawGraphs = ko.unwrap(pageVm.createableResources || pageVm.creatableResources || pageVm.createable_resources || []);
+            self.availableOutputGraphs(iiifAnnotationUtils.getCreateableResourceGraphs(rawGraphs));
+        });
+
+        self.creatorParams = ko.pureComputed(function() {
+            var vm = self.riVm();
+            var newResourceInstance = vm && vm.newResourceInstance && vm.newResourceInstance();
+            var cardId = self.creatorCardId();
+
+            if (!newResourceInstance || !cardId) return null;
+
+            return Object.assign({}, newResourceInstance, { cardid: cardId, cardId: cardId });
+        });
+
+        function rebuildRiVm(graphId) {
+            var gid = String(graphId || '').trim();
+            var finalizeModal = $('#iiif-annotator-finalize-modal');
+
+            self.riVm(null);
+            self.riVmReady(false);
+            self.creatorCardId(null);
+
+            if (!gid || !RIS) return;
+
+            try {
+                var newVm = new RIS({
+                    renderContext: 'workflow',
+                    multiple: false,
+                    value: self.riValue,
+                    allowInstanceCreation: true,
+                    graphids: ko.observableArray([gid]),
+                    label: 'Target resource',
+                    config: ko.observable({
+                        placeholder: 'Search or create new resource...'
+                    }),
+                    placeholder: 'Search or create new resource…',
+                    displayOntologyTable: false,
+                    onlyManageResourceIds: true,
+                    form: params.form || null,
+                    tile: null,
+                    pageVm: params.pageVm
+                });
+
+                if (newVm.select2Config && finalizeModal.length) {
+                    newVm.select2Config.dropdownParent = finalizeModal;
+                }
+
+                self.riVm(newVm);
+
+                // jak w summary-step: daj VM chwilę na zbudowanie select2Config
+                window.setTimeout(function() {
+                    // czasem select2Config pojawia się asynchronicznie
+                    self.riVm(newVm); // wymusza refresh bindingu KO
+                    self.riVmReady(!!(newVm && newVm.select2Config));
+
+                    // fallback: druga próba po krótkiej chwili
+                    if (!self.riVmReady()) {
+                        window.setTimeout(function() {
+                            self.riVm(newVm);
+                            self.riVmReady(!!(newVm && newVm.select2Config));
+                        }, 150);
+                    }
+                }, 50);
+
+                iiifAnnotationService.fetchCreatorCardId(gid).then(function(cardId) {
+                    if (self.targetGraphId() === gid) self.creatorCardId(cardId);
+                });
+            } catch (error) {
+                console.error('[iiif-annotator-step] Failed to initialize RIS:', error);
+                self.error('Failed to initialize resource selector: ' + error.message);
+            }
+        }
+
+        self.outputMode.subscribe(function(mode) {
+            invalidateSavedState();
+
+            if (mode !== 'annotation-and-resource') {
+                resetTargetResourceState();
+                return;
+            }
+
+            // gdy wracamy do trybu linkowania i graph już jest wybrany -> odbuduj RIS
+            var gid = String(self.targetGraphId() || '').trim();
+            if (gid && !self.riVm()) {
+                rebuildRiVm(gid);
+            }
+        });
+
+        self.targetGraphId.subscribe(function(graphId) {
+            invalidateSavedState();
+            self.riValue(null);
+            rebuildRiVm(graphId);
+        });
+
+        self.riValue.subscribe(function() {
+            invalidateSavedState();
+        });
+
+        self.openFinalizeModal = function() {
+            self.error('');
+            self.success('');
+            self.showFinalizeModal(true);
+        };
+
+        self.cancelFinalizeModal = function() {
+            self.showFinalizeModal(false);
+        };
+
+        self.canOpenFinalize = ko.pureComputed(function() {
+            return !!self.manifest() && self.newAnnotations().length > 0 && !self.loading();
+        });
+
+        self.canSave = ko.pureComputed(function() {
+            if (!self.manifest() || self.newAnnotations().length === 0 || self.isSaving()) return false;
+
+            if (self.outputMode() !== 'annotation-and-resource') return true;
+
+            return !!self.targetGraphId() && !!self.riValue();
+        });
+
+        function checkTargetGraphStructure() {
+            var selectedGraphId = self.targetGraphId();
+
+            console.log('[iiif-annotator-step] checkTargetGraphStructure:start', {
+                selectedGraphId: selectedGraphId,
+                targetResourceId: self.riValue()
+            });
+
+            if (!selectedGraphId) {
+                return Promise.resolve({
+                    hasRelatedNode: false,
+                    error: 'No graph ID available'
+                });
+            }
+
+            return iiifAnnotationService.checkGraphForRelatedResourceNode(selectedGraphId)
+                .then(function(graphInfo) {
+                    var result = Object.assign({}, graphInfo, {
+                        resourceGraphId: selectedGraphId,
+                        resourceId: self.riValue()
+                    });
+
+                    console.log('[iiif-annotator-step] checkTargetGraphStructure:result', result);
+                    return result;
+                });
+        }
+
+        self.updateManifestOnServer = function(annotationData, digitalResourceId, sourceManifest) {
+            return iiifAnnotationService.upsertAnnotation(annotationData, digitalResourceId, sourceManifest);
+        };
+
+        self.createAnnotationResource = function(annotation, hostResourceId) {
+            return iiifAnnotationService.createAnnotationResource(annotation, hostResourceId);
+        };
+
+        self.addAnnotationsToTargetResource = function(targetResourceId, annotationResourceIds, targetResourceInfo) {
+            return iiifAnnotationService.addAnnotationsToTargetResource(
+                targetResourceId,
+                annotationResourceIds,
+                targetResourceInfo
+            );
+        };
+
+        self.saveAnnotationsOnly = function() {
+            var annotations = self.newAnnotations() || [];
+            var hostResourceId = self.hostResourceId();
+            var sourceManifest = self.manifest() || null;
+
+            console.log('[iiif-annotator-step] saveAnnotationsOnly:start', {
+                hostResourceId: hostResourceId,
+                annotationCount: annotations.length
+            });
+
+            return Promise.all(annotations.map(function(annotation) {
+                return self.createAnnotationResource(annotation, hostResourceId);
+            })).then(function(annotationResourceIds) {
+                console.log('[iiif-annotator-step] saveAnnotationsOnly:created-annotation-resources', {
+                    annotationResourceIds: annotationResourceIds
+                });
+
+                return Promise.all(annotations.map(function(annotation, index) {
+                    var withResourceId = Object.assign({}, annotation, {
+                        annotationResourceId: annotationResourceIds[index]
+                    });
+
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest)
+                        .then(function() {
+                            return withResourceId;
+                        });
+                }));
             });
         };
 
-        // =====================================================================
-        // workflow save / modal
-        // =====================================================================
+        self.saveAnnotationsWithTargetResource = function(targetResourceId, targetResourceInfo) {
+            var annotations = self.newAnnotations() || [];
+            var hostResourceId = self.hostResourceId();
+            var sourceManifest = self.manifest() || null;
 
-        self.openFinalizeModal = function() { self.showFinalizeModal(true); };
-        self.cancelFinalizeModal = function() { self.showFinalizeModal(false); };
+            console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:start', {
+                hostResourceId: hostResourceId,
+                targetResourceId: targetResourceId,
+                targetResourceInfo: targetResourceInfo,
+                annotationCount: annotations.length
+            });
 
-        function buildStepPayload() {
-        return {
-            hostResourceId: self.hostResourceId(),
-            digitalResourceId: self.hostResourceId(),
-            iiifServiceUrl: self.imageServiceUrl(), // legacy/debug
-            manifest: self.manifest(),              // <-- V3 manifest (source of truth)
-            annotations: self.newAnnotations(),     // only NEW go to summary/save
-            output: {
-            mode: self.outputMode(),
-            targetGraphId: self.targetGraphId()
-            }
+            return Promise.all(annotations.map(function(annotation) {
+                return self.createAnnotationResource(annotation, hostResourceId);
+            }))
+                .then(function(annotationResourceIds) {
+                    console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:created-annotation-resources', {
+                        annotationResourceIds: annotationResourceIds
+                    });
+
+                    if (targetResourceInfo.hasRelatedNode) {
+                        console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:linking-to-target-resource', {
+                            targetResourceId: targetResourceId,
+                            annotationResourceIds: annotationResourceIds
+                        });
+
+                        return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo)
+                            .then(function() {
+                                console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:linked-to-target-resource', {
+                                    targetResourceId: targetResourceId,
+                                    annotationResourceIds: annotationResourceIds
+                                });
+                                return annotationResourceIds;
+                            });
+                    }
+
+                    console.warn('[iiif-annotator-step] saveAnnotationsWithTargetResource:no-related-node-found', targetResourceInfo);
+                    return annotationResourceIds;
+                })
+                .then(function(annotationResourceIds) {
+                    return Promise.all(annotations.map(function(annotation, index) {
+                        var withResourceId = Object.assign({}, annotation, {
+                            annotationResourceId: annotationResourceIds[index],
+                            targetResourceId: targetResourceId,
+                            linkedResourceIds: targetResourceId ? [targetResourceId] : []
+                        });
+
+                        return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest)
+                            .then(function() {
+                                return withResourceId;
+                            });
+                    }));
+                });
         };
-        }
+
+        self.saveAll = function() {
+            console.log('[iiif-annotator-step] saveAll:start', {
+                outputMode: self.outputMode(),
+                hostResourceId: self.hostResourceId(),
+                targetGraphId: self.targetGraphId(),
+                targetResourceId: self.riValue(),
+                annotationCount: self.newAnnotations().length
+            });
+
+            if (!self.manifest()) {
+                self.error('Manifest not loaded.');
+                return Promise.reject(new Error('Manifest not loaded.'));
+            }
+
+            if (!self.newAnnotations().length) {
+                self.error('No new annotations to save.');
+                return Promise.reject(new Error('No new annotations to save.'));
+            }
+
+            if (self.outputMode() === 'annotation-and-resource') {
+                if (!self.targetGraphId()) {
+                    self.error('Choose target resource type first.');
+                    return Promise.reject(new Error('Missing target graph.'));
+                }
+
+                if (!self.riValue()) {
+                    self.error('Choose or create target resource first.');
+                    return Promise.reject(new Error('Missing target resource.'));
+                }
+
+                if (!iiifAnnotationUtils.isUuid(String(self.riValue()))) {
+                    self.error('Target resource ID is not a valid UUID.');
+                    return Promise.reject(new Error('Invalid target resource UUID.'));
+                }
+            }
+
+            self.isSaving(true);
+            self.error('');
+            self.success('');
+            self.isSaved(false);
+
+            var targetResourcePromise = (self.outputMode() === 'annotation-and-resource')
+                ? iiifAnnotationService.fetchResourceReference(self.riValue())
+                : Promise.resolve(null);
+
+            var savePromise = (self.outputMode() === 'annotation-and-resource')
+                ? checkTargetGraphStructure().then(function(targetInfo) {
+                    return self.saveAnnotationsWithTargetResource(self.riValue(), targetInfo);
+                })
+                : self.saveAnnotationsOnly();
+
+            return Promise.all([savePromise, targetResourcePromise])
+                .then(function(results) {
+                    var savedAnnotations = results[0] || [];
+                    var targetResource = results[1];
+
+                    console.log('[iiif-annotator-step] saveAll:save-results', {
+                        savedAnnotations: savedAnnotations,
+                        targetResource: targetResource
+                    });
+
+                    if (targetResource) {
+                        savedAnnotations = savedAnnotations.map(function(annotation) {
+                            return Object.assign({}, annotation, {
+                                linkedResources: [targetResource]
+                            });
+                        });
+                    }
+
+                    var mergedExisting = self.existingAnnotations().slice().concat(
+                        (savedAnnotations || []).map(function(annotation) {
+                            var normalizedAnnotation = iiifAnnotationUtils.buildV3Annotation(annotation);
+
+                            if (Array.isArray(annotation.linkedResources) && annotation.linkedResources.length) {
+                                normalizedAnnotation.linkedResources = annotation.linkedResources.slice();
+                            }
+
+                            return normalizedAnnotation;
+                        })
+                    );
+
+                    self.existingAnnotations(mergedExisting);
+                    self.newAnnotations.removeAll();
+
+                    self.value(buildStepPayload());
+                    self.isSaved(true);
+                    self.success('Annotations saved successfully.');
+                    self.showFinalizeModal(false);
+                })
+                .catch(function(error) {
+                    console.error('[iiif-annotator-step] saveAll failed:', error);
+                    self.error('Failed to save: ' + (error && error.message ? error.message : String(error)));
+                    throw error;
+                })
+                .finally(function() {
+                    self.isSaving(false);
+                });
+        };
 
         self.confirmFinalizeModal = function() {
-        self.value(buildStepPayload());
-        self.showFinalizeModal(false);
+            self.saveAll().catch(function() {
+                // handled in saveAll
+            });
         };
 
-        // Save hook
-        if (params.form && params.form.save) {
-        var origSave = params.form.save;
-        params.form.save = function() {
-            self.value(buildStepPayload());
-            return origSave ? origSave.apply(params.form, arguments) : Promise.resolve(true);
-        };
-        }
-
-        // Gating
         if (params.form && params.form.complete) {
-        params.form.complete(ko.pureComputed(function() {
-            // allow complete only if manifest loaded AND at least one new annotation
-            return !!self.manifest() && self.newAnnotations().length > 0;
-        }));
+            params.form.complete(ko.pureComputed(function() {
+                return self.isSaved() && !self.isSaving();
+            }));
         }
 
-        // optional: load graphs for modal
-        function readCreateableResources() {
-        var vm = params.pageVm || {};
-        var list = ko.unwrap(vm.createableResources || []);
-        self.availableOutputGraphs(list.map(function(g) { return { graphid: g.graphid, name: g.name }; }));
+        if (params.form && params.form.save) {
+            var originalSave = params.form.save;
+            params.form.save = function() {
+                self.value(buildStepPayload());
+
+                if (!self.isSaved()) {
+                    return Promise.reject(new Error('Annotations must be saved before completing the workflow.'));
+                }
+
+                return originalSave ? originalSave.apply(params.form, arguments) : Promise.resolve(true);
+            };
         }
-        ko.computed(readCreateableResources);
+
+        self.newAnnotations.subscribe(invalidateSavedState);
+        self.outputMode.subscribe(invalidateSavedState);
 
         return self;
     }
@@ -333,4 +654,4 @@ define([
         viewModel: viewModel,
         template: template
     });
-    });
+});

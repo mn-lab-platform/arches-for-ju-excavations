@@ -1,5 +1,7 @@
 const LOG = '[leaflet-dem-picker-controller]';
 
+import { fetchDemPixelValue } from '../lib/dem-pixel-api';
+
 export function createLeafletDemPickerController(opts = {}) {
   const state = opts.state;
   const getMap = typeof opts.getMap === 'function' ? opts.getMap : () => null;
@@ -36,7 +38,7 @@ export function createLeafletDemPickerController(opts = {}) {
 
     if (marker) removeLayerSafe(map, marker);
     marker = L.circleMarker([-y, x], {
-        pane : 'iiif-tools',
+        pane : 'iiif-tools-markers',
         radius: 6,
         color: '#e91e63',
         fillColor: '#e91e63',
@@ -45,7 +47,7 @@ export function createLeafletDemPickerController(opts = {}) {
     }).addTo(map);
   }
 
-  function resolveDemPixel(info, baseCanvas, baseTransform, manifest) {
+  function resolveDemPixel(info, baseTransform, manifest) {
     const demCanvas = pickDemCanvasFromManifest(manifest);
     if (!demCanvas) {
       state.elevationError('Brak canvas DEM.');
@@ -95,14 +97,7 @@ export function createLeafletDemPickerController(opts = {}) {
     try {
       state.elevationLoading(true);
       state.elevationError('');
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manifest, x, y })
-      });
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json?.error || 'HTTP ' + resp.status);
+      const json = await fetchDemPixelValue({ manifest, x, y, endpoint });
       state.elevationValue(`${json.value} m`);
     } catch (err) {
       console.warn(LOG, 'DEM pixel error:', err);
@@ -112,13 +107,13 @@ export function createLeafletDemPickerController(opts = {}) {
     }
   }
 
-  async function handleMapClick(info, baseCanvas, baseTransform) {
+  async function handleMapClick(info, _baseCanvas, baseTransform) {
     const manifest = getManifest();
     if (!manifest || !info) return;
 
     setMarker(info.x, info.y);
 
-    const resolved = resolveDemPixel(info, baseCanvas, baseTransform, manifest);
+    const resolved = resolveDemPixel(info, baseTransform, manifest);
     if (!resolved) return;
 
     await fetchValue(resolved.x, resolved.y, manifest);

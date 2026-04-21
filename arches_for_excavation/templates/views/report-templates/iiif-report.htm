@@ -1,3 +1,4 @@
+{% extends "views/report-templates/default.htm" %}
 {% load i18n %}
 
 {% block head %}
@@ -48,7 +49,6 @@
   <!-- ko if: manifest -->
   <div class="rp-map-wrap">
 
-    <!-- KOLEJNE STRONY zdjęć -->
     <!-- ko if: isPhotoManifest -->
     <!-- ko component: {
       name: 'iiif-photo-viewer',
@@ -56,7 +56,6 @@
     } --><!-- /ko -->
     <!-- /ko -->
 
-    <!-- Dotychczasowy viewer geotiff/dem -->
     <!-- ko ifnot: isPhotoManifest -->
     <!-- ko component: {
       name: 'iiif-map-viewer',
@@ -70,5 +69,29 @@
 
   </div>
   <!-- /ko -->
+
+  <div class="rp-report-section relative rp-report-section-root">
+    <div class="rp-report-section-title">
+      <!-- ko foreach: { data: report.cards, as: 'card' } -->
+        <!-- ko if: card && card.tiles && ko.unwrap(card.tiles).length > 0 -->
+          <!-- ko if: $index() !== 0 --><hr class="rp-tile-separator"><!-- /ko -->
+          <div class="rp-card-section">
+            <!-- ko component: {
+              name: card.model && card.model.cardComponentLookup && card.model.component_id()
+                ? card.model.cardComponentLookup[card.model.component_id()].componentname
+                : 'default-card',
+              params: {
+                state: 'report',
+                preview: $parent.report.preview,
+                card: card,
+                pageVm: $root,
+                hideEmptyNodes: $parent.hideEmptyNodes
+              }
+            } --><!-- /ko -->
+          </div>
+        <!-- /ko -->
+      <!-- /ko -->
+    </div>
+  </div>
 </div>
 {% endblock body %}
