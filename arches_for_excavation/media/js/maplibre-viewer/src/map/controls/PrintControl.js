@@ -3,6 +3,8 @@ import { PrintPreview } from "../../components/PrintPreview";
 import { PrintManager } from "../PrintManager";
 import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
+import store from "../../core/store";
+
 
 export class PrintControl {
     constructor(mapRootContainer) {
@@ -32,9 +34,9 @@ export class PrintControl {
         this._dpiArr = [72, 96, 150, 300, 400];
 
         this._northArrowDict = {
-            "Arrow 1": "/static/img/maplibre-viewer/north-icons/arrow-1.svg",
-            "Arrow 2": "/static/img/maplibre-viewer/north-icons/arrow-2.svg",
-            "Arrow 3": "/static/img/maplibre-viewer/north-icons/arrow-3.svg",
+            "Arrow 1": { ui: "/arrow-1-light.svg", print: "/arrow-1-dark.svg" },
+            "Arrow 2": { ui: "/arrow-2-light.svg", print: "/arrow-2-dark.svg" },
+            "Arrow 3": { ui: "/arrow-3-light.svg", print: "/arrow-3-dark.svg" },
         };
 
         this.tileStateKeys = {
@@ -94,7 +96,7 @@ export class PrintControl {
 
     onAdd(map) {
         this._map = map;
-        this.printManager = new PrintManager(this._map, this.mapRootContainer);
+        this.printManager = new PrintManager(this._map);
 
         const printOptionsContainer = document.createElement("div");
         printOptionsContainer.classList.add("print-tiles-container");
@@ -176,7 +178,7 @@ export class PrintControl {
         if (type !== this.tileTypes.standard) {
             valueElement = document.createElement("img");
             valueElement.className = 'print-tile-icon-value';
-            valueElement.src = this.state[settingKey] || "";
+            valueElement.src = this.state[settingKey]?.ui || "";
         } else {
             valueElement = document.createElement("span");
             valueElement.classList.add("print-tile-value");
@@ -233,12 +235,17 @@ export class PrintControl {
 
         submitButton.addEventListener("click", () => {
             this._closeTileFlyout();
+
+            const legendData = store.legendData || [];
+            const northArrow = this.state.northArrow;
+
             this.printManager.exportPdf(
                 this._paperSizeDict[this.state.paperSize] ?? this._paperSizeDict.A4,
                 this.state.isHorizontal,
                 this._dpiDict[this.state.dpi] ?? 96,
                 this.printPreview._previewPaper.getBoundingClientRect(),
-                this.state.northArrow
+                northArrow.print,
+                legendData
             )
             EventBusInstance.publish(events.CONTROL_DEACTIVATE, this);
         });
@@ -275,18 +282,16 @@ export class PrintControl {
             optionElement.textContent = option;
 
             if (isIconValue) {
-                const [label, iconUrl] = option;
-                console.log(option);
-                console.log(iconUrl);
+                const [label, iconSet] = option;
                 optionElement.textContent = "";
                 const iconImg = document.createElement("img");
-                iconImg.src = iconUrl;
+                iconImg.src = iconSet.ui;
                 iconImg.alt = label;
                 optionElement.appendChild(iconImg);
                 optionElement.title = label;
                 optionElement.addEventListener("click", () => {
-                    this.state[settingKey] = iconUrl;
-                    valueElement.src = iconUrl;
+                    this.state[settingKey] = iconSet;
+                    valueElement.src = iconSet.ui;
                     this._closeTileFlyout();
                     this.state.currentlySelectedTileKey = null;
                 });

@@ -109,7 +109,6 @@ export class LayerMenuView {
                     source: layerId,
                     accent: layerAccentColor,
                     opacity: 0.5,
-                    icon: 'fa fa-map-marker',
                 }
             }
             this._addLayer(layerDefinition, true);
@@ -123,6 +122,7 @@ export class LayerMenuView {
                 layerDef.layer_info.accent = newColor;
                 layerDef.layer_info.opacity = newOpacity;
                 this._refreshLayerMenuItems();
+                this._updateStoreLegendData();
                 EventBusInstance.publish(events.LAYER_REFRESH, layerDef);
             }
         });
@@ -132,6 +132,7 @@ export class LayerMenuView {
         onTop ? this.layers.unshift(layerDefinition) : this.layers.push(layerDefinition);
         this._visibleLayers.add(layerDefinition.layer_info.id);
         this._refreshLayerMenuItems();
+        this._updateStoreLegendData();
         store.mapLayerIds = [...store.mapLayerIds, layerDefinition.layer_info.id];
         EventBusInstance.publish(events.LAYER_ADD, layerDefinition);
     }
@@ -274,6 +275,7 @@ export class LayerMenuView {
         if (idx > 0) {
             [this.layers[idx - 1], this.layers[idx]] = [this.layers[idx], this.layers[idx - 1]];
             this._refreshLayerMenuItems();
+            this._updateStoreLegendData();
             EventBusInstance.publish(events.LAYERS_REORDER, this.layers.map(l => l.layer_info.id));
         }
     }
@@ -283,6 +285,7 @@ export class LayerMenuView {
         if (idx < this.layers.length - 1) {
             [this.layers[idx + 1], this.layers[idx]] = [this.layers[idx], this.layers[idx + 1]];
             this._refreshLayerMenuItems();
+            this._updateStoreLegendData();
             EventBusInstance.publish(events.LAYERS_REORDER, this.layers.map(l => l.layer_info.id));
         }
     }
@@ -292,6 +295,13 @@ export class LayerMenuView {
         this.layers.forEach((layerDef) => {
             this._createLayerMenuItem(layerDef.layer_info.id, layerDef.layer_info.accent, layerDef.layer_info.name, layerDef.layer_info.opacity);
         });
+        this._updateStoreLegendData();
+    }
+
+    _updateStoreLegendData() {
+        store.legendData = this.layers
+        .filter(l => this._visibleLayers.has(l.layer_info.id))
+        .map(l => ({ name: l.layer_info.name, accent: l.layer_info.accent }));
     }
     
     _generateRandomColor() {
