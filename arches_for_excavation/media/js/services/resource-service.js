@@ -32,7 +32,7 @@ const getAll = (graphId=null) => {
         }]);
         queryParams.push('resource-type-filter=' + encodeURIComponent(resourceTypeFilter));  
     }
-    queryParams.push('limit=1000'); //TODO: maybe instead of fetching everything at once fetch based on search
+    queryParams.push('limit=5000'); //TODO: maybe instead of fetching everything at once fetch based on search
 
     return fetch(queryParams.length > 0 ? url + '?' + queryParams.join('&') : url, {
         method: 'GET',

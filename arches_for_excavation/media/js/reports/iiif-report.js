@@ -7,6 +7,7 @@ import iiifReportTemplate from 'templates/views/report-templates/iiif-report.htm
 
 // IMPORTANT: samo importowanie rejestruje komponent iiif-map-viewer
 import 'views/components/iiif/iiif-map-viewer';
+import 'views/components/iiif/iiif-photo-viewer'; // NEW
 
 const DIGITAL_RES_URL_NODE_ID = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
 const LOG = '[iiif-report]';
@@ -97,7 +98,30 @@ export default ko.components.register('iiif-report', {
     self.error = ko.observable('');
     self.manifestUrl = ko.observable(null);
     self.manifest = ko.observable(null);
-    self.existingAnnotations = ko.observableArray([]); // ← DODAJ
+    self.existingAnnotations = ko.observableArray([]);
+    self.isPhotoManifest = ko.observable(false); // NEW
+
+    function _langFirst(v) {
+      if (!v) return null;
+      if (typeof v === 'string') return v;
+      if (v.en && Array.isArray(v.en) && v.en[0]) return v.en[0];
+      if (v.none && Array.isArray(v.none) && v.none[0]) return v.none[0];
+      return null;
+    }
+
+    function detectPhotoManifest(manifest) {
+      const label = (_langFirst(manifest && manifest.label) || '').toLowerCase();
+      if (label.indexOf('photo manifest') !== -1) return true;
+
+      // fallback: metadata mode=photo (if added later)
+      const md = Array.isArray(manifest && manifest.metadata) ? manifest.metadata : [];
+      for (let i = 0; i < md.length; i++) {
+        const k = (_langFirst(md[i] && md[i].label) || '').toLowerCase();
+        const v = (_langFirst(md[i] && md[i].value) || '').toLowerCase();
+        if (k === 'mode' && v === 'photo') return true;
+      }
+      return false;
+    }
 
     function collectV3AnnotationsFromManifest(manifest) {
       var out = [];
@@ -128,12 +152,14 @@ export default ko.components.register('iiif-report', {
       return $.getJSON(url)
         .then(m => {
           self.manifest(m);
-          self.existingAnnotations(collectV3AnnotationsFromManifest(m)); // ← DODAJ
+          self.existingAnnotations(collectV3AnnotationsFromManifest(m));
+          self.isPhotoManifest(detectPhotoManifest(m)); // NEW
           self.status('');
           return m;
         })
         .catch(err => {
           self.manifest(null);
+          self.isPhotoManifest(false); // NEW
           self.status('');
           self.error('Manifest load failed: ' + (err?.message || String(err)));
           throw err;

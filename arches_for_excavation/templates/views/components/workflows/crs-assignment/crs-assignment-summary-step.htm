@@ -1,0 +1,75 @@
+<div class="crs-assignment-summary">
+    <style>
+        .crs-assignment-summary details > summary {
+            cursor: pointer;
+            list-style: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ukryj natywny marker w webkit */
+        .crs-assignment-summary details > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .crs-assignment-summary details > summary::before {
+            content: "▸";
+            display: inline-block;
+            transition: transform 0.18s ease;
+        }
+
+        .crs-assignment-summary details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+
+        .crs-assignment-summary .kv-list {
+            margin: 8px 0 14px 0;
+            padding-left: 16px;
+        }
+
+        .crs-assignment-summary .kv-list li {
+            margin-bottom: 4px;
+        }
+    </style>
+
+    <h4>Summary</h4>
+
+    <p><strong>CRS name:</strong> <span data-bind="text: crsNameDisplay"></span></p>
+
+    <p><strong>CRS parameters:</strong></p>
+    <!-- ko if: loadingNames -->
+    <p class="text-muted">Loading CRS details...</p>
+    <!-- /ko -->
+    <!-- ko if: !loadingNames() && crsDetails().length -->
+    <ul class="kv-list" data-bind="foreach: crsDetails">
+        <li>
+            <strong data-bind="text: $data.key"></strong>:
+            <span data-bind="text: $data.value"></span>
+        </li>
+    </ul>
+    <!-- /ko -->
+    <!-- ko if: !loadingNames() && !crsDetails().length -->
+    <p class="text-muted">No CRS parameters found.</p>
+    <!-- /ko -->
+
+    <p><strong>IIIF resources selected:</strong> <span data-bind="text: count"></span></p>
+
+    <details>
+        <summary>Selected resources</summary>
+        <ul data-bind="foreach: resourcesForDisplay">
+            <li><span data-bind="text: $data.name"></span></li>
+        </ul>
+    </details>
+
+    <div style="margin-top: 12px;">
+        <button type="button" class="btn btn-primary"
+                data-bind="click: confirmAssignment, disable: submitting() || confirmed()">
+            Confirm and assign
+        </button>
+        <span style="margin-left: 10px;" data-bind="visible: submitting">Assigning...</span>
+    </div>
+
+    <div class="text-success" data-bind="visible: success, text: success" style="margin-top: 8px;"></div>
+    <div class="text-danger" data-bind="visible: error, text: error" style="margin-top: 8px;"></div>
+</div>

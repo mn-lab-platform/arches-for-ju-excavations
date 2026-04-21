@@ -6,6 +6,7 @@ define([
   'templates/views/components/plugins/model-addition-workflow.htm',
   'views/components/workflows/model-addition/model-addition-step',
   'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/universal/crs-creation-from-two-points-step',
 ], function(ko, $, arches, Workflow, workflowTemplate) {
   return ko.components.register('model-addition-workflow', {
     viewModel: function(params) {
@@ -15,6 +16,21 @@ define([
         : '/';
 
       this.stepConfig = [
+        {
+          title: 'Define CRS',
+          name: 'crs-creation',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'crs-creation-from-two-points-step',
+              uniqueInstanceName: 'crs-creation-instance',
+              tilesManaged: 'none',
+              parameters: { 
+                // No parameters needed for this step
+              }
+            }]
+          }]
+        },
         {
           title: 'Select Resource',
           name: 'resource-selection',

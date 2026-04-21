@@ -1,4 +1,4 @@
-import { CesiumWidget, Cesium3DTileset, Color, HeadingPitchRange, Matrix4, Cartesian3, Transforms } from 'cesium';
+import { CesiumWidget, Cesium3DTileset, Color, Matrix4, Cartesian3, Transforms, Rectangle, OrientedBoundingBox, UrlTemplateImageryProvider, Cartographic } from 'cesium';
 import { SCALE_FACTORS } from '../const/const';
 
 export class Scene {
@@ -9,12 +9,20 @@ export class Scene {
         this.existingAnnotations = existingAnnotations;
         this.scale = SCALE_FACTORS.METERS;
         this.containerId = containerId;
-        this.objectBoundingSphere = null;
+        this.cameraDestination = null;
         
         this.widget = new CesiumWidget(containerId, {
+            baseLayer: false,
             creditContainer: document.createElement('div'),
             scene3DOnly: true 
         });
+
+        this.widget.scene.imageryLayers.addImageryProvider(
+            new UrlTemplateImageryProvider({
+                url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                credit: 'Map tiles by Carto, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
+            })
+        );
 
         this._initializeScene();
     }
@@ -25,16 +33,14 @@ export class Scene {
         this.widget.scene.moon.show = false;
         this.widget.scene.sun.show = false;
         this.widget.scene.fog.enabled = false;
-
-        if (!this.georeferenced) {
-            this.widget.scene.globe.show = false;
-            this.widget.scene.skyAtmosphere.show = false;
-        }
+        this.widget.scene.globe.show = false;
+        this.widget.scene.skyAtmosphere.show = false;
 
         if (this.existingAnnotations.length > 0) {
             this._displayExistingAnnotations();
         }
     }
+
     //TODO: Centralize annotation display logic - it should be moved to scene, with methods like addAnnotationEntity, removeAnnotationEntity
     _displayExistingAnnotations() {
         this.existingAnnotations.forEach(annotation => {
@@ -81,14 +87,16 @@ export class Scene {
         const fixedFrame = Transforms.eastNorthUpToFixedFrame(fakePosition);
 
         const center = tileset.boundingSphere.center;
-        const centerOffset = Cartesian3.negate(center, new Cartesian3());
+        const radius = tileset.boundingSphere.radius;
+        const centerOffset = new Cartesian3(-center.x, -center.y, -center.z + radius);
+
         const translationMatrix = Matrix4.fromTranslation(centerOffset);
 
         const scaleMatrix = Matrix4.fromUniformScale(this.scale);
 
         const finalMatrix = new Matrix4();
         Matrix4.multiply(scaleMatrix, translationMatrix, finalMatrix); 
-        Matrix4.multiply(fixedFrame, finalMatrix, finalMatrix);        
+        Matrix4.multiply(fixedFrame, finalMatrix, finalMatrix);
 
         tileset.modelMatrix = finalMatrix;
 
@@ -97,8 +105,7 @@ export class Scene {
         
         this.widget.scene.screenSpaceCameraController.enableCollisionDetection = true;
 
-        this.objectBoundingSphere = tileset.boundingSphere;
-        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere);
+        this._zoomToTileset(tileset);
     }
 
     _handleGeoreferencedTileset(tileset) {
@@ -107,7 +114,32 @@ export class Scene {
             tileset.modelMatrix = scaleMatrix;
         }
 
-        this.objectBoundingSphere = tileset.boundingSphere;
-        this.widget.camera.flyToBoundingSphere(tileset.boundingSphere);
+        this._zoomToTileset(tileset);
+    }
+
+    _zoomToTileset(tileset) {
+        const rootTile = tileset.root;
+        const boundingVolumeToUse = rootTile.contentBoundingVolume.boundingVolume;
+        const corners = OrientedBoundingBox.computeCorners(boundingVolumeToUse);
+        const boundingRectangle = Rectangle.fromCartesianArray(corners);
+
+        const fitCartesian = this.widget.camera.getRectangleCameraCoordinates(boundingRectangle);
+        const fitCarto = Cartographic.fromCartesian(fitCartesian);
+
+        const radius = tileset.boundingSphere.radius;
+        const zOffset = radius;
+        const finalHeight = fitCarto.height + zOffset;
+
+        const center = Rectangle.center(boundingRectangle);
+        const cameraDestination = Cartesian3.fromRadians(center.longitude, center.latitude, finalHeight);
+        this.cameraDestination = cameraDestination;
+
+        this.widget.camera.setView({
+            destination: cameraDestination,
+            orientation: {
+                heading: 0.0,
+                roll: 0.0
+            }
+        });
     }
 }

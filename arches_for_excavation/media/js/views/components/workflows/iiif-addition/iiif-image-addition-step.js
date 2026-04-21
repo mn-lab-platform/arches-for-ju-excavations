@@ -14,7 +14,7 @@ define([
   var NODE_IIIF_LABEL = '78422c09-4994-4eff-b764-60f21f3290cd';
   var NODE_IIIF_URL = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
   var NODE_RELATED_RESOURCE = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
-  var NODE_USED_FILES = 'ba3a8689-8bb6-4759-b4e2-328e8cf9bdf8';
+  var NODE_USED_FILES = 'b1947f78-f339-4e32-b24d-11f78a2b52bd';
 
   var REL_ONTOLOGY_PROPERTY_ID = "";
   var REL_INVERSE_PROPERTY_ID = "";
@@ -69,6 +69,15 @@ define([
 
     self.humanSize = utils.humanSize;
 
+    self.uploadMode = ko.observable('geotiff'); // geotiff | photo
+    self.isPhotoMode = ko.pureComputed(function() { return self.uploadMode() === 'photo'; });
+
+    function _isAllowedForCurrentMode(file) {
+      var name = (file && file.name ? file.name : '').toLowerCase();
+      if (self.isPhotoMode()) return /\.(jpe?g|png|tiff?)$/.test(name);
+      return /\.(tif|tiff)$/.test(name);
+    }
+
     self.canRemoveFile = function(row) {
       if (!row || !row.statusObs) return false;
       return ['selected', 'queued', 'failed'].includes(row.statusObs());
@@ -86,6 +95,7 @@ define([
       _refreshReadyState();
     };
     self.canToggleDem = function(row) {
+      if (self.isPhotoMode()) return false;
       if (!row || !row.statusObs || !row.isDemObs) return false;
       return ['selected', 'failed'].includes(row.statusObs());
     };
@@ -148,6 +158,13 @@ define([
 
         function addToQueue(file) {
           if (!file) return;
+          if (!_isAllowedForCurrentMode(file)) {
+            self.errorMessage(self.isPhotoMode()
+              ? 'Photo mode: only JPG/PNG are allowed.'
+              : 'GeoTIFF mode: only TIF/TIFF are allowed.');
+            try { if (self.dropzone) self.dropzone.removeFile(file); } catch (_) {}
+            return;
+          }
           var exists = self.queue().some(function(it) { return it.file === file; });
           if (exists) return;
 
@@ -157,8 +174,8 @@ define([
             name: file.name || 'unnamed',
             statusObs: ko.observable('selected'),
 
-            isDemObs: ko.observable(!!self.forceDem()),
-            makeHillshadeObs: ko.observable(!!self.forceDem()),
+            isDemObs: ko.observable(self.isPhotoMode() ? false : !!self.forceDem()),
+            makeHillshadeObs: ko.observable(self.isPhotoMode() ? false : !!self.forceDem()),
 
             // backend ids
             task_id: null,
@@ -270,16 +287,52 @@ define([
 
       var baseName = utils.stripExt(item.file.name);
       fd.append('base_name', baseName);
+      fd.append('resource_id', self.digitalResourceId());
+      fd.append('resource_name', self.resourceName() || baseName);
 
+      // PHOTO MODE: no celery, direct IIIF service from backend
+      if (self.isPhotoMode()) {
+        return fetch(baseUrl + 'api/iiif/photo-upload', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken },
+          body: fd
+        })
+        .then(function(resp) {
+          if (!resp.ok) return resp.json().then(function(e){ throw new Error(e.error || 'Photo upload failed'); });
+          return resp.json();
+        })
+        .then(function(r) {
+          item.job_id = r.job_id || null;
+          item.file_id = r.job_id || item.file_id || utils.uuidv4();
+          item.iiif_service_url = r && r.titiler ? r.titiler.iiif_service_url : null;
+          item.fileMetadata = r.metadata || null;
+          item.derivedItems = [];
+          item.statusObs('ready');
+
+          self.fileStore.upsert([{
+            file_id: item.file_id,
+            name: item.name,
+            type: r.format || item.file.type || 'image/jpeg',
+            size: item.file && item.file.size,
+            status: 'uploaded',
+            url: utils.toAbsoluteUrl(r.download_url_original || ''),
+            description: item.iiif_service_url ? ('IIIF: ' + item.iiif_service_url) : ''
+          }]);
+
+          return self.saveUsedFilesTile();
+        })
+        .catch(function(err) {
+          item.statusObs('failed');
+          self.errorMessage((self.errorMessage() ? (self.errorMessage() + '\n') : '') + (err && err.message ? err.message : String(err)));
+        });
+      }
+
+      // GEOTIFF MODE: existing flow
       var forceDem = !!(item.isDemObs && item.isDemObs());
       var makeHillshade = forceDem && (!item.makeHillshadeObs || item.makeHillshadeObs());
-
       fd.append('role', forceDem ? 'dem' : 'ortho');
       fd.append('force_dem', forceDem ? '1' : '0');
       fd.append('make_hillshade', makeHillshade ? '1' : '0');
-
-      fd.append('resource_id', self.digitalResourceId());
-      fd.append('resource_name', self.resourceName() || baseName);
 
       return iiifApi.uploadGeotiff(baseUrl, csrftoken, { formData: fd })
         .then(function(r) {
@@ -445,10 +498,11 @@ define([
 
       return iiifApi.buildManifest(baseUrl, csrftoken, {
         resource_id: self.digitalResourceId(),
-        label: 'GeoTIFF manifest',
+        label: self.isPhotoMode() ? 'Photo manifest' : 'GeoTIFF manifest',
         iiif_version: 3,
         items: services,
-        resource_name: self.resourceName()
+        resource_name: self.resourceName(),
+        mode: self.uploadMode()
       })
       .then(function(r) {
         var manifestUrl = r.manifest_url;

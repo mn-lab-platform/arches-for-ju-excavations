@@ -1,0 +1,11 @@
+<div style="height:640px; display:flex; flex-direction:column; gap:8px; padding:8px;" data-bind="iiifPhotoInit: initMap">
+  <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+    <button class="btn btn-default btn-xs" data-bind="click: prev, enable: canPrev">Prev</button>
+    <button class="btn btn-default btn-xs" data-bind="click: next, enable: canNext">Next</button>
+    <span class="text-muted" data-bind="text: pageText"></span>
+    <!-- ko if: status --><span class="text-muted" data-bind="text: status"></span><!-- /ko -->
+    <!-- ko if: error --><span class="text-danger" data-bind="text: error"></span><!-- /ko -->
+  </div>
+
+  <div class="iiif-photo-leaflet-container" style="flex:1; min-height:0; background:#111;"></div>
+</div>

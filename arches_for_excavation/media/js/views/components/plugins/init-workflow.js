@@ -30,10 +30,17 @@ define([
             {
                 name: 'Add IIIF Resource',
                 slug: 'iiif-addition-workflow',
-                icon: 'fa fa-picture-o',
+                icon: 'fa fa-camera',
                 description: 'Create and link IIIF resources to a resource',
                 backgroundColor: '#e6fae6'
-            },               
+            },    
+            {
+                name: 'Add To Existing IIIF Resource',
+                slug: 'iiif-append-workflow',
+                icon: 'fa fa-picture-o',
+                description: 'Add to existing IIIF resources',
+                backgroundColor: '#f0fae6ff'
+            },                                     
             {
                 name: 'Annotate IIIF Resource',
                 slug: 'iiif-annotation-workflow',
@@ -47,7 +54,22 @@ define([
                 icon: 'fa-map',
                 description: 'Upload GeoTIFF file to be used as basemap or overlay layer in the map viewer',
                 backgroundColor: '#d9f2f2ff'
-            }   
+            },
+            {
+                name: 'Define Local Coordinate System',
+                slug: 'crs-workflow',
+                icon: 'fa-globe',
+                description: 'Create and manage local coordinate systems',
+                backgroundColor: '#e8f2d9ff'
+            },
+            {
+                name: 'Assign Local Coordinate System to Resources',
+                slug: 'crs-assignment-workflow',
+                icon: 'fa-arrows',
+                description: 'Link existing CRS resource to selected resources',
+                backgroundColor: '#f1d9f2ff'                
+            }
+            
 
         ]);
 

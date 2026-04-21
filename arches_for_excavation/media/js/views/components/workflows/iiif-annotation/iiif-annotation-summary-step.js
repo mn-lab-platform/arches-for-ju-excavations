@@ -26,6 +26,10 @@ define([
         self.error = ko.observable('');
         self.isLoading = ko.observable(false);
 
+        // NEW
+        self.success = ko.observable('');
+        self.isSaved = ko.observable(false);
+
         self.annotationLabel = ko.observable('');
         self.annotationNote = ko.observable('');
 
@@ -207,16 +211,14 @@ define([
         });
 
         // Can continue?
-        self.canContinue = ko.pureComputed(function() {
+        self.canSave = ko.pureComputed(function() {
             const p = self.payload();
-            const canContinue = p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue()));
-            console.log('[DEBUG] canContinue:', canContinue, {
-                payload: !!p,
-                mode: self.mode(),
-                targetGraphId: self.targetGraphId(),
-                riValue: self.riValue()
-            });
-            return canContinue;
+            return !!(p && (self.mode() !== 'annotation-and-resource' || (self.targetGraphId() && self.riValue())));
+        });
+
+        self.canContinue = ko.pureComputed(function() {
+            // workflow można zamknąć dopiero po udanym zapisie
+            return self.canSave() && self.isSaved() && !self.isLoading();
         });
 
         // Wire workflow step
@@ -224,6 +226,19 @@ define([
             params.form.complete = self.canContinue;
             console.log('[WF LOG][summary] Workflow step complete condition set.');
         }
+
+        // NEW: jeżeli user zmieni parametry po zapisie -> wymagaj ponownego save
+        function invalidateSavedState() {
+            if (self.isSaved()) {
+                self.isSaved(false);
+                self.success('');
+            }
+        }
+        self.annotationLabel.subscribe(invalidateSavedState);
+        self.annotationNote.subscribe(invalidateSavedState);
+        self.mode.subscribe(invalidateSavedState);
+        self.targetGraphId.subscribe(invalidateSavedState);
+        self.riValue.subscribe(invalidateSavedState);
 
         // ===================== HELPER FUNCTIONS =====================
         
@@ -327,18 +342,76 @@ define([
             var selector = normalizeSelector(anno.selector);
             var target = selector ? { source: canvasId, selector: selector } : canvasId;
 
-            return {
+            var title = (label || '').trim();
+            var note = (description || '').trim();
+
+            var body = [];
+            if (title) {
+                body.push({
+                    type: 'TextualBody',
+                    value: title,
+                    format: 'text/plain',
+                    purpose: 'tagging'
+                });
+            }
+            if (note) {
+                body.push({
+                    type: 'TextualBody',
+                    value: note,
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                });
+            }
+            if (anno.color) {
+                body.push({
+                    type: 'TextualBody',
+                    value: anno.color,
+                    format: 'text/plain',
+                    purpose: 'color'
+                });
+            }
+
+            var annotationResourceId =
+                anno.annotationResourceId ||
+                anno.annotation_resource_id ||
+                null;
+
+            // redundancja: zapisz też w body
+            if (annotationResourceId) {
+                body.push({
+                    type: 'TextualBody',
+                    value: annotationResourceId,
+                    format: 'text/plain',
+                    purpose: 'resource-id'
+                });
+            }
+
+            if (!body.length) {
+                body.push({
+                    type: 'TextualBody',
+                    value: 'Annotation',
+                    format: 'text/plain',
+                    purpose: 'commenting'
+                });
+            }
+
+            var out = {
                 id: anno.id || ('anno-' + Date.now() + '-' + Math.floor(Math.random() * 1e6)),
                 type: 'Annotation',
                 motivation: 'commenting',
                 target: target,
-                body: [{
-                    type: 'TextualBody',
-                    value: (description || label || 'Annotation'),
-                    format: 'text/plain',
-                    purpose: 'commenting'
-                }]
+                body: body
             };
+
+            if (annotationResourceId) {
+                out.annotationResourceId = annotationResourceId;   // główne pole
+                out.annotation_resource_id = annotationResourceId; // kompatybilność
+            }
+
+            if (title) {
+                out.label = { none: [title] };
+            }
+            return out;
         }
 
         self.updateManifestOnServer = function(annotationData, digitalResourceId, sourceManifest) {
@@ -435,11 +508,15 @@ define([
             const payload = self.payload();
             if (!payload || !payload.annotations || payload.annotations.length === 0) {
                 self.error('No annotations to save');
+                self.isSaved(false);
+                self.success('');
                 return;
             }
 
             self.isLoading(true);
             self.error('');
+            self.success('');
+            self.isSaved(false);
 
             console.log('[WF LOG][summary] Starting manual save...');
 
@@ -459,11 +536,12 @@ define([
                         return self.saveAnnotationsWithTargetResource(payload, targetResourceId, targetResourceInfo);
                     })
                     .then(function() {
-                        console.log('[WF LOG][summary] All annotations saved with target resource successfully');
+                        self.isSaved(true);
+                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
-                        console.error('[WF LOG][summary] Error in save with target resource:', err);
+                        self.isSaved(false);
                         self.error('Failed to save: ' + err.message);
                         self.isLoading(false);
                     });
@@ -471,11 +549,12 @@ define([
                 // Zwykły tryb - tylko adnotacje
                 self.saveAnnotationsOnly(payload)
                     .then(function() {
-                        console.log('[WF LOG][summary] All annotations saved successfully');
+                        self.isSaved(true);
+                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
-                        console.error('[WF LOG][summary] Error in save:', err);
+                        self.isSaved(false);
                         self.error('Failed to save: ' + err.message);
                         self.isLoading(false);
                     });
@@ -487,36 +566,23 @@ define([
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
             const sourceManifest = payload.manifest || null;
-            
-            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations with target resource');
-            console.log('[WF LOG][summary] Full annotations data:', annotations); // ✅ ADD: Debug log
-            
-            // Zapisz wszystkie adnotacje i zbierz ich ID
-            const annotationPromises = annotations.map(function(anno) {
+
+            return Promise.all(annotations.map(function(anno) {
                 return self.createAnnotationResource(anno, hostResourceId);
+            }))
+            .then(function(annotationResourceIds) {
+                if (targetResourceInfo.hasRelatedNode) {
+                    return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo)
+                        .then(function() { return annotationResourceIds; });
+                }
+                return annotationResourceIds;
+            })
+            .then(function(annotationResourceIds) {
+                return Promise.all(annotations.map(function(anno, i) {
+                    var withResourceId = Object.assign({}, anno, { annotationResourceId: annotationResourceIds[i] });
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest);
+                }));
             });
-            
-            return Promise.all(annotationPromises)
-                .then(function(annotationResourceIds) {
-                    console.log('[WF LOG][summary] Created annotation resources:', annotationResourceIds);
-                    console.log('[WF LOG][summary] hasRelatedNode:', targetResourceInfo.hasRelatedNode);
-                    console.log('[WF LOG][summary] canLinkToAnnotations:', targetResourceInfo.canLinkToAnnotations);
-                    // Teraz dodaj relacje do target resource'a
-                    if (targetResourceInfo.hasRelatedNode) {
-                        return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo);
-                    } else {
-                        console.log('[WF LOG][summary] Target resource cannot link to annotations, skipping relation');
-                        return Promise.resolve();
-                    }
-                })
-                .then(function() {
-                    // ✅ FIX: Pass the full annotation object with selector and geometry
-                    const manifestPromises = annotations.map(function(anno) {
-                        return self.updateManifestOnServer(anno, hostResourceId, sourceManifest);
-                    });
-                    
-                    return Promise.all(manifestPromises);
-                });
         };
 
         // Funkcja do dodawania relacji adnotacji do target resource'a
@@ -552,19 +618,15 @@ define([
             const annotations = payload.annotations || [];
             const hostResourceId = payload.hostResourceId || payload.digitalResourceId;
             const sourceManifest = payload.manifest || null;
-            
-            console.log('[WF LOG][summary] Saving', annotations.length, 'annotations only');
-            
-            const promises = annotations.map(function(anno) {
-                // Utwórz annotation resource
-                return self.createAnnotationResource(anno, hostResourceId)
-                    .then(function(annotationResourceId) {
-                        // Zaktualizuj manifest
-                        return self.updateManifestOnServer(anno, hostResourceId, sourceManifest);
-                    });
+
+            return Promise.all(annotations.map(function(anno) {
+                return self.createAnnotationResource(anno, hostResourceId);
+            })).then(function(annotationResourceIds) {
+                return Promise.all(annotations.map(function(anno, i) {
+                    var withResourceId = Object.assign({}, anno, { annotationResourceId: annotationResourceIds[i] });
+                    return self.updateManifestOnServer(withResourceId, hostResourceId, sourceManifest);
+                }));
             });
-            
-            return Promise.all(promises);
         };
 
         // Dodaj nową funkcję do sprawdzania struktury wybranego/stworzonego resource'a

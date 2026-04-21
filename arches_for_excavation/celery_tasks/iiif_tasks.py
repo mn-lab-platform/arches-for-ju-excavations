@@ -23,7 +23,6 @@ def _ensure_dir(p: Path) -> None:
 
 
 def _titiler_mount() -> str:
-    # in your compose: uploads:/data
     return str(getattr(settings, "TITILER_DATA_MOUNT", "/data")).rstrip("/")
 
 
@@ -42,15 +41,11 @@ def _map_arche_path_to_titiler_path(p: Path) -> str:
     if idx == -1:
         raise ValueError(f"Path is not under /uploadedfiles/: {s}")
 
-    rel = s[idx + len(marker):]  # e.g. "rasters/data/<id>/file.tif"
+    rel = s[idx + len(marker):]  
     return f"{_titiler_mount()}/{rel}"
 
 
 def _normalize_dem_to_unit_interval(dem: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, float, float]:
-    """
-    Normalize DEM to [0..1] using robust percentiles (2..98) on valid pixels.
-    Returns: (t, lo, hi)
-    """
     valid = dem[~mask]
     if valid.size == 0:
         # fallback
@@ -73,12 +68,7 @@ def _normalize_dem_to_unit_interval(dem: np.ndarray, mask: np.ndarray) -> tuple[
 
 
 def _apply_blue_green_brown_ramp(t: np.ndarray) -> np.ndarray:
-    """
-    Piecewise-linear ramp: blue -> green -> brown.
-    Input: t in [0..1], shape (H,W)
-    Output: RGB uint8, shape (3,H,W)
-    """
-    # Control points in [0..1]
+
     t0, t1, t2 = 0.0, 0.5, 1.
     c0 = np.array([  0,  70, 255], dtype="float32")  # blue (low)
     c1 = np.array([ 40, 170,  60], dtype="float32")  # green (mid)
@@ -108,17 +98,6 @@ def _apply_blue_green_brown_ramp(t: np.ndarray) -> np.ndarray:
 
 @shared_task(bind=True)
 def process_geotiff_metadata_task(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    After COG conversion, read metadata, write meta json, and return TiTiler path.
-
-    Expected payload:
-      {
-        job_id, base_name, folder_name, role, resource_id,
-        original_filename,
-        paths: { original, cog, meta },
-        metadata_original: {...}
-      }
-    """
     logger.info("[IIIF TASK] Starting process_geotiff_metadata_task")
 
     job_id = payload.get("job_id")
@@ -143,13 +122,11 @@ def process_geotiff_metadata_task(self, payload: Dict[str, Any]) -> Dict[str, An
 
     _ensure_dir(meta_dst.parent)
 
-    # read metadata from COG
     meta_cog = _read_geotiff_metadata(str(cog))
 
     if role == "unknown":
         role = "dem" if meta_cog.get("is_dem_hint") else "ortho"
 
-    # write meta json
     result_meta = {
         "job_id": job_id,
         "resource_id": resource_id,
@@ -166,7 +143,6 @@ def process_geotiff_metadata_task(self, payload: Dict[str, Any]) -> Dict[str, An
     }
     meta_dst.write_text(json.dumps(result_meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # map path for TiTiler
     titiler_cog_path = _map_arche_path_to_titiler_path(cog)
     titiler_service_url = reverse("titiler-iiif-proxy") + "?" + urlencode({"path": titiler_cog_path})
     options = payload.get("options") or {}
@@ -274,13 +250,6 @@ def generate_hillshade_task(self, result):
 
 @shared_task(bind=True)
 def generate_color_relief_task(self, result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Generate color-relief (hypsometric tint) from DEM:
-      - robust normalization (2..98 percentile)
-      - ramp: blue -> green -> brown
-      - outputs RGB GeoTIFF -> COG
-      - adds derived.color_relief with TiTiler IIIF service url
-    """
     role = ((result or {}).get("role") or "").lower()
     if role != "dem":
         return result
@@ -297,11 +266,12 @@ def generate_color_relief_task(self, result: Dict[str, Any]) -> Dict[str, Any]:
         dem_m = src.read(1, masked=True).astype("float32")
         mask = np.ma.getmaskarray(dem_m)
         dem = dem_m.filled(np.nan)
+
         t, lo, hi = _normalize_dem_to_unit_interval(dem, mask)
-        rgb = _apply_blue_green_brown_ramp(t)  # (3,H,W) uint8
-        rgb[0, mask] = 0
-        rgb[1, mask] = 70
-        rgb[2, mask] = 255
+        t[mask] = 0.0 
+
+        rgb = _apply_blue_green_brown_ramp(t) 
+        rgb[:, mask] = 0 
 
         profile = {
             "driver": "GTiff",
@@ -316,16 +286,18 @@ def generate_color_relief_task(self, result: Dict[str, Any]) -> Dict[str, Any]:
             "tiled": True,
             "blockxsize": 256,
             "blockysize": 256,
-            "nodata": 0,
             "photometric": "RGB",
             "interleave": "pixel",
-            "nodata": 0,
         }
 
         with rasterio.open(cr_tmp, "w", **profile) as dst:
             dst.write(rgb[0], 1)
             dst.write(rgb[1], 2)
             dst.write(rgb[2], 3)
+
+            # 255 = valid, 0 = NoData
+            valid_mask = (~mask).astype("uint8") * 255
+            dst.write_mask(valid_mask)
 
     # Convert to COG
     rio_copy(

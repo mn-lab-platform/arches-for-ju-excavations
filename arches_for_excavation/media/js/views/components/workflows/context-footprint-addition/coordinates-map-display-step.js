@@ -3,11 +3,9 @@ define([
     'arches',
     'maplibre-gl',
     '../../../../services/basemap-service',
-    '../../../../maplibre_map_viewer/controls/basemapMenu',
     'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
-    'maplibre-gl/dist/maplibre-gl.css',
-    '../../../../../css/components/maplibre_map_viewer/index.css' 
-], function(ko, arches, maplibreGl, basemapServiceModule, basemapMenuModule, template) {
+    '../../../../../css/components/maplibre-viewer/index.css' 
+], function(ko, arches, maplibreGl, basemapServiceModule, template) {
     class Point {
         constructor(label, x, y, z) {
             this.label = label;
@@ -17,12 +15,117 @@ define([
         }
     }
 
+    class SimpleBasemapControl {
+        constructor(options) {
+            const defaultBasemap = {
+                source_info: {
+                    name: 'carto-voyager',
+                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    type: 'raster'
+                },
+                layer_info: {
+                    name: 'Default Basemap',
+                    id: 'carto-voyager-layer',
+                    source: 'carto-voyager',
+                    icon: 'fa fa-home'
+                }
+            };
+
+            const areLayersProvided = options && options.layers && options.layers.length > 0;
+            this._layers = areLayersProvided ? [...options.layers, defaultBasemap] : [defaultBasemap];
+            this._activeLayerId = this._layers[0].layer_info.id;
+            
+            this._container = document.createElement('div');
+            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group basemap-control-panel';
+            // Basic styling to mimic a floating panel; adjust as needed to match your css
+            this._container.style.padding = '5px';
+            this._container.style.backgroundColor = '#fff';
+            this._container.style.boxShadow = '0 0 0 2px rgba(0,0,0,0.1)';
+            this._container.style.borderRadius = '4px';
+            this._container.style.display = 'flex';
+            this._container.style.flexDirection = 'column';
+            this._container.style.gap = '5px';
+        }
+
+        onAdd(map) {
+            this._map = map;
+            
+            this._layers.forEach(layer => {
+                const { source_info, layer_info } = layer;
+
+                // 1. Add source and layer to map if they don't exist
+                if (!this._map.getSource(source_info.name)) {
+                    this._map.addSource(source_info.name, source_info);
+                }
+                if (!this._map.getLayer(layer_info.id)) {
+                    // Insert at the bottom-most layer (before any features are drawn)
+                    this._map.addLayer({
+                        id: layer_info.id,
+                        type: 'raster',
+                        source: layer_info.source,
+                        layout: {
+                            visibility: this._activeLayerId === layer_info.id ? 'visible' : 'none'
+                        }
+                    });
+                }
+
+                // 2. Build UI button for this layer
+                const tile = document.createElement("div");
+                tile.style.cursor = 'pointer';
+                tile.style.padding = '4px 8px';
+                tile.style.borderRadius = '3px';
+                tile.style.display = 'flex';
+                tile.style.alignItems = 'center';
+                tile.style.gap = '8px';
+
+                if (this._activeLayerId === layer_info.id) {
+                    tile.style.backgroundColor = '#e0e0e0';
+                }
+
+                tile.innerHTML = `<i class="${layer_info.icon || 'fa fa-map'}"></i> <span style="font-size: 12px;">${layer_info.name}</span>`;
+
+                // 3. Handle switching
+                tile.addEventListener("click", () => {
+                    this._switchBasemap(layer_info.id, tile);
+                });
+
+                this._container.appendChild(tile);
+            });
+            
+            return this._container;
+        }
+
+        _switchBasemap(newLayerId, clickedTile) {
+            // Hide all managed basemaps
+            this._layers.forEach(l => {
+                if (this._map.getLayer(l.layer_info.id)) {
+                    this._map.setLayoutProperty(l.layer_info.id, 'visibility', 'none');
+                }
+            });
+
+            // Show selected
+            if (this._map.getLayer(newLayerId)) {
+                this._map.setLayoutProperty(newLayerId, 'visibility', 'visible');
+            }
+            
+            // Update UI styling
+            Array.from(this._container.children).forEach(el => el.style.backgroundColor = 'transparent');
+            clickedTile.style.backgroundColor = '#e0e0e0';
+            this._activeLayerId = newLayerId;
+        }
+
+        onRemove() {
+            this._container.parentNode?.removeChild(this._container);
+            this._map = undefined;
+        }
+    }
+
     return ko.components.register('coordinates-map-display-step', {
         viewModel: function(params) {
             const self = this;
 
             const basemapService = basemapServiceModule.default || basemapServiceModule;
-            const BasemapMenuControl = basemapMenuModule.default || basemapMenuModule;
 
             if (params.value) {
                 params.value({
@@ -206,15 +309,14 @@ define([
 
                 basemapService.getBasemapsAndOverlaysInfo().then(info => {
                     const basemapInfo = info.basemaps;
-                    const overlayInfo = info.overlays;
 
-                    const basemapControl = new BasemapMenuControl({
+                    const basemapControl = new SimpleBasemapControl({
                         layers: basemapInfo
                     });
                     self.map.addControl(basemapControl, 'top-right');
 
                     self._generateMarkers(points);
-                    self._drawFeatures(points);
+                    self._drawFeatures(points); // Ensure these lines draw on top of the basemap
                 });
             });
         },

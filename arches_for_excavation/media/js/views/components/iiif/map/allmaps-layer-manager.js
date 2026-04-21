@@ -1,6 +1,15 @@
 // views/components/iiif/map/allmaps-layer-manager.js
 
 import proj4 from 'proj4';
+import { affineForward } from '../lib/affine-utils';
+import {
+  canvasLabel,
+  ensureAbsoluteUrl,
+  extractServiceUrlFromCanvas,
+  extractTitilerFilePathFromServiceUrl,
+  mdBool,
+  mdValue
+} from '../lib/iiif-manifest-utils';
 
 const LOG = '[allmaps-layer-manager]';
 
@@ -21,37 +30,6 @@ async function loadWarpedCtor(setStatus) {
   const ctor = await _ctorPromise;
   if (typeof setStatus === 'function') setStatus('');
   return ctor;
-}
-
-// ---------------- metadata helpers ----------------
-
-function ensureAbsoluteUrl(url) {
-  if (!url) return url;
-  if (/^https?:\/\//i.test(url)) return url;
-  try {
-    return new URL(url, window.location.origin).toString();
-  } catch (e) {
-    return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
-  }
-}
-function mdValue(canvas, key) {
-  const md = canvas && canvas.metadata;
-  if (!Array.isArray(md)) return null;
-  for (let i = 0; i < md.length; i++) {
-    const row = md[i];
-    const label = row?.label?.en?.[0] ?? row?.label?.none?.[0] ?? null;
-    if (label !== key) continue;
-    const val = row?.value?.en?.[0] ?? row?.value?.none?.[0] ?? null;
-    return val ?? null;
-  }
-  return null;
-}
-
-function mdBool(canvas, key) {
-  const v = mdValue(canvas, key);
-  if (v == null) return false;
-  const s = String(v).trim().toLowerCase();
-  return s === 'true' || s === '1' || s === 'yes' || s === 'on';
 }
 
 function parseCanvasGeoref(canvas) {
@@ -95,69 +73,6 @@ function slugifyId(s) {
     .slice(0, 60) || 'layer';
 }
 
-function forceDoubleSlashAfterIiif(url) {
-  if (!url) return url;
-
-  let s = String(url).trim();
-  s = s.replace(/\/info\.json$/i, '').replace(/\/+$/, '');
-
-  const isAbs = /^https?:\/\//i.test(s);
-
-  if (isAbs) {
-    try {
-      const u = new URL(s);
-      let p = u.pathname || '/';
-
-      if (/^\/{1,2}data\//.test(p)) {
-        p = '/iiif/' + p.replace(/^\/+/, '');
-      } else if (!/^\/iiif(\/|$)/.test(p)) {
-        p = '/iiif/' + p.replace(/^\/+/, '');
-      }
-
-      p = p.replace(/^\/iiif\/(?!\/)(data\/)/, '/iiif//$1');
-      u.pathname = p;
-      return u.toString().replace(/\/+$/, '');
-    } catch (e) {}
-  }
-
-  if (/^\/{1,2}data\//.test(s)) {
-    s = '/iiif/' + s.replace(/^\/+/, '');
-  } else if (!/^\/iiif(\/|$)/.test(s)) {
-    s = '/iiif/' + s.replace(/^\/+/, '');
-  }
-
-  s = s.replace(/^\/iiif\/(?!\/)(data\/)/, '/iiif//$1');
-  return s;
-}
-
-function extractServiceUrlFromCanvas(canvas) {
-  try {
-    const ap = canvas?.items?.[0];
-    const ann = ap?.items?.[0];
-    const body = ann?.body;
-    if (!body) return null;
-
-    const svc = body.service;
-    const s = Array.isArray(svc) ? svc[0] : svc;
-    const id = s?.id || s?.['@id'];
-    if (!id) return null;
-
-    return forceHttpsUrl(ensureAbsoluteUrl(forceDoubleSlashAfterIiif(id)));
-  } catch (e) {
-    return null;
-  }
-}
-
-function canvasLabel(canvas) {
-  const l = canvas?.label;
-  return l?.en?.[0] ?? l?.none?.[0] ?? (typeof l === 'string' ? l : 'Layer');
-}
-
-function affineForward(tr, col, row) {
-  const a = tr[0], b = tr[1], c = tr[2], d = tr[3], e = tr[4], f = tr[5];
-  return [a * col + b * row + c, d * col + e * row + f];
-}
-
 function boundsFromCorners(cornersLonLat) {
   let minLon = 180, minLat = 90, maxLon = -180, maxLat = -90;
   for (const ll of cornersLonLat) {
@@ -182,6 +97,19 @@ function forceHttpsUrl(url) {
     return u.toString();
   } catch (_) {
     return String(url).replace(/^http:\/\//i, 'https://');
+  }
+}
+
+function resolveCanvasServiceUrl(canvas) {
+  const rawServiceUrl = extractServiceUrlFromCanvas(canvas);
+  return rawServiceUrl ? forceHttpsUrl(ensureAbsoluteUrl(rawServiceUrl)) : null;
+}
+
+function getTitilerBaseUrl(serviceUrl) {
+  try {
+    return new URL(serviceUrl, window.location.origin).origin;
+  } catch (_) {
+    return '';
   }
 }
 
@@ -215,17 +143,36 @@ function buildGeorefAnnotation(serviceUrl, width, height, cornersLonLat) {
   };
 }
 
-function extractTitilerFilePathFromServiceUrl(serviceUrl) {
-  if (!serviceUrl) return null;
-  try {
-    const u = new URL(serviceUrl, window.location.origin);
-    const p = u.pathname || '';
-    const m = p.match(/\/iiif\/{1,2}(data\/.+)$/i);
-    if (!m) return null;
-    return '/' + m[1].replace(/^\/+/, '');
-  } catch (e) {
-    return null;
-  }
+function createLayerVm(map, picked, layerId, warpedLayer, WarpedCtor, anno, mapIds) {
+  const vm = {
+    label: picked.label,
+    bounds: picked.bounds,
+    layerId,
+    layerObj: warpedLayer,
+    WarpedCtor,
+    _anno: anno,
+    mapIds,
+    _isOnMap: true,
+    visible: picked.isDemHint ? false : true,
+    opacity: picked.isDemHint ? 0 : 1,
+    isDemHint: !!picked.isDemHint,
+    samplingOnly: !!picked.isDemHint,
+    titilerFilePath: picked.titilerFilePath,
+    titilerBaseUrl: picked.titilerBaseUrl,
+    elevationUnit: picked.elevationUnit,
+    _setVisible: async (visible) => {
+      if (vm.samplingOnly) return;
+      await setLayerVisibleCompat(map, vm, !!visible);
+    },
+    _setOpacity: (opacity) => {
+      if (vm.samplingOnly) return;
+      setLayerOpacityCompat(vm.layerObj, vm.mapIds, opacity);
+      applyOpacityWithRetry(vm, 3);
+      try { map.triggerRepaint(); } catch (e) {}
+    }
+  };
+
+  return vm;
 }
 
 // ---- OPACITY compat ----
@@ -354,7 +301,7 @@ export function createAllmapsLayerManager(opts = {}) {
     const georefByBase = new Map();
 
     for (const canvas of canvases) {
-      const svc = extractServiceUrlFromCanvas(canvas);
+      const svc = resolveCanvasServiceUrl(canvas);
       if (!svc) continue;
 
       const g = parseCanvasGeoref(canvas);
@@ -377,7 +324,7 @@ export function createAllmapsLayerManager(opts = {}) {
     // 2) pick display candidates
     const picked = [];
     for (const canvas of canvases) {
-      const svc = extractServiceUrlFromCanvas(canvas);
+      const svc = resolveCanvasServiceUrl(canvas);
       if (!svc) continue;
 
       const label = canvasLabel(canvas);
@@ -401,8 +348,7 @@ export function createAllmapsLayerManager(opts = {}) {
         mdValue(canvas, 'file_path') ||
         extractTitilerFilePathFromServiceUrl(svc);
 
-      let titilerBaseUrl = '';
-      try { titilerBaseUrl = new URL(svc, window.location.origin).origin; } catch (e) {}
+      const titilerBaseUrl = getTitilerBaseUrl(svc);
       const elevationUnit = mdValue(canvas, 'vertical_units') || 'm';
 
       picked.push({
@@ -464,7 +410,6 @@ export function createAllmapsLayerManager(opts = {}) {
       }
 
       const anno = buildGeorefAnnotation(p.serviceUrl, w, h, cornersLonLat);
-      console.log(LOG, anno);
       let mapIds = [];
       try {
         const res = await warpedLayer.addGeoreferenceAnnotation(anno);
@@ -475,44 +420,9 @@ export function createAllmapsLayerManager(opts = {}) {
         continue;
       }
 
-      // Layer VM – minimalnie: tak jak w Twojej wersji, żeby reszta UI działała
-      const vm = {
-        label: p.label,
-        bounds,
-        layerId,
+      const vm = createLayerVm(map, { ...p, bounds }, layerId, warpedLayer, WarpedCtor, anno, mapIds);
 
-        layerObj: warpedLayer,
-        WarpedCtor,
-        _anno: anno,
-        mapIds,
-        _isOnMap: true,
-
-        // KO observables zostawiasz w viewerze (albo tutaj podmieniasz na ko.observable)
-        // Tu daję "polimorficznie": viewer może podać KO observables lub zwykłe wartości.
-        visible: p.isDemHint ? false : true,
-        opacity: p.isDemHint ? 0 : 1,
-
-        isDemHint: !!p.isDemHint,
-        samplingOnly: !!p.isDemHint,
-
-        titilerFilePath: p.titilerFilePath,
-        titilerBaseUrl: p.titilerBaseUrl,
-        elevationUnit: p.elevationUnit,
-
-        // metody kompatybilności dla viewer-a
-        _setVisible: async (v) => {
-          if (vm.samplingOnly) return;
-          await setLayerVisibleCompat(map, vm, !!v);
-        },
-        _setOpacity: (v) => {
-          if (vm.samplingOnly) return;
-          setLayerOpacityCompat(vm.layerObj, vm.mapIds, v);
-          applyOpacityWithRetry(vm, 3);
-          try { map.triggerRepaint(); } catch (e) {}
-        }
-      };
-
-      // DEM hint: zdejmij z mapy od razu
+      // DEM-only layers stay available for sampling, but hidden from the map UI.
       if (vm.samplingOnly) {
         try { setLayerOpacityCompat(vm.layerObj, vm.mapIds, 0); } catch (e) {}
         try { await setLayerVisibleCompat(map, vm, false); } catch (e) {}

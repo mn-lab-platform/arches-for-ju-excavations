@@ -1,0 +1,10 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-000-b51e4828d2k89",
+  "name": "crs-workflow",
+  "icon": "fa fa-arrow-right",
+  "component": "views/components/plugins/crs-workflow",
+  "componentname": "crs-workflow",
+  "config": { "show": false },
+  "slug": "crs-workflow",
+  "sortorder": 0
+}
