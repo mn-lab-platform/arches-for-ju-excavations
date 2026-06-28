@@ -29,7 +29,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 <!--<![endif]-->
 
 <head>
-    <title>Arches | Thelpousa Agora</title>
+    <title> {{ app_title }}</title>
 
     <!-- Meta -->
     <meta charset="utf-8">
@@ -103,13 +103,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                     <div class="relative nav-brand-container" style="display: flex; align-items: center; gap: 15px;">
                         <div class="navbar-brand-v5-icon-container" style="height: fit-content">
                             <img class="navbar-brand-v5-icon"
-                                src="{% webpack_static 'img/landing/mare_nostrum_logo.png' %}"
-                                alt="{% trans 'Mare Nostrum Logo' %}"
-                                style="max-width: 150px; max-height: 75px; width: auto; height: auto; flex-shrink: 0;"
+                                src="{% webpack_static project_logo_url %}"
+                                alt="Project Logo"
+                                style="max-width: 150px; max-height: 60px; width: auto; height: auto; flex-shrink: 0; margin-bottom: 0.2rem;"
                             >
                         </div>
                         <div class="application-name">
-                            <h1>{% blocktrans %}Arches for Excavation {% endblocktrans %}</h1>
+                            <h1>{% blocktrans %} {{ app_title }} {% endblocktrans %}</h1>
                         </div>
                     </div>
                 </div>
@@ -192,27 +192,27 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 <!-- Slider - Start -->
                 <div class="home-slider">
                     <div class="slide-img-container">
-                        <img src="{% webpack_static 'img/landing/landing-first.jpg' %}" alt=""
+                        <img src="{% webpack_static first_slide_image_url %}" alt="Slide 1"
                             aria-describedby="slide1-attribution">
                         <div class="slide-caption">
-                            <h2>{% blocktrans %}Thelpousa Agora Project{% endblocktrans %}</h2>
-                            <p>{% trans "Thelpousa was an Arcadian polis located approximately 25 km east of ancient Olympia." %}</p>
+                            <h2>{% blocktrans %}{{ excavation_name }}{% endblocktrans %}</h2>
+                            <p>{% trans first_slide_caption %}</p>
                         </div>
                     </div>
                     <div class="slide-img-container">
-                        <img src="{% webpack_static 'img/landing/landing-second.jpg' %}" alt=""
+                        <img src="{% webpack_static second_slide_image_url %}" alt="Slide 2"
                             aria-describedby="slide2-attribution">
                         <div class="slide-caption">
-                            <h2>{% blocktrans %}Thelpousa Agora Project{% endblocktrans %}</h2>
-                            <p>{% trans "It was situated in the lower Ladon valley, north of the modern village of Toumbitsi." %}</p>
+                            <h2>{% blocktrans %}{{ excavation_name }}{% endblocktrans %}</h2>
+                            <p>{% trans second_slide_caption %}</p>
                         </div>
                     </div>
                     <div class="slide-img-container">
-                        <img src="{% webpack_static 'img/landing/landing-third.jpg' %}" alt=""
+                        <img src="{% webpack_static third_slide_image_url %}" alt="Slide 3"
                             aria-describedby="slide3-attribution">
                         <div class="slide-caption">
-                            <h2>{% blocktrans %}Thelpousa Agora Project{% endblocktrans %}</h2>
-                            <p>{% trans "The site played an important role in the region's ancient history and landscape." %}</p>
+                            <h2>{% blocktrans %}{{ excavation_name }}{% endblocktrans %}</h2>
+                            <p>{% trans third_slide_caption %}</p>
                         </div>
                     </div>
                 </div>
@@ -232,9 +232,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             <!-- branding column -->
             <div class="col-lg-4">
                 <img class="landing-brand-icon" 
-                    src="{% webpack_static 'img/landing/mare_nostrum_logo.png' %}" 
-                    alt="{% trans 'Mare Nostrum Logo' %}"
-                    style="max-width: 200px; max-height: 75px; width: auto; height: auto; align-self: start;"
+                    src="{% webpack_static project_logo_url %}" 
+                    alt="Project Logo"
+                    style="max-width: 200px; max-height: 60px; width: auto; height: auto; align-self: start; margin-top: 0.2rem;"
                 >
                 <div class="organization-address" style="font-size: 0.82rem; font-weight: 300; line-height: 1.5; padding-left: 10px;">
                     <h2 class="app-footer-heading" style="font-weight: 200; color: white; margin-top: 15px;">{% trans "Institute of Archaeology JU" %}</h2>  

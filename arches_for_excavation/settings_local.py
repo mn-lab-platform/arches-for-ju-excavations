@@ -50,24 +50,32 @@ if not DEBUG:
 # work correctly when running gunicorn.
 APP_NAME = get_env_variable("ARCHES_PROJECT")
 
-DEFAULT_FROM_EMAIL = get_env_variable("DEFAULT_FROM_EMAIL")
-EMAIL_USE_TLS = get_env_variable("EMAIL_USE_TLS").lower() in ['true', '1', 't']
-EMAIL_USE_SSL = get_env_variable("EMAIL_USE_SSL").lower() in ['true', '1', 't']
-EMAIL_HOST = get_env_variable("EMAIL_HOST")
-EMAIL_HOST_USER = get_env_variable("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_PASSWORD")
-EMAIL_PORT = int(get_env_variable("EMAIL_PORT"))
-
+DEFAULT_FROM_EMAIL = get_optional_env_variable("DEFAULT_FROM_EMAIL") or "xxxx@xxx.com"
+EMAIL_USE_TLS = get_optional_env_variable("EMAIL_USE_TLS") or "false"
+EMAIL_USE_TLS = EMAIL_USE_TLS.lower() in ['true', '1', 't']
+EMAIL_USE_SSL = get_optional_env_variable("EMAIL_USE_SSL") or "false"
+EMAIL_USE_SSL = EMAIL_USE_SSL.lower() in ['true', '1', 't']
+EMAIL_HOST = get_optional_env_variable("EMAIL_HOST") or 'smtp.gmail.com'
+EMAIL_HOST_USER = get_optional_env_variable("EMAIL_HOST_USER") or "xxxx@xxx.com"
+EMAIL_HOST_PASSWORD = get_optional_env_variable("EMAIL_PASSWORD") or "xxxx"
+EMAIL_PORT = int(get_optional_env_variable("EMAIL_PORT") or "587")
 
 _DEPLOY_HOST = get_env_variable('DEPLOY_HOST')
 _DOMAIN_URL = f"https://{_DEPLOY_HOST}"
+
+APP_TITLE = get_optional_env_variable("APP_TITLE") or "Arches for Excavation"
+
+IMAGE_SLIDES_CAPTIONS = [
+    "Thelpousa was an Arcadian polis located approximately 25 km east of ancient Olympia.",
+    "It was situated in the lower Ladon valley, north of the modern village of Toumbitsi.",
+    "The site played an important role in the region's ancient history and landscape."
+]
 
 EXTRA_EMAIL_CONTEXT = {
     "salutation": "Hi", 
     "expiration": '24 hours', 
     
-    "arches_project_name": "Thelpousa Agora Project",
-    "header_logo_alt": "Mare Nostrum Lab",
+    "arches_project_name": APP_TITLE,
     "greeting": mark_safe("""
         Thanks for signing up to the <strong><a href="https://www.archesproject.org/" style="color:#0070d2; text-decoration:underline;">Arches</a></strong> instance created as part of the 
         <strong><a href="https://mare.id.uj.edu.pl/pl" style="color:#0070d2; text-decoration:underline;">Mare Nostrum Lab</a></strong>, a project of the 
@@ -76,7 +84,6 @@ EXTRA_EMAIL_CONTEXT = {
     """),
     "button_text": "Confirm",
     "domain_url": _DOMAIN_URL,
-    "footer_logo_alt": "Jagiellonian University",
     "footer_strong_text": mark_safe("Institute of Archaeology &bull; Jagiellonian University"),
     "footer_additional_text": mark_safe("Gołębia 11 &middot; 31-007 Kraków &middot; Poland")
 }
@@ -159,7 +166,3 @@ LANGUAGES = [
 SHOW_LANGUAGE_SWITCH = False
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SAVED_SEARCHES = []
-
-
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True

@@ -193,7 +193,11 @@ STATICFILES_DIRS = build_staticfiles_dirs(app_root=APP_ROOT)
 
 TEMPLATES = build_templates_config(
     debug=DEBUG,
-    app_root=APP_ROOT,
+    app_root=APP_ROOT
+)
+
+TEMPLATES[0]['OPTIONS']['context_processors'].append(
+    f"{APP_NAME}.context_processors.custom_context"
 )
 
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(APP_ROOT, 'system_settings', 'System_Settings.json')
@@ -306,7 +310,7 @@ TILE_CACHE_TIMEOUT = 600 #seconds
 CLUSTER_DISTANCE_MAX = 5000 #meters
 GRAPH_MODEL_CACHE_TIMEOUT = None
 
-OAUTH_CLIENT_ID = ''  #'9JCibwrWQ4hwuGn5fu2u1oRZSs9V6gK8Vu8hpRC4'
+OAUTH_CLIENT_ID = ''
 
 APP_TITLE = 'Arches | Heritage Data Management'
 COPYRIGHT_TEXT = 'All Rights Reserved.'
