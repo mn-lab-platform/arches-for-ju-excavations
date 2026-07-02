@@ -66,9 +66,9 @@ _DOMAIN_URL = f"https://{_DEPLOY_HOST}"
 APP_TITLE = get_optional_env_variable("APP_TITLE") or "Arches for Excavation"
 
 IMAGE_SLIDES_CAPTIONS = [
-    "Thelpousa was an Arcadian polis located approximately 25 km east of ancient Olympia.",
-    "It was situated in the lower Ladon valley, north of the modern village of Toumbitsi.",
-    "The site played an important role in the region's ancient history and landscape."
+    "To edit this caption, please check the manual.",
+    "To edit this caption, please check the manual.",
+    "To edit this caption, please check the manual."
 ]
 
 EXTRA_EMAIL_CONTEXT = {
