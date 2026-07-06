@@ -1,9 +1,9 @@
 {
-    "name": "iiif-report",
+    "name": "IIIF Report",
     "componentid": "37e120f4-f675-4e8c-9380-fd023a105d60",
     "component": "reports/iiif-report",
     "componentname": "iiif-report",
     "templateid": "37e120f4-f675-4e8c-9380-fd023a105d60",
-    "description": "A iiif-report.",
+    "description": "IIIF Report",
     "defaultconfig": {}
 }
