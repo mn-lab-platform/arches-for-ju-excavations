@@ -3,6 +3,7 @@
     "componentid": "a942ac6f-28cf-4976-a853-5fe173023127",
     "component": "reports/annotation-report",
     "componentname": "annotation-report",
+    "templateid": "a942ac6f-28cf-4976-a853-5fe173023127",
     "description": "Annotation Report",
     "defaultconfig": {}
 }
