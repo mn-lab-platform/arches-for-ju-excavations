@@ -35,7 +35,6 @@ define([
                 searchPlaceholder: 'Search IIIF resources...',
                 enableSearch: true,
                 resultLimit: 50,
-                // ustaw graphId twojego graphu IIIF Digital Resource
                 graphId: "401b3051-d1c4-465c-8dd0-1d5784adee98"
               }
             }]

@@ -1,0 +1,83 @@
+<section class="workflow-step">
+    <h3 data-bind="text: stepTitle"></h3>
+    <p class="text-muted" data-bind="text: stepDescription"></p>
+
+    <div class="alert alert-info">
+        <div>
+            RTI resource:
+            <code data-bind="text: rtiResourceId"></code>
+        </div>
+        <div>
+            Manifest:
+            <code data-bind="text: manifestUrl"></code>
+        </div>
+    </div>
+
+    <!-- ko if: viewerVisible -->
+    <iiif-rti-viewer params="
+        metadataUrl: metadataUrl,
+        planes: planes,
+        rotation: rotation,
+        cropEnabled: cropEnabled,
+        cropSelection: cropSelection,
+        onCropSelected: handleCropSelected
+    "></iiif-rti-viewer>
+    <!-- /ko -->
+
+
+    <div class="form-group">
+        <label>Rotation: <span data-bind="text: rotation"></span>&deg;</label>
+        <input class="form-control"
+               type="range"
+               min="0"
+               max="360"
+               step="1"
+               data-bind="value: rotation, valueUpdate: 'input'">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:#777;">
+            <span>0&deg;</span>
+            <span>180&deg;</span>
+            <span>360&deg;</span>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <button type="button"
+                class="btn btn-default"
+                data-bind="click: toggleCropMode, css: { active: cropEnabled() }">
+            Select crop
+        </button>
+        <button type="button"
+                class="btn btn-primary"
+                data-bind="click: applyCrop, enable: cropSelection() && !cropping()">
+            Apply crop to rasters
+        </button>
+        <button type="button"
+                class="btn btn-link"
+                data-bind="click: clearCropSelection, enable: cropSelection()">
+            Clear crop selection
+        </button>
+        <div class="help-block" data-bind="visible: cropSelection">
+            Selected crop:
+            x=<span data-bind="text: cropSelection() && cropSelection().x"></span>,
+            y=<span data-bind="text: cropSelection() && cropSelection().y"></span>,
+            width=<span data-bind="text: cropSelection() && cropSelection().width"></span>,
+            height=<span data-bind="text: cropSelection() && cropSelection().height"></span>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-primary" data-bind="click: saveSettings, enable: !saving() && !cropping()">
+        Save settings
+    </button>
+
+    <div class="alert alert-warning" style="margin-top: 12px;" data-bind="visible: saving() || cropping()">
+        <span data-bind="text: cropping() ? 'Cropping RTI rasters...' : 'Saving RTI settings...'"></span>
+    </div>
+
+    <div class="alert alert-success" style="margin-top: 12px;" data-bind="visible: saved">
+        <span data-bind="text: statusMessage"></span>
+    </div>
+
+    <div class="alert alert-danger" style="margin-top: 12px;" data-bind="visible: errorMessage">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+</section>

@@ -78,6 +78,25 @@ define([
       return /\.(tif|tiff)$/.test(name);
     }
 
+    function _toResourceIdList(value) {
+      var unwrapped = ko.unwrap(value);
+      if (!unwrapped) return [];
+      return (Array.isArray(unwrapped) ? unwrapped : [unwrapped]).filter(function(resourceId) {
+        return !!resourceId;
+      });
+    }
+
+    function _buildRelationTargets(resourceIds) {
+      return _toResourceIdList(resourceIds).map(function(resourceId) {
+        return {
+          resourceId: resourceId,
+          ontologyProperty: REL_ONTOLOGY_PROPERTY_ID,
+          inverseOntologyProperty: REL_INVERSE_PROPERTY_ID,
+          resourceXresourceId: utils.uuidv4()
+        };
+      });
+    }
+
     self.canRemoveFile = function(row) {
       if (!row || !row.statusObs) return false;
       return ['selected', 'queued', 'failed'].includes(row.statusObs());
@@ -227,12 +246,12 @@ define([
       var labelData = utils.makeLangValue(self.resourceName() || '', arches);
       var urlData = utils.makeLangValue('', arches);
 
-      var relTargets = [{
-        resourceId: self.targetResourceId(),
-        ontologyProperty: REL_ONTOLOGY_PROPERTY_ID,
-        inverseOntologyProperty: REL_INVERSE_PROPERTY_ID,
-        resourceXresourceId: ""
-      }];
+      var relTargets = _buildRelationTargets(self.targetResourceId());
+
+      if (!relTargets.length) {
+        self.digitalResourceId(null);
+        return Promise.reject(new Error('Select at least one target resource.'));
+      }
 
       self.fileStore.clear();
 
@@ -519,6 +538,7 @@ define([
             var valueData = {
               digitalResourceId: self.digitalResourceId(),
               targetResourceId: self.targetResourceId(),
+              targetResourceIds: _toResourceIdList(self.targetResourceId()),
               manifestUrl: manifestUrl
             };
 

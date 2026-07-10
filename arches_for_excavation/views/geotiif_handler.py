@@ -9,7 +9,6 @@ import logging
 from pathlib import Path
 from celery import chain
 import numpy as np
-import urllib.parse
 from django.conf import settings
 from django.utils.text import get_valid_filename
 from rest_framework.views import APIView
@@ -21,6 +20,12 @@ from django.views.decorators.csrf import csrf_exempt
 from ..celery_tasks.iiif_tasks import process_geotiff_metadata_task, generate_hillshade_task, generate_color_relief_task
 from ..celery_tasks.convert_task import convert_geotiff_to_cog, convert_dem_geotiff_to_cog
 from .services.raster_metadata import _read_geotiff_metadata
+from .services.iiif_image_service import (
+    image_id_from_service_url,
+    legacy_titiler_path_from_service_url,
+    resolve_titiler_path,
+    titiler_path_to_local_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -245,17 +250,20 @@ def dem_pixel_value(request):
     print(f"Found DEM canvas: {dem_canvas.get('id')} with metadata {dem_canvas.get('metadata')}")
     try:
         service_id = dem_canvas["items"][0]["items"][0]["body"]["service"][0]["id"]
-        parsed = urllib.parse.urlparse(service_id)
-        path = urllib.parse.parse_qs(parsed.query).get("path", [None])[0]
+        path = legacy_titiler_path_from_service_url(service_id)
+        if not path:
+            image_id = image_id_from_service_url(service_id)
+            path = resolve_titiler_path(image_id) if image_id else None
         if not path:
             return JsonResponse({"error": "DEM file path not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": f"Cannot extract DEM file path: {e}"}, status=400)
     print(f"Extracted DEM file path: {path}")
-    if path.startswith("/data/"):
-        arches_data_dir = str(_get_data_root())
-        path = arches_data_dir + path[len("/data/iiif_raster/")-1:]  # dodaj "/" na początku
-        print(f"Converted DEM file path for Arches: {path}")    
+    try:
+        path = str(titiler_path_to_local_path(path))
+        print(f"Converted DEM file path for Arches: {path}")
+    except Exception:
+        pass
     try:
         with rasterio.open(path) as src:
             # granice

@@ -98,21 +98,90 @@
 
 .infoDisplayWithModal {
   position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
 
-    color: white;
+  color: white;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    z-index: 1000;
+  z-index: 1000;
+}
+
+.toolInfoDisplay.basemapSelector {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  min-height: 40px;
+  padding: 0.25rem 0.35rem;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+
+  background: linear-gradient(
+    135deg,
+    rgba(16, 18, 30, 0.72),
+    rgba(34, 37, 58, 0.62)
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.toolInfoDisplay.basemapSelector .basemapNavButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  padding: 0;
+
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  cursor: pointer;
+
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.toolInfoDisplay.basemapSelector .basemapNavButton:hover {
+  background: rgba(99, 102, 241, 0.28);
+  border-color: rgba(165, 168, 255, 0.48);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.toolInfoDisplay.basemapSelector .basemapNavButton:active {
+  background: rgba(99, 102, 241, 0.38);
+}
+
+.toolInfoDisplay.basemapSelector .basemapTitle {
+  max-width: 150px;
+  padding: 0 0.35rem;
+
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .viewer-wrapper:has(.infoDisplayWithModal) .cesium-credit {
@@ -215,10 +284,6 @@
   margin-top: 1rem;
 }
 
-.spaced-between {
-  justify-content: space-between;
-}
-
 .modalButton {
   display: flex;
   align-items: center;
@@ -300,4 +365,8 @@
 
 .invisible {
   display: none;
+}
+
+.spaced-between {
+  justify-content: space-between;
 }

@@ -1,0 +1,68 @@
+<style>
+     .workflow-tab-controls {
+        display: none;
+    }
+    .tabbed-workflow-step-container {
+        overflow-y: auto;
+    }
+    .workflow-nav-tabs {
+        overflow-x: auto;
+    }
+        .model-annotation-container {
+            width: 100%;
+            padding: 10px;
+        }
+
+    .spinning {
+        -webkit-animation: spin 2s linear infinite;
+        -moz-animation: spin 2s linear infinite;
+        -ms-animation: spin 2s linear infinite;
+        -o-animation: spin 2s linear infinite;
+        animation: spin 2s linear infinite;
+    }
+
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse-blue {
+        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+</style>
+
+<!-- ko if: mode === 'annotation' && annotationSaved() -->
+    <!-- ko component: { 
+        name: 'workflow-success-summary', 
+        params: { 
+            resourceId: annotationId, 
+            successMessage: 'Annotation process completed successfully. You can safely delete the workflow, your changes are saved!' 
+        } 
+    } --><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: mode === 'resource' && annotationSaved() -->
+    <!-- ko component: { 
+        name: 'resource-type-picker', 
+        params: { selectedGraphId: targetGraphId }
+    } --><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko ifnot: annotationSaved() -->
+<div class="workflow-step-container">
+    <div data-bind="visible: isLoading" class="alert alert-info">
+        <span class="glyphicon glyphicon-refresh spinning"></span> 
+        <span data-bind="text: infoMessage"></span>
+    </div>
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+</div>
+<!-- /ko -->

@@ -1,0 +1,19 @@
+{
+  "name": "cesium-plugin-dev",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cesium": "^1.135.0",
+    "font-awesome": "^4.6.3"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1",
+    "vite-plugin-static-copy": "^4.1.0"
+  }
+}

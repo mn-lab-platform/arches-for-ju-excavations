@@ -1,7 +1,6 @@
 export class Tool {
   constructor(scene, name, callbacks = {}) {
     this.widget = scene.widget;
-    this.scale = scene.scale;
     this.name = name;
     this.callbacks = callbacks;
     this.active = false;

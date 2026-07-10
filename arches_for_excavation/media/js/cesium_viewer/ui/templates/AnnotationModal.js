@@ -77,7 +77,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
     controlPanel.classList.add('modalControlPanel');
 
     const saveButton = document.createElement('button');
-    saveButton.innerHTML = '<i class="fa fa-floppy-o" aria-hidden="true"></i>';
+    saveButton.innerHTML =  '<img src="/static/img/cesium_viewer/save_icon.svg" alt="Save Annotation" />';
     saveButton.classList.add('modalButton');
     saveButton.title = 'Save Annotation';
     saveButton.onclick = () => {
@@ -88,7 +88,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
             color: colorPicker.value
         };
         
-        tool.saveAnnotation(annotationData);
+        tool.updateAnnotation(annotationData);
         parentElement.innerHTML = '';
     };
 
@@ -108,7 +108,7 @@ export function createAnnotationModal(parentElement, existingAnnotationData = {}
         controlPanel.appendChild(saveButton);
         controlPanel.appendChild(deleteButton);
         controlPanel.classList.add('spaced-between');
-        
+
         modalContent.appendChild(controlPanel);
     }
 

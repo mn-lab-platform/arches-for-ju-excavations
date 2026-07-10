@@ -49,6 +49,18 @@
   <!-- ko if: manifest -->
   <div class="rp-map-wrap">
 
+    <!-- ko if: isRtiManifest -->
+    <!-- ko component: {
+      name: 'iiif-rti-viewer',
+      params: {
+        metadataUrl: rtiMetadataUrl,
+        planes: rtiPlanes,
+        rotation: rtiRotation
+      }
+    } --><!-- /ko -->
+    <!-- /ko -->
+
+    <!-- ko ifnot: isRtiManifest -->
     <!-- ko if: isPhotoManifest -->
     <!-- ko component: {
       name: 'iiif-photo-viewer',
@@ -65,6 +77,7 @@
         basemapStyleUrl: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
       }
     } --><!-- /ko -->
+    <!-- /ko -->
     <!-- /ko -->
 
   </div>

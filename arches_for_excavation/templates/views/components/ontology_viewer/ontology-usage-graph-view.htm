@@ -1,0 +1,31 @@
+<div class="ontology-usage-explorer__graph-view">
+    <div class="ontology-usage-explorer__diagram-toolbar">
+        <button type="button" data-bind="click: fitDiagram">Fit</button>
+        <button type="button" data-bind="click: runLayout">Layout</button>
+        <button type="button" data-bind="click: saveLayout">Save view</button>
+        <button type="button" data-bind="click: resetSavedLayout">Reset saved view</button>
+        <button type="button" data-bind="click: exportPng">PNG</button>
+        <button type="button" data-bind="click: exportJpg">JPG</button>
+        <span class="ontology-usage-explorer__layout-status" data-bind="text: layoutStatus"></span>
+    </div>
+
+    <div class="ontology-usage-explorer__legend">
+        <span class="ontology-usage-explorer__legend-item ontology-usage-explorer__legend-item--cidoc">CIDOC CRM</span>
+        <span class="ontology-usage-explorer__legend-item ontology-usage-explorer__legend-item--archaeo">CRMarchaeo</span>
+        <span class="ontology-usage-explorer__legend-item ontology-usage-explorer__legend-item--dig">CRMdig</span>
+        <span class="ontology-usage-explorer__legend-item ontology-usage-explorer__legend-item--sci">CRMsci</span>
+        <span class="ontology-usage-explorer__legend-item ontology-usage-explorer__legend-item--geo">CRMgeo</span>
+    </div>
+
+    <div class="ontology-usage-explorer__diagram-shell">
+        <div
+            class="ontology-usage-explorer__diagram"
+            data-bind="attr: { id: diagramId }"
+        ></div>
+        <div
+            class="ontology-usage-explorer__resize-handle"
+            title="Drag to resize selected node"
+            data-bind="attr: { id: resizeHandleId }"
+        ></div>
+    </div>
+</div>

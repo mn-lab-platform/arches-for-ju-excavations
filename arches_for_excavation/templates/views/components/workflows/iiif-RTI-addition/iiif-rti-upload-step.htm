@@ -1,0 +1,87 @@
+<section class="workflow-step">
+    <h3 data-bind="text: stepTitle"></h3>
+    <p class="text-muted" data-bind="text: stepDescription"></p>
+
+    <div class="alert alert-info" data-bind="visible: hostResourceId">
+        Target resource:
+        <code data-bind="text: hostResourceId"></code>
+    </div>
+
+    <div class="form-group">
+        <label>RTI name</label>
+        <input class="form-control"
+               type="text"
+               placeholder="e.g. Coin RTI front side"
+               data-bind="value: resourceName">
+    </div>
+
+    <div class="form-group">
+        <label>Relight ZIP package</label>
+        <input class="form-control"
+               type="file"
+               accept=".zip"
+               data-bind="event: { change: onPackageSelected }">
+    </div>
+
+    <div class="alert alert-success" data-bind="visible: packageFileName">
+        Selected:
+        <strong data-bind="text: packageFileName"></strong>
+    </div>
+    <button type="button"
+            class="btn btn-primary"
+            data-bind="click: uploadPackage, enable: packageFile() && !loading()">
+        Upload RTI package
+    </button>
+    <div class="alert alert-warning" style="margin-top: 12px;" data-bind="visible: loading">
+        Processing ZIP, converting JPG files to COG TIFF...
+    </div>
+
+    <div class="panel panel-default" style="margin-top: 12px;" data-bind="visible: planes().length > 0">
+        <div class="panel-heading">
+            <strong>Generated IIIF planes</strong>
+        </div>
+        <div class="panel-body" style="padding: 0;">
+            <table class="table table-condensed table-striped" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Source JPG</th>
+                        <th>IIIF service</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: planes">
+                    <tr>
+                        <td data-bind="text: name"></td>
+                        <td data-bind="text: source_jpeg"></td>
+                        <td>
+                            <code style="word-break: break-all;" data-bind="text: iiif_service_url"></code>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="alert alert-info" style="margin-top: 12px;" data-bind="visible: digitalResourceId">
+        <div>
+            Digital resource:
+            <code data-bind="text: digitalResourceId"></code>
+        </div>
+        <div>
+            Manifest:
+            <code data-bind="text: manifestUrl"></code>
+        </div>
+        <div>
+            Metadata:
+            <code data-bind="text: metadataUrl"></code>
+        </div>
+    </div>
+
+    <div class="alert alert-warning" style="margin-top: 12px;" data-bind="visible: progressStatus">
+        <span data-bind="text: progressStatus"></span>
+    </div>
+
+    <div class="alert alert-danger" style="margin-top: 12px;" data-bind="visible: errorMessage">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+</section>

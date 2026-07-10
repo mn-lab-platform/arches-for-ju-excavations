@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Arches local CRM enhancement for CIDOC CRM v7.1.3.
+
+CIDOC CRM v7.1.3 already includes the primitive classes and P168 that
+the older Arches v6.2 enhancement supplied. This file keeps only the
+project/Arches-specific relationship property.
+-->
+<rdf:RDF xml:lang="en"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xml:base="http://www.cidoc-crm.org/cidoc-crm/">
+
+    <rdf:Property rdf:about="BM.PX_is_related_to">
+        <rdfs:label xml:lang="en">is related to</rdfs:label>
+        <rdfs:comment>Relates E18 to E1.</rdfs:comment>
+        <rdfs:domain rdf:resource="E18_Physical_Thing"/>
+        <rdfs:range rdf:resource="E1_CRM_Entity"/>
+    </rdf:Property>
+
+</rdf:RDF>

@@ -1,0 +1,32 @@
+<style>
+     .workflow-tab-controls {
+        display: none;
+    }
+    .tabbed-workflow-step-container {
+        overflow-y: auto;
+    }
+    .workflow-nav-tabs {
+        overflow-x: auto;
+    }
+
+</style>
+
+<!-- ko if: mode === 'local'-->
+<!-- ko component: {
+    name: 'choose-or-create-crs',
+    params: {
+        value: value
+    }
+ }
+--><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: mode === 'wgs'-->
+<!-- ko component: {
+    name: 'coordinates-addition-step',
+    params: {
+        value: value
+    }
+ }
+--><!-- /ko -->
+<!-- /ko -->

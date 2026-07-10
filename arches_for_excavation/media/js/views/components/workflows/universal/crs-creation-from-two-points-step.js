@@ -9,6 +9,7 @@ define([
             const self = this;
             const crsService = crsServiceModule.default || crsServiceModule;
 
+            self.value = params.value;
             self.infoMessage = ko.observable(null);
             self.errorMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
@@ -22,7 +23,11 @@ define([
                 crsService.defineCRSFromTwoPoints(formData)
                     .then(response => {
                         self.infoMessage(null);
-                        self.successMessage('Local coordinate system created successfully!');
+                        if (response.status === 'success') {
+                            self.successMessage('Local coordinate system created successfully!');
+                            console.log('CRS creation response:', response);
+                            self.value(response.resource_id);
+                        }
                     })
                     .catch(error => {
                         self.infoMessage(null);

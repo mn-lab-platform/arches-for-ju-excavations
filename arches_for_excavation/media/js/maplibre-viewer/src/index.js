@@ -1,4 +1,5 @@
 import '../../../css/components/maplibre-viewer/index.css';
+import '../../../css/components/shared-plugin-ui/index.css';
 import 'font-awesome/css/font-awesome.min.css';
 
 import { MapEngine } from "./map/MapEngine";

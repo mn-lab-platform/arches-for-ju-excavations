@@ -43,10 +43,9 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphId: '401b3051-d1c4-465c-8dd0-1d5784adee98',
+                graphIds: ['401b3051-d1c4-465c-8dd0-1d5784adee98', '5465389c-bba7-4af1-bc9a-9fbb201e8408'],
                 multiple: true,
-                enableSelectAll: true,
-                searchPlaceholder: 'Search IIIF resources...'
+                searchPlaceholder: 'Search IIIF and 3D resources...'
               }
             }]
           }]

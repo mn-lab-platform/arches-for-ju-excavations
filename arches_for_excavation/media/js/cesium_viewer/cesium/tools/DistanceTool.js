@@ -1,6 +1,6 @@
 import { Tool } from './Tool';
 import { PointPrimitiveCollection, PolylineCollection, ScreenSpaceEventHandler, ScreenSpaceEventType, defined, Cartesian3, Color, Material } from 'cesium';
-import { TOOL_CALLBACKS, SCALE_FACTORS } from '../../const/const';
+import { TOOL_CALLBACKS } from '../../const/const';
 
 export class DistanceTool extends Tool {
   constructor(scene, name, callbacks) {
@@ -40,7 +40,7 @@ export class DistanceTool extends Tool {
           
           if (this.points.length === 2) {
             const distance = Cartesian3.distance(this.points[0], this.points[1]);
-            const distanceString = `${distance.toFixed(3)} ${this.scale === SCALE_FACTORS.METERS ? 'm' : 'cm'}`;
+            const distanceString = `${distance.toFixed(3)} meters`;
             this._triggerCallback(TOOL_CALLBACKS.ON_DISTANCE_UPDATE, distanceString);
             this.polylineCollection.add({
               positions: [this.points[0], this.points[1]],

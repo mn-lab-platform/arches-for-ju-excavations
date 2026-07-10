@@ -15,6 +15,7 @@ export const events = {
 
     LAYER_CREATE_TRIGGER: 'layer:create_trigger', 
     LAYER_ADD: 'layer:add',
+    LAYER_ORTHO_ADD: 'layer:ortho_add',
     LAYER_REMOVE: 'layer:remove',
     LAYER_SHOW: 'layer:show',
     LAYER_HIDE: 'layer:hide',

@@ -13,6 +13,7 @@ from django.utils.text import get_valid_filename
 import re
 from urllib.parse import unquote
 from .services.iiif_utils import _resolve_manifest_path_and_current, _append_items_v3
+from .services.iiif_image_service import public_service_url_from_any, rewrite_manifest_image_services
 from arches.app.models.models import TileModel
 
 def _manifest_dir(resource_name: str, resource_id: str) -> Path:
@@ -75,20 +76,22 @@ class BuildGeoTiffManifestView(APIView):
 
         canvases = []
         for i, it in enumerate(items):
-            svc = (it.get("iiif_service_url") or "").rstrip("/")
+            svc = public_service_url_from_any(request, it.get("iiif_service_url") or "").rstrip("/")
             if not svc:
                 continue
             try:
                 info = _fetch_info(svc)
-                w = int(info.get("width") or 1)
-                h = int(info.get("height") or 1)
+                w = int(info.get("width") or (it.get("metadata") or {}).get("width") or 1)
+                h = int(info.get("height") or (it.get("metadata") or {}).get("height") or 1)
             except Exception:
-                w, h = 1, 1  
+                meta = it.get("metadata") or {}
+                w = int(meta.get("width") or 1)
+                h = int(meta.get("height") or 1)
 
             canvas_id = f"{manifest_id}/canvas/{i+1}"
             page_id = f"{canvas_id}/page/1"
             ann_id = f"{page_id}/annotation/1"
-            body_image_id = svc + "/full/max/0/default.jpg"
+            body_image_id = svc + "/full/max/0/default.png"
 
             canvas = {
                 "id": canvas_id,
@@ -107,7 +110,7 @@ class BuildGeoTiffManifestView(APIView):
                         "body": {
                             "id": body_image_id,
                             "type": "Image",
-                            "format": "image/jpeg",
+                            "format": "image/png",
                             "service": [{
                                 "id": svc,
                                 "type": "ImageService3",
@@ -153,6 +156,7 @@ class GetGeoTiffManifestView(APIView):
             raise Http404("Manifest not found")
         p = matches[0]
         data = json.loads(p.read_text(encoding="utf-8"))
+        rewrite_manifest_image_services(data, request)
         return JsonResponse(data, safe=False)
     
 # --- Manifest editing (override on disk) ------------------------------------
@@ -424,7 +428,7 @@ class ManifestEditView(APIView):
                 current.setdefault("type", "Manifest")
                 current["label"] = {"en": [label]}
 
-                result = _append_items_v3(current, manifest_id, items)
+                result = _append_items_v3(current, manifest_id, items, request=request)
                 _atomic_write_json(path, current)
 
                 return Response(

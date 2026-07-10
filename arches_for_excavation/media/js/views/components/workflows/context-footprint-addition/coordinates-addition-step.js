@@ -11,6 +11,7 @@ define([
                 params.value = ko.observable('');
             }
             self.value = params.value;
+            self.mode = params.mode;
 
             self.form = params.form || null;
 

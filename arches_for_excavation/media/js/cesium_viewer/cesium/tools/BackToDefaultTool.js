@@ -1,4 +1,4 @@
-import { Tool } from "./Tool";
+import { Tool } from "./Tool.js";
 import { TOOL_CALLBACKS } from "../../const/const.js";
 
 export class BackToDefaultTool extends Tool {

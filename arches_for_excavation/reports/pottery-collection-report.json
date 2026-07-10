@@ -1,0 +1,8 @@
+{
+    "name": "pottery-collection-report",
+    "componentid": "b1b0f4f4-9b61-4e08-9f0f-4f9a6a5b3a91",
+    "component": "reports/pottery-collection-report",
+    "componentname": "pottery-collection-report",
+    "description": "Pottery collection report.",
+    "defaultconfig": {}
+}

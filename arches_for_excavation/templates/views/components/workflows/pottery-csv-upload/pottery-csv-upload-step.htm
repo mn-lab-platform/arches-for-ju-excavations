@@ -1,0 +1,214 @@
+<style>
+.pottery-csv-upload {
+    max-width: 1100px;
+}
+
+.pottery-csv-file-box {
+    align-items: center;
+    background: #f8fafc;
+    border: 1px dashed #9aa4b2;
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+}
+
+.pottery-csv-meta {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin: 14px 0;
+}
+
+.pottery-csv-stat {
+    background: #fff;
+    border: 1px solid #d7dde5;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.pottery-csv-stat strong {
+    display: block;
+    font-size: 18px;
+}
+
+.pottery-csv-table-wrap {
+    border: 1px solid #d7dde5;
+    border-radius: 6px;
+    max-height: 320px;
+    overflow: auto;
+}
+
+.pottery-csv-table-wrap table {
+    margin: 0;
+}
+</style>
+
+<section class="workflow-step pottery-csv-upload">
+    <h3>Pottery Collection Upload</h3>
+
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+    <div data-bind="visible: successMessage" class="alert alert-success">
+        <span data-bind="text: successMessage"></span>
+    </div>
+    <div data-bind="visible: importMessage" class="alert alert-info">
+        <span class="glyphicon glyphicon-refresh spinning"></span>
+        <span data-bind="text: importMessage"></span>
+    </div>
+    <div class="alert alert-info">
+       Related Context:
+        <strong data-bind="text: selectedContextResourceId"></strong>
+        <br>
+        Context number:
+        <strong data-bind="text: selectedContextNumber() || 'loading...'"></strong>
+    </div>
+
+    <div class="pottery-csv-file-box">
+        <label class="btn btn-default">
+            <i class="fa fa-file-text-o"></i>
+            Choose CSV/XLSX
+            <input type="file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" data-bind="event: { change: onFileSelected }">
+        </label>
+        <span data-bind="text: fileName() || 'No file selected'"></span>
+    </div>
+
+    <!-- ko if: hasPreview -->
+    <div class="pottery-csv-meta">
+        <div class="pottery-csv-stat">
+            <strong data-bind="text: rowCount"></strong>
+            <span>Rows</span>
+        </div>
+        <div class="pottery-csv-stat">
+            <strong data-bind="text: columnCount"></strong>
+            <span>Columns</span>
+        </div>
+        <div class="pottery-csv-stat">
+            <strong data-bind="text: fileType"></strong>
+            <span>Format</span>
+        </div>
+        <div class="pottery-csv-stat">
+            <strong data-bind="text: sourceDetailValue"></strong>
+            <span data-bind="text: sourceDetailLabel"></span>
+        </div>
+        <div class="pottery-csv-stat">
+            <strong data-bind="text: fileSize"></strong>
+            <span>File size</span>
+        </div>
+    </div>
+
+    <h4>Preview</h4>
+    <div class="pottery-csv-table-wrap">
+        <table class="table table-condensed table-striped">
+            <thead>
+                <tr data-bind="foreach: headers">
+                    <th data-bind="text: $data"></th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: previewRows">
+                <tr data-bind="foreach: $data">
+                    <td data-bind="text: $data"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <button type="button"
+            class="btn btn-primary"
+            style="margin-top: 16px;"
+            data-bind="click: importCsv, enable: canImport">
+        <i class="fa fa-database"></i>
+        Prepare import data
+    </button>
+
+    <!-- ko if: importResult -->
+    <div class="panel panel-default" style="margin-top: 16px;">
+        <div class="panel-heading">
+            <strong>Import result</strong>
+        </div>
+        <div class="panel-body">
+            <div class="pottery-csv-meta">
+                <div class="pottery-csv-stat">
+                    <strong data-bind="text: importResult().created"></strong>
+                    <span>Created</span>
+                </div>
+                <div class="pottery-csv-stat">
+                    <strong data-bind="text: importResult().updated"></strong>
+                    <span>Updated</span>
+                </div>
+                <div class="pottery-csv-stat">
+                    <strong data-bind="text: importResult().skipped"></strong>
+                    <span>Skipped</span>
+                </div>
+                <div class="pottery-csv-stat">
+                    <strong data-bind="text: importResult().missing_concepts.length"></strong>
+                    <span>Missing concepts</span>
+                </div>
+            </div>
+
+            <!-- ko if: importResult().errors.length -->
+            <h4>Errors</h4>
+            <ul data-bind="foreach: importResult().errors">
+                <li>
+                    Row <span data-bind="text: row"></span>:
+                    <span data-bind="text: message"></span>
+                </li>
+            </ul>
+            <!-- /ko -->
+            <!-- ko if: selectedPotteryRows().length -->
+            <h4>Pottery data prepared for selected Context</h4>
+
+            <!-- ko foreach: selectedPotteryRows -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Context from file:
+                    <strong data-bind="text: contextNo"></strong>
+                </div>
+
+                <table class="table table-condensed table-striped">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Diagnostic</th>
+                            <th>Undiagnostic</th>
+                            <th>No material</th>
+                            <th>Special find</th>
+                            <th>Chronology</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: pottery">
+                        <tr>
+                            <td data-bind="text: type"></td>
+                            <td data-bind="text: diagnostic"></td>
+                            <td data-bind="text: undiagnostic"></td>
+                            <td data-bind="text: noMaterial"></td>
+                            <td data-bind="text: specialFind"></td>
+                            <td data-bind="text: chronology"></td>
+                            <td data-bind="text: remarks"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- /ko -->
+            <!-- /ko -->
+
+            <!-- ko if: importResult().missing_concepts.length -->
+            <h4>Missing Concepts</h4>
+            <ul data-bind="foreach: importResult().missing_concepts">
+                <li>
+                    Row <span data-bind="text: row"></span>,
+                    Context <span data-bind="text: context"></span>:
+                    <span data-bind="text: field"></span>
+                    =
+                    <span data-bind="text: value"></span>
+                </li>
+            </ul>
+            <!-- /ko -->
+        </div>
+    </div>
+    <!-- /ko -->
+    <!-- /ko -->
+</section>

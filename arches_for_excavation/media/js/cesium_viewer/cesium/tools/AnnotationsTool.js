@@ -1,6 +1,6 @@
-import { Tool } from './Tool';
+import { Tool } from './Tool.js';
 import { PointPrimitiveCollection, PolylineCollection, ScreenSpaceEventHandler, ScreenSpaceEventType, Cartesian3, Color, Material, ClassificationType } from 'cesium';
-import { TOOL_CALLBACKS, SCALE_FACTORS } from '../../const/const.js';
+import { TOOL_CALLBACKS } from '../../const/const.js';
 import utils from '../../utils/utils.js';
 
 export class AnnotationsTool extends Tool {
@@ -28,13 +28,18 @@ export class AnnotationsTool extends Tool {
                 if (cartesian) {
                     if (this.points.length >= 1) {
                         const distance = Cartesian3.distance(cartesian, this.points[0]);
-                        // if scene.scale is in meters use buffer of 0.5 meter to close polygon, if in centimeters use 1 milimeter (with smaller objects we want greater precision)
-                        if (this.points.length >= 3 && distance < (this.scale === SCALE_FACTORS.METERS ? 0.5 : 0.1)) { 
-                            this.pendingAnnotation = {
-                                points: this.points.slice(),
-                                color: this.postPolygonCloseColor
-                            }; 
-                            this._triggerCallback(TOOL_CALLBACKS.ON_POLYGON_COMPLETE);
+                        if (this.points.length >= 3 && distance <  0.1) { 
+                            this.pendingAnnotation = utils.createAnnotationData({
+                                id: utils.generateUniqueId(),
+                                geometry: this.points.map(point => [point.x, point.y, point.z]),
+                                color: this.postPolygonCloseColor.toCssHexString(),
+                                name: '',
+                                description: '',
+                                isResource: false,
+                                relatedResourceName: ''
+                            })
+                            this._triggerCallback(TOOL_CALLBACKS.ON_POLYGON_COMPLETED, this.pendingAnnotation);
+                            this._drawPolygonToCanvas();
                             return;
                         }
                     }
@@ -72,25 +77,25 @@ export class AnnotationsTool extends Tool {
         }, ScreenSpaceEventType.RIGHT_CLICK);
     }
 
-    saveAnnotation(annotationData) {
+    _drawPolygonToCanvas() {
+        console.log("Drawing polygon with geometry: ", this.pendingAnnotation.geometry);
         if (this.pendingAnnotation) {
-            const color = Color.fromCssColorString(annotationData.color);
+            const color =Color.fromCssColorString(this.pendingAnnotation.color);
             const annotation = this.widget.entities.add({
-                id: utils.generateUniqueId(),
-                name: annotationData.name,
-                description: annotationData.description,
+                id: this.pendingAnnotation.id,
+                name: this.pendingAnnotation.name,
+                description: this.pendingAnnotation.description,
                 polygon: {
-                    hierarchy: this.pendingAnnotation.points,
+                    hierarchy: this.pendingAnnotation.geometry.map(coord => Cartesian3.fromArray(coord)),
                     perPositionHeight: true,
                     material: color.withAlpha(0.6),
                     classificationType: ClassificationType.CESIUM_3D_TILE
                 }
             });
-            this._clearCollections();
-            this.points.length = 0;
-            this.pendingAnnotation = null;
-            this._triggerCallback(TOOL_CALLBACKS.ON_ANNOTATION_SAVED, utils.extractAnnotationData(annotation));
         }
+        this._clearCollections();
+        this.points.length = 0;
+        this.pendingAnnotation = null;
     }
 
     cancelAnnotation() {

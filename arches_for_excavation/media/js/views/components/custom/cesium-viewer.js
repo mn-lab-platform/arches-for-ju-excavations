@@ -1,37 +1,45 @@
 import ko from 'knockout';
 import viewerTemplate from 'templates/views/components/custom/cesium-viewer.htm';
 import { initializeCesiumViewer } from '../../../cesium_viewer';
+import basemapService from '../../../services/basemap-service';
 
 export default ko.components.register('cesium-viewer', {
     viewModel: function(params) {
         const self = this;
         params.configKeys = [];
-        console.log("Cesium Viewer Params: ", params);
         
-        const models = params.models3D() || [];
-        const existingAnnotations = params.existingAnnotations() || [];
-        console.log("Cesium Viewer models:", models);
-        self.viewerIds = models.map((_, index) => `cesiumViewer-${index}`);
-        self.modelLabels = ko.observableArray(models.map(m => m.resource.Name || 'Unnamed Model'));
+        self.models = ko.unwrap(params.models3D) || [];
+        self.existingAnnotations = ko.unwrap(params.existingAnnotations) || [];
+        self.viewerIds = self.models.map((_, index) => `cesiumViewer-${index}`);
+        self.modelLabels = ko.observableArray(self.models.map(m => m.resource.Name || 'Unnamed Model'));
         self.allowAnnotationsEdits = params.allowAnnotationsEdits() || false;
         self.allowObjectPicking = params.allowObjectPicking() || false;
+        self.allowObjectAddition = params.allowObjectAddition() || false;
+        self.modelCrsDefinitions = ko.unwrap(params.modelCrsDefinitions) || [];
 
-        console.log("Received params: ", self.allowAnnotationsEdits, self.allowObjectPicking);
-        console.log("Annotations: ", existingAnnotations);
         self.initializedViewers = new Set();
 
         self.onCesiumViewerRendered = function () {
-            console.log("Cesium viewer containers rendered, initializing viewers...");
             self.initializeAllViewers();
         };
 
-        self.initializeAllViewers = async function () {
-            console.log("Initializing viewers for models:", models);
+        self._fetchBasemaps = async function() {
+            try {
+                const basemapsAndOverlays = await basemapService.getBasemapsAndOverlaysInfo();
+                return basemapsAndOverlays.basemaps || [];
+            }
+            catch (error) {
+                console.error('Error fetching basemaps: ', error);
+                return [];
+            }
+        }
 
-            for (let i = 0; i < models.length; i++) {
-                const model = models[i];
-                const modelResourceId = model.resourceinstanceid || model.resourceId;
-                const modelUrl = `${model.resource.Url}/tileset.json`;
+        self.initializeAllViewers = async function () {
+            for (let i = 0; i < self.models.length; i++) {
+                const model = self.models[i];
+                console.log('Model data:', model);
+                const modelName = model.resource.Name || `Model ${i}`;
+                const modelUrl = `${model.resource.URL}/tileset.json`;
                 const georeferenced = String(model.resource.Georeferenced).toLowerCase() === 'true';
                 const viewerId = `cesiumViewer-${i}`;
 
@@ -46,28 +54,33 @@ export default ko.components.register('cesium-viewer', {
                     continue;
                 }
 
-                const modelAnnotations = existingAnnotations.filter(anno => 
-                    anno.modelResourceId === modelResourceId
-                );
+                const modelAnnotations = self.existingAnnotations
+                    .filter(anno => {
+                        if (!anno.relatedResourceName) return false;
+                        
+                        const relatedNames = anno.relatedResourceName.split(',').map(name => name.trim());
+                        return relatedNames.includes(modelName);
+                    });
                 
-                console.log(`Filtered ${modelAnnotations.length} annotations for model ${modelResourceId}`);
-
                 try {
-                    console.log(`Initializing viewer ${i} with model:`, model);
+                    const basemaps = await self._fetchBasemaps();
                     await initializeCesiumViewer(
                         viewerId, 
                         { 
                             georeferenced: georeferenced, 
                             allowAnnotationsEdits: self.allowAnnotationsEdits,
                             allowObjectPicking: self.allowObjectPicking,
+                            allowObjectAddition: self.allowObjectAddition,
                             modelUrl: modelUrl,
                             existingAnnotations: modelAnnotations,
-                            onAnnotationSaved: params.onAnnotationSaved,
+                            basemaps,
+                            crsDefinition: self.modelCrsDefinitions.filter(crsDef => crsDef.modelResourceId === model.resourceinstanceid).map(crsDef => crsDef.crs)[0] || {},
+                            onPolygonCompleted: params.onPolygonCompleted,
+                            onAnnotationUpdated: params.onAnnotationUpdated,
                             onAnnotationDeleted: params.onAnnotationDeleted
                         }
                     );
                     self.initializedViewers.add(viewerId);
-                    console.log(`Successfully initialized viewer ${viewerId}`);
                 } catch (error) {
                     console.error(`Failed to initialize Cesium viewer ${viewerId}:`, error);
                 }

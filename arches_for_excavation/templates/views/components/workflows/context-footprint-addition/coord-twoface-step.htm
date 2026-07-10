@@ -1,0 +1,33 @@
+<style>
+     .workflow-tab-controls {
+        display: none;
+    }
+    .tabbed-workflow-step-container {
+        overflow-y: auto;
+    }
+    .workflow-nav-tabs {
+        overflow-x: auto;
+    }
+
+</style>
+
+<!-- ko if: mode === 'map'-->
+<!-- ko component: {
+    name: 'coordinates-map-display-step',
+    params: {
+        value: value,
+        coordinatesData: prevStepValue
+    }
+ }
+--><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: mode === 'input'-->
+<!-- ko component: {
+    name: 'coordinates-addition-step',
+    params: {
+        value: value
+    }
+ }
+--><!-- /ko -->
+<!-- /ko -->

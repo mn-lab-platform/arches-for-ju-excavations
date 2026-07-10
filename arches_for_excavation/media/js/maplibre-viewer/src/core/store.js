@@ -8,6 +8,7 @@ const store = {
     menuPanelWidth: 0,
     flyoutOpen: false,
     legendData: null,
+    iiifPrintLayers: [],
 }
 
 

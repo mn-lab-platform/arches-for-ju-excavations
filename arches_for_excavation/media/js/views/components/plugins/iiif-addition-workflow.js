@@ -35,6 +35,7 @@ define([
                 placeholderText: '— Select which resource —',
                 searchPlaceholder: 'Search resources...',
                 enableSearch: true,
+                multiple: true,
                 resultLimit: 50
               }
             }]

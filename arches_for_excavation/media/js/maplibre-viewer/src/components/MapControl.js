@@ -7,18 +7,26 @@ export class MapControl {
         this.title = options.title;
         this.hasPanel = options.hasPanel;
         this.controlInstance = options.controlInstance || this;
-
-        
     }
 
     build() {
-        const button = document.createElement("button");
-        const panel = document.createElement("div");
+        const container = document.createElement("div");
+        container.classList.add("maplibregl-ctrl", "map-control-container");
+        container.style.position = "relative";
 
-        button.classList.add("maplibregl-ctrl", "map-control-button");
+        const button = document.createElement("button");
+        button.classList.add("map-control-button");
         button.title = this.title;
         button.setAttribute("aria-haspopup", this.hasPanel ? "true" : "false");
         button.setAttribute("aria-expanded", "false");
+
+        const icon = document.createElement("i");
+        icon.className = this.iconClass;
+        button.appendChild(icon);
+
+        container.appendChild(button);
+
+        const panel = document.createElement("div");
 
         button.addEventListener("click", () => {
             const isActive = !button.classList.contains("--control-active");
@@ -58,21 +66,18 @@ export class MapControl {
             }
         });
 
-        const icon = document.createElement("i");
-        icon.className = this.iconClass;
-        button.appendChild(icon);
-
         if (!this.hasPanel) 
-            return { button };
+            return { container, button };
 
         panel.classList.add("control-panel");
         panel.setAttribute("role", "menu");
-        button.appendChild(panel);
+        
+        container.appendChild(panel);
 
         panel.addEventListener("click", (event) => {
             event.stopPropagation();
         }); 
 
-        return { button, panel };
+        return { container, button, panel };
     }
 }

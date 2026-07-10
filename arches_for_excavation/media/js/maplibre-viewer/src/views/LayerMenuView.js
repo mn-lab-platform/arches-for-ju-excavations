@@ -3,7 +3,8 @@ import { events } from "../constants/events";
 import { extractGeommetryFeaturesFromArchesResourceInfo } from "../core/utils/utils";
 import store from "../core/store";
 import layerWorkspaceFileService from "../storage/layerWorkspaceFileService";
-
+import constants from "../constants/constants";
+import { createLayerDefinition } from "./utils/utils";
 
 export class LayerMenuView {
     constructor(parentElement) {
@@ -13,6 +14,8 @@ export class LayerMenuView {
 
         this.layers = [];
         this._visibleLayers = new Set();
+        this._draggedLayerId = null;
+        this._selectedLayerId = null;
 
         this._generateLayout();
         this._setupEventListeners();
@@ -85,46 +88,42 @@ export class LayerMenuView {
     }
 
     _setupEventListeners() {
-        EventBusInstance.subscribe(events.LAYER_CREATE_TRIGGER, (layerDataArray) => {
-            console.log("received layer data: ", layerDataArray);
-            const layerAccentColor = this._generateRandomColor();
-            const layerId = `layer-${this.layers.length}`;
-            let layerName;
-            if (layerDataArray.length === 1) {
-                layerName = layerDataArray[0].displayname;
-            } else {
-                layerName = `${layerDataArray[0].displayname} and ${layerDataArray.length - 1} other resource(s)`;
-            }
-
-            const featureCollection = this._aggregateLayerGeometryFeatures(layerDataArray);
-            const layerDefinition = {
-                source_info: {
-                    name: layerId,
-                    type: 'geojson',
-                    data: featureCollection
-                },
-                layer_info: {
-                    id: layerId,
-                    name: layerName,
-                    source: layerId,
-                    accent: layerAccentColor,
-                    opacity: 0.5,
-                }
-            }
+        EventBusInstance.subscribe(events.LAYER_CREATE_TRIGGER, async (layerDataArray) => {
+            const layerDefinition = await createLayerDefinition(layerDataArray, this.layers.length);
             this._addLayer(layerDefinition, true);
         });
 
-        EventBusInstance.subscribe(events.LAYER_SETTINGS_UPDATE, (newSettings) => {
-            const { layerId, newName, newColor, newOpacity } = newSettings;
-            const layerDef = this.layers.find(l => l.layer_info.id === layerId);
+        EventBusInstance.subscribe(events.LAYER_SETTINGS_UPDATE, (newLayerInfo) => {
+            const layerDef = this.layers.find(l => l.layer_info.id === newLayerInfo.id);
             if (layerDef) {
-                layerDef.layer_info.name = newName;
-                layerDef.layer_info.accent = newColor;
-                layerDef.layer_info.opacity = newOpacity;
+                layerDef.layer_info = {
+                    ...layerDef.layer_info,
+                    ...newLayerInfo
+                }
                 this._refreshLayerMenuItems();
                 this._updateStoreLegendData();
                 EventBusInstance.publish(events.LAYER_REFRESH, layerDef);
             }
+        });
+
+        EventBusInstance.subscribe(events.LAYER_REMOVE, (layerId) => {
+            const idx = this.layers.findIndex(l => l.layer_info.id === layerId);
+            this.layers.splice(idx, 1);
+            this._visibleLayers.delete(layerId);
+            this._refreshLayerMenuItems();
+            this._updateStoreLegendData();
+            store.mapLayerIds = store.mapLayerIds.filter(id => id !== layerId);
+            EventBusInstance.publish(events.FLYOUT_CLOSE);
+        });
+
+        EventBusInstance.subscribe(events.FLYOUT_CLOSE, () => {
+            this._selectedLayerId = null;
+            this._refreshLayerMenuItems();
+        });
+
+        EventBusInstance.subscribe(events.FLYOUT_OPEN_RESOURCE_SEARCH, () => {
+            this._selectedLayerId = null;
+            this._refreshLayerMenuItems();
         });
     }
 
@@ -137,9 +136,60 @@ export class LayerMenuView {
         EventBusInstance.publish(events.LAYER_ADD, layerDefinition);
     }
 
-    _createLayerMenuItem(layerId, accentColor, layerName, opacity) {
+    _createLayerMenuItem(layerDefinition) {
+        const layerId = layerDefinition.layer_info.id;
+        const color = layerDefinition.layer_info.color;
+        const layerName = layerDefinition.layer_info.name;
+        const type = layerDefinition.source_info.type;
+
         const item = document.createElement('div');
-        item.className = 'layer-menu-item';
+        item.className = `layer-menu-item ${this._selectedLayerId === layerId ? 'selected-layer-menu-item' : ''}`;
+        item.draggable = true;
+
+        item.addEventListener('dragstart', (e) => {
+            this._draggedLayerId = layerId;
+            e.dataTransfer.effectAllowed = 'move';
+            item.style.opacity = '0.5'; 
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            item.style.borderTop = '2px solid #333'; 
+        });
+
+        item.addEventListener('dragleave', () => {
+            item.style.borderTop = '';
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.style.borderTop = '';
+            
+            if (this._draggedLayerId) {
+                this._reorderLayersByDrag(this._draggedLayerId, layerId);
+            }
+        });
+
+        item.addEventListener('dragend', () => {
+            item.style.opacity = '1';
+            this._draggedLayerId = null;
+        });
+
+        item.addEventListener('click', (e) => {
+            if (this._draggedLayerId) return; 
+
+            if (this._selectedLayerId === layerId) {
+                item.classList.remove('selected-layer-menu-item');
+                EventBusInstance.publish(events.FLYOUT_CLOSE);
+                this._selectedLayerId = null;
+            } else {
+                this._selectedLayerId = layerId;
+                EventBusInstance.publish(events.FLYOUT_OPEN_LAYER_SETTINGS, layerDefinition.layer_info);
+                EventBusInstance.publish(events.LAYER_ZOOM_TO, layerDefinition);
+                this._refreshLayerMenuItems();
+            }
+        });
 
         const layerInfoGroup = document.createElement('div');
         layerInfoGroup.className = 'layer-info-group';
@@ -148,6 +198,8 @@ export class LayerMenuView {
         visibilityCheckbox.type = 'checkbox';
         visibilityCheckbox.checked = this._visibleLayers.has(layerId);
         visibilityCheckbox.className = 'layer-visibility-checkbox';
+
+        visibilityCheckbox.addEventListener('click', (e) => e.stopPropagation());
 
         visibilityCheckbox.addEventListener('change', () => {
             if (visibilityCheckbox.checked) {
@@ -160,43 +212,18 @@ export class LayerMenuView {
         });
 
         const colorIndicator = document.createElement('i');
-        colorIndicator.className = 'fa fa-heart layer-color-indicator';
-        colorIndicator.style.color = accentColor;
+        colorIndicator.className = layerDefinition.layer_info.icon + ' layer-color-indicator';
+        colorIndicator.style.color = type === constants.LAYER_TYPES.iiif ? 'white' : color;
 
         const nameLabel = document.createElement('span');
         nameLabel.className = 'layer-name';
         nameLabel.textContent = layerName;
-        this._enableHorizontalDragScroll(nameLabel);
 
         layerInfoGroup.appendChild(visibilityCheckbox);
         layerInfoGroup.appendChild(colorIndicator);
         layerInfoGroup.appendChild(nameLabel);
 
-        const layerControlGroup = document.createElement('div');
-        layerControlGroup.className = 'layer-control-group';
-
-        const zoomToBtn = document.createElement('button');
-        zoomToBtn.className = 'layer-settings-btn';
-        zoomToBtn.innerHTML = '<i class="fa fa-search"></i>';
-        zoomToBtn.title = 'Zoom to Layer';
-
-        zoomToBtn.addEventListener('click', () => {
-            EventBusInstance.publish(events.LAYER_ZOOM_TO, layerId);
-        });
-
-        const settingsButton = document.createElement('button');
-        settingsButton.className = 'layer-settings-btn';
-        settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
-        settingsButton.title = 'Layer Settings';
-
-        settingsButton.addEventListener('click', () => {
-            EventBusInstance.publish(events.FLYOUT_OPEN_LAYER_SETTINGS, {
-                layerId: layerId,
-                layerName: layerName,
-                accentColor: accentColor,
-                opacity: opacity
-            });
-        });
+        item.appendChild(layerInfoGroup);
 
         const orderGroup = document.createElement('div');
         orderGroup.className = 'layer-order-group';
@@ -207,7 +234,8 @@ export class LayerMenuView {
         moveUpBtn.title = 'Move Layer Up';
         moveUpBtn.disabled = this.layers[0].layer_info.id === layerId;
 
-        moveUpBtn.addEventListener('click', () => {
+        moveUpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             this._moveLayerUp(layerId);
         });
 
@@ -217,57 +245,32 @@ export class LayerMenuView {
         moveDownBtn.title = 'Move Layer Down';
         moveDownBtn.disabled = this.layers[this.layers.length - 1].layer_info.id === layerId;
 
-        moveDownBtn.addEventListener('click', () => {
+        moveDownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             this._moveLayerDown(layerId);
         });
 
         orderGroup.appendChild(moveUpBtn);
         orderGroup.appendChild(moveDownBtn);
 
-        layerControlGroup.appendChild(zoomToBtn);
-        layerControlGroup.appendChild(settingsButton);
-        layerControlGroup.appendChild(orderGroup);
-    
-        item.appendChild(layerInfoGroup);
-        item.appendChild(layerControlGroup);
+        item.appendChild(orderGroup);
 
         this.layerList.appendChild(item);
     }
 
-    _enableHorizontalDragScroll(el) {
-        let dragging = false;
-        let startX = 0;
-        let startScrollLeft = 0;
+    _reorderLayersByDrag(draggedId, targetId) {
+        const oldIndex = this.layers.findIndex(l => l.layer_info.id === draggedId);
+        const newIndex = this.layers.findIndex(l => l.layer_info.id === targetId);
 
-        el.addEventListener('pointerdown', (e) => {
-            if (e.pointerType === 'mouse' && e.button !== 0) return;
-            if (el.scrollWidth <= el.clientWidth) return;
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
 
-            dragging = true;
-            startX = e.clientX;
-            startScrollLeft = el.scrollLeft;
-            el.setPointerCapture(e.pointerId);
-            el.style.cursor = 'ew-resize';
-            e.preventDefault();
-        });
+        const [movedLayer] = this.layers.splice(oldIndex, 1);
+        
+        this.layers.splice(newIndex, 0, movedLayer);
 
-        el.addEventListener('pointermove', (e) => {
-            if (!dragging) return;
-            const dx = e.clientX - startX;
-            el.scrollLeft = startScrollLeft - dx;
-        });
-
-        const stop = (e) => {
-            if (!dragging) return;
-            dragging = false;
-            if (el.hasPointerCapture(e.pointerId)) {
-                el.releasePointerCapture(e.pointerId);
-            }
-            el.style.cursor = '';
-        };
-
-        el.addEventListener('pointerup', stop);
-        el.addEventListener('pointercancel', stop);
+        this._refreshLayerMenuItems();
+        this._updateStoreLegendData();
+        EventBusInstance.publish(events.LAYERS_REORDER, this.layers.map(l => l.layer_info.id));
     }
 
     _moveLayerUp(layerId) {
@@ -293,7 +296,7 @@ export class LayerMenuView {
     _refreshLayerMenuItems() {
         this.layerList.replaceChildren();
         this.layers.forEach((layerDef) => {
-            this._createLayerMenuItem(layerDef.layer_info.id, layerDef.layer_info.accent, layerDef.layer_info.name, layerDef.layer_info.opacity);
+            this._createLayerMenuItem(layerDef);
         });
         this._updateStoreLegendData();
     }
@@ -301,51 +304,6 @@ export class LayerMenuView {
     _updateStoreLegendData() {
         store.legendData = this.layers
         .filter(l => this._visibleLayers.has(l.layer_info.id))
-        .map(l => ({ name: l.layer_info.name, accent: l.layer_info.accent }));
-    }
-    
-    _generateRandomColor() {
-        return `#${Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, 0)}`;
-    }
-
-    _aggregateLayerGeometryFeatures(layerDataArray) {
-        const allFeatures = [];
-
-        layerDataArray.forEach((layerData, layerIdx) => {
-            const features = extractGeommetryFeaturesFromArchesResourceInfo(layerData);
-            if (!features || !Array.isArray(features)) return;
-
-            features.forEach((feat, fi) => {
-                let feature = feat;
-
-                if (!feature || feature.type !== 'Feature') {
-                    feature = {
-                        type: 'Feature',
-                        geometry: feat?.geometry ?? feat,
-                        properties: {}
-                    };
-                } else {
-                    feature = { ...feature };
-                }
-
-                const resId = layerData.resourceinstanceid ?? layerData.resourceId ?? `layer-${layerIdx}`;
-                feature.id = feature.id ?? `${resId}-${fi}`;
-                feature.properties = {
-                    ...(feature.properties || {}),
-                    sourceResourceId: resId,
-                    sourceDisplayName: layerData.displayname ?? layerData.name
-                };
-
-                allFeatures.push(feature);
-            });
-        });
-
-        const featureCollection = {
-            type: 'FeatureCollection',
-            features: allFeatures
-        };
-
-        console.log('Aggregated FeatureCollection:', featureCollection);
-        return featureCollection;
+        .map(l => ({ name: l.layer_info.name, color: l.layer_info.color }));
     }
 }

@@ -11,18 +11,18 @@ export default ko.components.register('context-tabbed-report', {
         const self = this;
 
         const ANNOTATION_RESOURCE_GRAPHID = '2880934b-0015-4c5a-8ec1-1ab9bca329fd';
+        const CRS_RESOURCE_GRAPHID = 'a5219c24-2907-4055-9d68-18216d214458';
        
-        // 3D Models state
         self.models3D = ko.observableArray([]);
         self.allowAnnotationsEdits = ko.observable(false);
         self.allowObjectPicking = ko.observable(true);
+        self.allowObjectAddition = ko.observable(false);
         self.existingAnnotations = ko.observableArray([]);
+        self.modelCrsDefinitions = ko.observableArray([]);
        
-        // IIIF state
         self.iiifResources = ko.observableArray([]);
         self.readOnly = ko.observable(true);
  
-        // Base Info tab
         const myTabs = [
             ko.mapping.fromJS({
                 name: 'Info',
@@ -33,20 +33,47 @@ export default ko.components.register('context-tabbed-report', {
             })
         ];
  
-        console.log("[CONTEXT REPORT] params:", params);
         const relatedResources = params.report.relatedResourcesLookup();
-        console.log("[CONTEXT REPORT] related resources:", relatedResources);
- 
-        // ===== Process 3D Models =====
+
+        const loadModelBundle = async (modelResource) => {
+            if (!modelResource) return null;
+
+            const resourceId = modelResource.link.split('/').pop();
+
+            const [modelData, relatedData] = await Promise.all([
+                resourceService.getOne(resourceId),
+                resourceService.getAllRelatedTo(resourceId)
+            ]);
+
+            const relatedResourcesArray = relatedData?.related_resources?.related_resources || [];
+
+            const annotationIds = relatedResourcesArray
+                .filter(related => related.graph_id === ANNOTATION_RESOURCE_GRAPHID)
+                .map(related => related.resourceinstanceid);
+
+            const crsId = relatedResourcesArray.find(
+                related => related.graph_id === CRS_RESOURCE_GRAPHID
+            )?.resourceinstanceid;
+
+            const [annotations, crsData] = await Promise.all([
+                Promise.all(annotationIds.map(id => resourceService.getOne(id))),
+                crsId ? resourceService.getOne(crsId) : Promise.resolve(null)
+            ]);
+
+            return {
+                resourceId,
+                modelData,
+                annotations,
+                crsData
+            };
+        };
+        
         const model3DResource = Object.entries(relatedResources)
-            .filter(([_, value]) => (value.name === 'Digital Resource 3D'))
+            .filter(([_, value]) => (value.name.toLowerCase() || '').includes('3d'))
             .map(([_, value]) => value);
- 
-        console.log("[CONTEXT REPORT] 3D models:", model3DResource);
        
         if (model3DResource.length > 0) {
             const actualModels = model3DResource[0].loadedRelatedResources();
-            console.log("[CONTEXT REPORT] Actual 3D models:", actualModels);
        
             if (actualModels.length > 0) {
                 myTabs.push(ko.mapping.fromJS({
@@ -58,68 +85,57 @@ export default ko.components.register('context-tabbed-report', {
                         models3D: self.models3D,
                         allowAnnotationsEdits: self.allowAnnotationsEdits,
                         allowObjectPicking: self.allowObjectPicking,
-                        existingAnnotations: self.existingAnnotations
+                        existingAnnotations: self.existingAnnotations,
+                        modelCrsDefinitions: self.modelCrsDefinitions
                     }
                 }));
        
-                const modelPromises = actualModels.map(modelResource => {
-                    if (!modelResource) return Promise.resolve(null);
-                    
-                    const resourceId = modelResource.link.split('/').pop();
-                    console.log("[CONTEXT REPORT] Processing 3D model resource id:", resourceId);
+                const modelPromises = actualModels.map(loadModelBundle);
 
-                    return Promise.all([
-                        resourceService.getOne(resourceId),
-                        resourceService.getAllRelatedTo(resourceId)
-                    ]).then(([modelData, relatedData]) => {
-                        console.log("[CONTEXT REPORT] Model data:", modelData);
-                        console.log("[CONTEXT REPORT] Related resources:", relatedData);
-                        
-                        const relatedResourcesArray = relatedData?.related_resources?.related_resources || [];
-                        console.log("[CONTEXT REPORT] Related resources array:", relatedResourcesArray);
-                        
-                        const annotationResources = relatedResourcesArray
-                            .filter(related => related.graph_id === ANNOTATION_RESOURCE_GRAPHID);
-                        
-                        console.log("[CONTEXT REPORT] Annotation resources for model:", annotationResources);
-                        
-                        const annotationPromises = annotationResources.map(anno => 
-                            resourceService.getOne(anno.resourceinstanceid)
-                        );
-                        
-                        return Promise.all(annotationPromises).then(annotations => {
-                            const annotationsWithModelId = annotations.map(anno => ({
-                                ...anno,
-                                modelResourceId: resourceId
-                            }));
-                            
-                            console.log("[CONTEXT REPORT] Fetched annotations with model ID:", annotationsWithModelId);
-                            
+                Promise.allSettled(modelPromises)
+                    .then(results => {
+                        const fulfilled = results
+                            .filter(result => result.status === 'fulfilled' && result.value)
+                            .map(result => result.value);
+
+                        fulfilled.forEach(({ resourceId, modelData, annotations, crsData }) => {
                             self.models3D.push(modelData);
-                            
-                            annotationsWithModelId.forEach(anno => {
-                                self.existingAnnotations.push(anno);
+
+                            (annotations || []).forEach(anno => {
+                                self.existingAnnotations.push({
+                                    id: anno.resourceinstanceid,
+                                    name: anno.displayname,
+                                    description: anno.displaydescription || '',
+                                    geometry: JSON.parse(anno.resource.Geometry),
+                                    color: anno.resource.Color || '#64ff64',
+                                    relatedResourceName: anno.resource['Related Resource'] || ''
+                                });
                             });
-                            
-                            console.log("[CONTEXT REPORT] Added model and annotations");
-                            
-                            return {
-                                model: modelData,
-                                annotations: annotationsWithModelId
-                            };
+                            if (crsData) {
+                                self.modelCrsDefinitions.push({
+                                    modelResourceId: resourceId,
+                                    crs: {
+                                        proj: crsData.resource.Definition.PROJ4['PROJ4 String'] || '',
+                                        wkt: crsData.resource.Definition['WKT-2']['WKT-2 String'] || '',
+                                        esri: crsData.resource.Definition['ESRI WKT']['ESRI WKT String'] || ''
+                                    }
+                                });
+                            }
                         });
+
+                        const rejected = results.filter(result => result.status === 'rejected');
+                        if (rejected.length > 0) {
+                            console.error('[CONTEXT REPORT] Some models failed to load:', rejected);
+                        }
+
+                        console.log('[CONTEXT REPORT] All model bundles processed:', results);
+                    })
+                    .catch(error => {
+                        console.error('[CONTEXT REPORT] Error loading model bundles:', error);
                     });
-                });
-                
-                Promise.all(modelPromises).then(results => {
-                    console.log("[CONTEXT REPORT] All models and annotations loaded:", results);
-                }).catch(error => {
-                    console.error("[CONTEXT REPORT] Error loading models/annotations:", error);
-                });
             }
         }
  
-        // ===== Process IIIF Resources =====
         const iiifResourceList = Object.entries(relatedResources)
             .filter(([_, value]) => {
                 const name = (value.name || '').toLowerCase();
@@ -127,17 +143,14 @@ export default ko.components.register('context-tabbed-report', {
             })
             .map(([_, value]) => value);
  
-        console.log("[CONTEXT REPORT] filtered IIIF resources:", iiifResourceList);
- 
         if (iiifResourceList.length > 0) {
             const actualIiifResources = iiifResourceList[0].loadedRelatedResources();
-            console.log("[CONTEXT REPORT] Actual IIIF resources:", actualIiifResources);
+            console.log('[CONTEXT REPORT] Actual IIIF resources:', actualIiifResources);
            
             const iiifResourceIds = [];
             actualIiifResources.forEach(iiifResource => {
                 if (iiifResource) {
                     const resourceId = iiifResource.link.split('/').pop();
-                    console.log("[CONTEXT REPORT] Processing IIIF resource id:", resourceId);
                     iiifResourceIds.push(resourceId);
                    
                     self.iiifResources.push({
@@ -147,9 +160,6 @@ export default ko.components.register('context-tabbed-report', {
                 }
             });
  
-            console.log("[CONTEXT REPORT] All IIIF Resource IDs:", iiifResourceIds);
- 
-            // Add a tab for each IIIF resource
             iiifResourceIds.forEach((resourceId, index) => {
                 const resourceData = self.iiifResources()[index];
                
@@ -166,7 +176,6 @@ export default ko.components.register('context-tabbed-report', {
             });
         }
  
-        // Initialize tabbed report with all tabs
         setupTabbedReport(self, params, myTabs);
     },
     template: tabbedReportTemplate

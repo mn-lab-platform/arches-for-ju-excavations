@@ -28,6 +28,20 @@ define([
                 backgroundColor: '#f9d5b3ff'
             },
             {
+                name: 'Add Pottery Records',
+                slug: 'pottery-record-import-workflow',
+                icon: 'fa fa-table',
+                description: 'Load and preview pottery records from a CSV file to create individual pottery resources',
+                backgroundColor: '#eef3f8'
+            },
+            {
+                name: 'Add Pottery Collection',
+                slug: 'pottery-csv-upload-workflow',
+                icon: 'fa-file-text-o',
+                description: 'Load and preview pottery records from a CSV or XLSX file to create a pottery collection resource',
+                backgroundColor: '#eef3f8'
+            },            
+            {
                 name: 'Add IIIF Resource',
                 slug: 'iiif-addition-workflow',
                 icon: 'fa fa-camera',
@@ -68,6 +82,13 @@ define([
                 icon: 'fa-arrows',
                 description: 'Link existing CRS resource to selected resources',
                 backgroundColor: '#f1d9f2ff'                
+            },
+            {
+                name: 'Add RTI Resource',
+                slug: 'iiif-RTI-addition-workflow',
+                icon: 'fa fa-lightbulb-o',
+                description: 'Create and link RTI resources to a resource',
+                backgroundColor: '#fafae6ff'
             }
             
 

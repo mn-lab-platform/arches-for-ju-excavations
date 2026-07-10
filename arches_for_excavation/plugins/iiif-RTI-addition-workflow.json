@@ -1,0 +1,10 @@
+{
+  "pluginid": "f2efb087-c39b-46ab-b5b8-0c53c9d6b6e1",
+  "name": "IIIF RTI resource addition",
+  "icon": "fa fa-bolt",
+  "component": "views/components/plugins/iiif-RTI-addition-workflow",
+  "componentname": "iiif-RTI-addition-workflow",
+  "config": { "show": false },
+  "slug": "iiif-RTI-addition-workflow",
+  "sortorder": 0
+}

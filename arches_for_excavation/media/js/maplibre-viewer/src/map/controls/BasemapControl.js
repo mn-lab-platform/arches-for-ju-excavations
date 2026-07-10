@@ -22,17 +22,34 @@ export class BasemapControl {
             }
         };
 
+        const noBasemap = {
+            source_info: {
+                name: 'none',
+                tiles: [],
+                type: 'none'
+            },
+            layer_info: {
+                name: 'No Basemap',
+                id: 'none-basemap-layer',
+                source: 'none',
+                sortorder: -2,
+                icon: 'fa fa-ban'
+            }
+        };
+
         this._map = null;
         const areLayersProvided = options?.layers && options.layers.length > 0;
-        this._layers = areLayersProvided ? [...options?.layers, defaultBasemap] : [defaultBasemap];
+        this._layers = [noBasemap, ...(areLayersProvided ? [...options?.layers, defaultBasemap] : [defaultBasemap])];
         store.basemapLayerId = areLayersProvided ? [options.layers[0].layer_info.id] : [defaultBasemap.layer_info.id];
 
-        const { button, panel } = new MapControl({
+        const { container, button, panel } = new MapControl({
             iconClass: 'fa fa-map',
             title: 'Select Basemap',
             hasPanel: true,
             controlInstance: this
         }).build();
+        
+        this._controlContainer = container;
         this._controlButton = button;
         this._controlPanel = panel;
     }
@@ -68,24 +85,27 @@ export class BasemapControl {
             EventBusInstance.publish(events.BASEMAP_ADD, layer);
         });
         
-        return this._controlButton;
+        return this._controlContainer;
     }
 
     _switchBasemap(newLayerId, newContainer) {
         const oldLayerId = store.basemapLayerId[0];
         store.basemapLayerId = [newLayerId];
 
-        EventBusInstance.publish(events.LAYER_HIDE, oldLayerId);
-        EventBusInstance.publish(events.LAYER_SHOW, newLayerId);
+        if (newLayerId === 'none-basemap-layer') {
+            EventBusInstance.publish(events.LAYER_HIDE, oldLayerId);
+        } else {
+            EventBusInstance.publish(events.LAYER_HIDE, oldLayerId);
+            EventBusInstance.publish(events.LAYER_SHOW, newLayerId);
+        }
         
-        this._controlButton.querySelectorAll('.control-tile').forEach(el => {
+        this._controlPanel.querySelectorAll('.control-tile').forEach(el => {
             el.classList.remove('active');
         });
         newContainer.classList.add('active');
     }
 
     onRemove() {
-        this._controlButton.parentNode?.removeChild(this._controlButton);
-        this._controlPanel.parentNode?.removeChild(this._controlPanel);
+        this._controlContainer.parentNode?.removeChild(this._controlContainer);
     }
 }
