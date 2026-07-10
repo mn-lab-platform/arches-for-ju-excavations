@@ -1,0 +1,61 @@
+<div class="pottery-record-table">
+    <div class="pottery-record-table__header">
+        <h4 data-bind="text: potteryType"></h4>
+    </div>
+
+    <div class="alert alert-warning" data-bind="visible: loading">
+        Loading pottery records...
+    </div>
+
+    <div class="alert alert-danger" data-bind="visible: error">
+        <span data-bind="text: error"></span>
+    </div>
+
+    <table class="table table-condensed table-striped">
+        <thead>
+            <tr data-bind="foreach: columns">
+                <th data-bind="text: label"></th>
+            </tr>
+        </thead>
+
+        <tbody data-bind="visible: hasRecords, foreach: records">
+            <tr data-bind="foreach: $parent.columns">
+                <td>
+                <!-- ko if: $data.key === 'resourceLink' -->
+                <a data-bind="attr: { href: $parent.resourceLink }, text: 'Open'"></a>
+                <!-- /ko -->
+
+                <!-- ko ifnot: $data.key === 'resourceLink' -->
+                <span data-bind="text: $parent[$data.key]"></span>
+                <!-- /ko -->
+                </td>
+            </tr>
+        </tbody>
+
+        <tbody data-bind="visible: !hasRecords() && !loading()">
+            <tr>
+                <td data-bind="attr: { colspan: columns().length || 1 }">
+                    No pottery records linked yet.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<style>
+.pottery-record-table {
+    padding: 15px 0;
+}
+
+.pottery-record-table__header {
+    margin-bottom: 10px;
+}
+
+.pottery-record-table__header h4 {
+    margin: 0;
+}
+
+.pottery-record-table table {
+    margin-bottom: 0;
+}
+</style>

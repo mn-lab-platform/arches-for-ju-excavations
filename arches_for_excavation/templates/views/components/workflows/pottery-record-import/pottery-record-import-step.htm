@@ -1,0 +1,272 @@
+<div class="pottery-record-import-step">
+    <h3>Pottery Record Import</h3>
+
+    <div class="alert alert-info" data-bind="visible: selectedPotteryCollectionResourceId">
+        <strong>Selected Pottery Collection:</strong>
+        <span data-bind="text: selectedPotteryCollectionResourceId"></span>
+    </div>
+
+    <div class="alert alert-danger" data-bind="visible: errorMessage">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+
+    <div class="alert alert-warning" data-bind="visible: currentMissingDictionaryValues().length">
+        <h4>Missing dictionary values</h4>
+        <table class="table table-condensed pottery-record-missing-dictionaries">
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Dictionary</th>
+                    <th>Value</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: currentMissingDictionaryValues">
+                <tr>
+                    <td data-bind="text: field"></td>
+                    <td data-bind="text: dictionary"></td>
+                    <td data-bind="text: value"></td>
+                    <td data-bind="text: count"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-warning" data-bind="visible: invalidDictionaryNodes().length">
+        <h4>Dictionary nodes need concept datatype</h4>
+        <table class="table table-condensed pottery-record-missing-dictionaries">
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Node ID</th>
+                    <th>Current datatype</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: invalidDictionaryNodes">
+                <tr>
+                    <td data-bind="text: field"></td>
+                    <td data-bind="text: nodeId"></td>
+                    <td data-bind="text: datatype"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-success" data-bind="visible: successMessage">
+        <span data-bind="text: successMessage"></span>
+    </div>
+
+    <div class="alert alert-warning" data-bind="visible: importMessage">
+        <span data-bind="text: importMessage"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Record type</label>
+        <select
+            class="form-control"
+            data-bind="
+                options: recordTypes,
+                optionsText: 'label',
+                optionsValue: 'value',
+                value: recordType">
+        </select>
+    </div>
+
+    <div class="pottery-record-upload-box">
+        <label class="btn btn-default">
+            <i class="fa fa-file-excel-o"></i>
+            Choose XLSX
+            <input
+                type="file"
+                accept=".xlsx"
+                style="display: none;"
+                data-bind="event: { change: onFileSelected }">
+        </label>
+
+        <span class="pottery-record-file-name" data-bind="text: fileName"></span>
+    </div>
+
+    <div class="pottery-record-stats" data-bind="visible: fileName">
+        <div class="pottery-record-stat">
+            <strong data-bind="text: fileSize"></strong>
+            <span>File size</span>
+        </div>
+    </div>
+
+    <button
+        class="btn btn-success"
+        data-bind="click: runImport, enable: canPreview">
+        <i class="fa fa-database"></i>
+        <span data-bind="text: importButtonLabel"></span>
+    </button>
+
+    <button
+        class="btn btn-primary"
+        data-bind="visible: previewRecords().length && !importComplete(), click: commitImport, enable: canCommit">
+        <i class="fa fa-check"></i>
+        <span data-bind="text: commitButtonLabel"></span>
+    </button>
+
+    <div class="pottery-record-preview" data-bind="visible: preview">
+        <h4 data-bind="text: importComplete() ? 'Import result' : 'Review records'"></h4>
+
+        <div class="pottery-record-stats">
+            <div class="pottery-record-stat">
+                <strong data-bind="text: preview() ? preview().sheet : ''"></strong>
+                <span>Detected sheet</span>
+            </div>
+
+            <div class="pottery-record-stat">
+                <strong data-bind="text: preview() ? (preview().parsed || preview().created || 0) : 0"></strong>
+                <span data-bind="text: importComplete() ? 'Created records' : 'Parsed records'"></span>
+            </div>
+        </div>
+
+        <div class="pottery-record-table-wrap">
+            <table class="table table-condensed table-striped">
+                <thead>
+                    <tr data-bind="foreach: previewColumns">
+                        <th data-bind="text: label"></th>
+                    </tr>
+                </thead>
+
+                <tbody data-bind="foreach: previewRecords">
+                    <tr data-bind="foreach: $parent.previewColumns">
+                        <td>
+                            <!-- ko if: $data.key === 'resourceLink' -->
+                            <a data-bind="attr: { href: $parent.resourceLink }, text: 'Open'"></a>
+                            <!-- /ko -->
+
+                            <!-- ko ifnot: $data.key === 'resourceLink' -->
+                                <!-- ko if: $parents[1].isDictionaryColumn($data.key) && !$parents[1].importComplete() -->
+                                <select
+                                    class="form-control pottery-record-cell-control"
+                                    data-bind="
+                                        options: $parents[1].getOptions($data.key),
+                                        optionsText: 'label',
+                                        optionsValue: 'valueId',
+                                        optionsCaption: 'Select...',
+                                        value: $parents[1].getDictionaryObservable($parent, $data.key),
+                                        css: { 'pottery-record-missing-cell': $parents[1].isMissingDictionaryField($parent, $data.key) }">
+                                </select>
+
+                                <small class="pottery-record-original-value" data-bind="visible: $parents[1].cellValue($parent, $data.key)">
+                                    <span data-bind="text: $parents[1].cellValue($parent, $data.key)"></span>
+                                </small>
+
+                                <small
+                                    class="pottery-record-cell-error"
+                                    data-bind="visible: $parents[1].isMissingDictionaryField($parent, $data.key), text: $parents[1].getCellError($parent, $data.key)">
+                                </small>
+                                <!-- /ko -->
+
+                                <!-- ko if: $parents[1].isBooleanColumn($data.key) && !$parents[1].importComplete() -->
+                                <input
+                                    type="checkbox"
+                                    class="pottery-record-checkbox"
+                                    data-bind="checked: $parents[1].getCellObservable($parent, $data.key)">
+                                <!-- /ko -->
+
+                                <!-- ko if: !$parents[1].isDictionaryColumn($data.key) && !$parents[1].isBooleanColumn($data.key) && !$parents[1].importComplete() -->
+                                <input
+                                    class="form-control pottery-record-cell-control"
+                                    data-bind="value: $parents[1].getCellObservable($parent, $data.key)">
+                                <!-- /ko -->
+
+                                <!-- ko if: $parents[1].importComplete() -->
+                                <span data-bind="text: $parents[1].cellValue($parent, $data.key)"></span>
+                                <!-- /ko -->
+                            <!-- /ko -->
+                        </td>
+                    </tr>
+                </tbody>
+
+                <tbody data-bind="visible: previewRecords().length === 0">
+                    <tr>
+                        <td data-bind="attr: { colspan: previewColumns().length || 1 }">
+                            No records returned.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+</div>
+
+<style>
+.pottery-record-import-step {
+    padding: 20px;
+}
+
+.pottery-record-upload-box {
+    border: 1px dashed #9aa8b4;
+    padding: 18px;
+    margin: 16px 0;
+}
+
+.pottery-record-file-name {
+    margin-left: 10px;
+}
+
+.pottery-record-stats {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.pottery-record-stat {
+    border: 1px solid #d7dee6;
+    padding: 10px;
+    min-width: 150px;
+}
+
+.pottery-record-stat strong {
+    display: block;
+    font-size: 18px;
+}
+
+.pottery-record-stat span {
+    color: #555;
+}
+
+.pottery-record-preview {
+    margin-top: 20px;
+}
+
+.pottery-record-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #d7dee6;
+}
+
+.pottery-record-missing-dictionaries {
+    margin-bottom: 0;
+}
+
+.pottery-record-cell-control {
+    min-width: 150px;
+}
+
+.pottery-record-missing-cell {
+    border-color: #b94a48;
+    background-color: #fff6f6;
+}
+
+.pottery-record-original-value {
+    display: block;
+    margin-top: 4px;
+    color: #666;
+}
+
+.pottery-record-checkbox {
+    width: 18px;
+    height: 18px;
+}
+.pottery-record-cell-error {
+    display: block;
+    margin-top: 4px;
+    color: #a94442;
+    font-size: 12px;
+}
+</style>

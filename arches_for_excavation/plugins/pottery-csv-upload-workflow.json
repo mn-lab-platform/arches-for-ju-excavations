@@ -1,0 +1,10 @@
+{
+  "pluginid": "2a55a8e2-0219-4f9f-a87e-3efb2d72f9ef",
+  "name": "Pottery CSV Upload Workflow",
+  "icon": "fa fa-file-text-o",
+  "component": "views/components/plugins/pottery-csv-upload-workflow",
+  "componentname": "pottery-csv-upload-workflow",
+  "config": { "show": false },
+  "slug": "pottery-csv-upload-workflow",
+  "sortorder": 0
+}

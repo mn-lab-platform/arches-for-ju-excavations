@@ -9,6 +9,7 @@ from urllib.parse import unquote
 from django.conf import settings
 from django.http import JsonResponse, Http404
 from django.utils.text import get_valid_filename
+from .iiif_image_service import public_service_url_from_any
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -245,7 +246,7 @@ def _resolve_manifest_path_and_current(resource_id: str, resource_name: str | No
 
 
 
-def _append_items_v3(manifest: dict, manifest_id: str, items: list[dict]) -> dict:
+def _append_items_v3(manifest: dict, manifest_id: str, items: list[dict], request=None) -> dict:
     if not isinstance(manifest, dict):
         raise ValueError("Manifest must be a JSON object")
     if not isinstance(items, list) or not items:
@@ -261,21 +262,25 @@ def _append_items_v3(manifest: dict, manifest_id: str, items: list[dict]) -> dic
 
     for it in items:
         svc = (it.get("iiif_service_url") or "").rstrip("/")
+        if request is not None:
+            svc = public_service_url_from_any(request, svc).rstrip("/")
         if not svc:
             continue
 
         try:
             info = _fetch_info(svc)
-            w = int(info.get("width") or 1)
-            h = int(info.get("height") or 1)
+            w = int(info.get("width") or (it.get("metadata") or {}).get("width") or 1)
+            h = int(info.get("height") or (it.get("metadata") or {}).get("height") or 1)
         except Exception:
-            w, h = 1, 1
+            meta = it.get("metadata") or {}
+            w = int(meta.get("width") or 1)
+            h = int(meta.get("height") or 1)
 
         idx = start_idx + len(created) + 1
         canvas_id = f"{manifest_id}/canvas/{idx}"
         page_id = f"{canvas_id}/page/1"
         ann_id = f"{page_id}/annotation/1"
-        body_image_id = svc + "/full/max/0/default.jpg"
+        body_image_id = svc + "/full/max/0/default.png"
 
         canvas = {
             "id": canvas_id,
@@ -294,7 +299,7 @@ def _append_items_v3(manifest: dict, manifest_id: str, items: list[dict]) -> dic
                     "body": {
                         "id": body_image_id,
                         "type": "Image",
-                        "format": "image/jpeg",
+                        "format": "image/png",
                         "service": [{
                             "id": svc,
                             "type": "ImageService3",

@@ -216,21 +216,38 @@ class LocalCoordinateSystemDownloadView(View):
 
 class LocalCoordinateSystemAssignToResourcesView(View):
     IIIF_GRAPH_ID = "401b3051-d1c4-465c-8dd0-1d5784adee98"
-    LOCAL_CRS_NODE_ID = "b5feba58-b75c-46da-9703-fef9b6d26217"
+    IIIF_CRS_NODE_ID = "dd30ff3c-95a2-4d8d-bde8-eca158e7887b"
+    DIGITAL_RESOURCE_3D_GRAPH_ID = "5465389c-bba7-4af1-bc9a-9fbb201e8408"
+    DIGITAL_RESOURCE_3D_CRS_NODE_ID = "63781343-8aac-47ee-95f5-3b523bbb3484"
+    DIGITAL_RESOURCE_3D_GEOREFERENCED_NODE_ID = "6f57cc4e-3c15-4483-8517-753a999ac448"
 
-    def _get_local_crs_node(self):
-        """
-        Strict lookup by known nodeid.
-        """
+    TARGETS = {
+        IIIF_GRAPH_ID: {
+            "node_id": IIIF_CRS_NODE_ID,
+            "handles_manifest": True,
+            "sets_georeferenced": False,
+        },
+        DIGITAL_RESOURCE_3D_GRAPH_ID: {
+            "node_id": DIGITAL_RESOURCE_3D_CRS_NODE_ID,
+            "handles_manifest": False,
+            "sets_georeferenced": True, 
+        },
+    }
+
+    def _get_target_config(self, resource_graph_id: str):
+        return self.TARGETS.get(resource_graph_id)
+
+    def _get_target_node(self, resource_graph_id: str):
+        config = self._get_target_config(resource_graph_id)
+        if not config:
+            return None
+
         return Node.objects.get(
-            nodeid=self.LOCAL_CRS_NODE_ID,
-            graph_id=self.IIIF_GRAPH_ID
+            nodeid=config["node_id"],
+            graph_id=resource_graph_id
         )
 
     def _upsert_local_crs_relation_tile(self, resource: Resource, rel_node: Node, crs_resource_id: str):
-        """
-        Upsert relation value in node local_crs_resource (resource-instance-list/resource-instance).
-        """
         node_id = str(rel_node.nodeid)
         nodegroup_id = str(rel_node.nodegroup_id)
 
@@ -260,9 +277,6 @@ class LocalCoordinateSystemAssignToResourcesView(View):
         return str(tile.tileid)
 
     def _upsert_manifest_metadata(self, resource_id: str, crs_resource_id: str):
-        """
-        Adds/updates metadata in IIIF manifest for selected resource.
-        """
         path, current, _resolved_name = _resolve_manifest_path_and_current(
             resource_id=str(resource_id),
             resource_name=None,
@@ -306,6 +320,30 @@ class LocalCoordinateSystemAssignToResourcesView(View):
         _atomic_write_json(path, current)
         return True, None
 
+    def _set_georeferenced_flag(self, resource: Resource):
+        try:
+            node = Node.objects.get(nodeid=self.DIGITAL_RESOURCE_3D_GEOREFERENCED_NODE_ID, graph_id=resource.graph_id)
+            nodegroup_id = str(node.nodegroup_id)
+
+            tile = Tile.objects.filter(
+                resourceinstance=resource,
+                nodegroup_id=nodegroup_id
+            ).first()
+
+            if not tile:
+                tile = Tile.get_blank_tile_from_nodegroup_id(
+                    nodegroup_id,
+                    resourceid=str(resource.resourceinstanceid)
+                )
+
+            if not isinstance(tile.data, dict):
+                tile.data = {}
+
+            tile.data[self.DIGITAL_RESOURCE_3D_GEOREFERENCED_NODE_ID] = True
+            tile.save()
+        except Node.DoesNotExist:
+            print(f"Node {self.DIGITAL_RESOURCE_3D_GEOREFERENCED_NODE_ID} not found in graph {resource.graph_id}")
+
     def post(self, request):
         try:
             payload = json.loads(request.body or "{}")
@@ -315,7 +353,6 @@ class LocalCoordinateSystemAssignToResourcesView(View):
             if not crs_resource_id or not isinstance(resource_ids, list) or len(resource_ids) == 0:
                 return JsonResponse({"status": "error", "message": "Invalid payload"}, status=400)
 
-            # Validate CRS resource exists in CRS graph
             try:
                 Resource.objects.get(
                     resourceinstanceid=crs_resource_id,
@@ -327,29 +364,41 @@ class LocalCoordinateSystemAssignToResourcesView(View):
                     status=404
                 )
 
-            try:
-                rel_node = self._get_local_crs_node()
-            except Node.DoesNotExist:
-                return JsonResponse(
-                    {
-                        "status": "error",
-                        "message": f"Node '{self.LOCAL_CRS_NODE_ID}' not found in IIIF graph."
-                    },
-                    status=400
-                )
-
             updated = []
             failed = []
 
             for rid in resource_ids:
                 try:
-                    resource = Resource.objects.get(
-                        resourceinstanceid=rid,
-                        graph_id=self.IIIF_GRAPH_ID
-                    )
+                    resource = Resource.objects.get(resourceinstanceid=rid)
+                    target_config = self._get_target_config(str(resource.graph_id))
+
+                    if not target_config:
+                        failed.append({
+                            "resource_id": str(rid),
+                            "error": f"Unsupported target graph: {resource.graph_id}"
+                        })
+                        continue
+
+                    rel_node = self._get_target_node(str(resource.graph_id))
+                    if not rel_node:
+                        failed.append({
+                            "resource_id": str(rid),
+                            "error": f"Node '{target_config['node_id']}' not found for graph {resource.graph_id}"
+                        })
+                        continue
 
                     tile_id = self._upsert_local_crs_relation_tile(resource, rel_node, crs_resource_id)
-                    manifest_updated, manifest_error = self._upsert_manifest_metadata(str(rid), str(crs_resource_id))
+
+                    if target_config.get("sets_georeferenced"):
+                        self._set_georeferenced_flag(resource)
+
+                    manifest_updated = False
+                    manifest_error = None
+                    if target_config["handles_manifest"]:
+                        manifest_updated, manifest_error = self._upsert_manifest_metadata(
+                            str(rid),
+                            str(crs_resource_id)
+                        )
 
                     updated.append({
                         "resource_id": str(rid),
@@ -357,8 +406,9 @@ class LocalCoordinateSystemAssignToResourcesView(View):
                         "manifest_updated": bool(manifest_updated),
                         "manifest_error": manifest_error
                     })
+
                 except Resource.DoesNotExist:
-                    failed.append({"resource_id": str(rid), "error": "IIIF resource not found"})
+                    failed.append({"resource_id": str(rid), "error": "Resource not found"})
                 except Exception as ex:
                     failed.append({"resource_id": str(rid), "error": str(ex)})
 

@@ -131,7 +131,7 @@ DATABASES = {
     }
 }
 
-SEARCH_THUMBNAILS = False
+SEARCH_THUMBNAILS = True
 
 INSTALLED_APPS = (
     "webpack_loader",
@@ -287,7 +287,8 @@ CACHES = {
         'LOCATION': 'user_permission_cache',
     },
 }
-
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 # Hide nodes and cards in a report that have no data
 HIDE_EMPTY_NODES_IN_REPORT = False
 

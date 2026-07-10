@@ -2,14 +2,16 @@ define([
     'knockout',
     'arches',
     'maplibre-gl',
+    'proj4',
     '../../../../services/basemap-service',
+    '../../../../services/resource-service',
     'templates/views/components/workflows/context-footprint-addition/coordinates-map-display-step.htm',
     '../../../../../css/components/maplibre-viewer/index.css' 
-], function(ko, arches, maplibreGl, basemapServiceModule, template) {
+], function(ko, arches, maplibreGl, proj4, basemapServiceModule, resourceServiceModule, template) {
     class Point {
         constructor(label, x, y, z) {
             this.label = label;
-            this.x = x;
+            this.x = x; 
             this.y = y;
             this.z = z;
         }
@@ -38,7 +40,6 @@ define([
             
             this._container = document.createElement('div');
             this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group basemap-control-panel';
-            // Basic styling to mimic a floating panel; adjust as needed to match your css
             this._container.style.padding = '5px';
             this._container.style.backgroundColor = '#fff';
             this._container.style.boxShadow = '0 0 0 2px rgba(0,0,0,0.1)';
@@ -54,12 +55,10 @@ define([
             this._layers.forEach(layer => {
                 const { source_info, layer_info } = layer;
 
-                // 1. Add source and layer to map if they don't exist
                 if (!this._map.getSource(source_info.name)) {
                     this._map.addSource(source_info.name, source_info);
                 }
                 if (!this._map.getLayer(layer_info.id)) {
-                    // Insert at the bottom-most layer (before any features are drawn)
                     this._map.addLayer({
                         id: layer_info.id,
                         type: 'raster',
@@ -70,7 +69,6 @@ define([
                     });
                 }
 
-                // 2. Build UI button for this layer
                 const tile = document.createElement("div");
                 tile.style.cursor = 'pointer';
                 tile.style.padding = '4px 8px';
@@ -85,7 +83,6 @@ define([
 
                 tile.innerHTML = `<i class="${layer_info.icon || 'fa fa-map'}"></i> <span style="font-size: 12px;">${layer_info.name}</span>`;
 
-                // 3. Handle switching
                 tile.addEventListener("click", () => {
                     this._switchBasemap(layer_info.id, tile);
                 });
@@ -97,19 +94,16 @@ define([
         }
 
         _switchBasemap(newLayerId, clickedTile) {
-            // Hide all managed basemaps
             this._layers.forEach(l => {
                 if (this._map.getLayer(l.layer_info.id)) {
                     this._map.setLayoutProperty(l.layer_info.id, 'visibility', 'none');
                 }
             });
 
-            // Show selected
             if (this._map.getLayer(newLayerId)) {
                 this._map.setLayoutProperty(newLayerId, 'visibility', 'visible');
             }
             
-            // Update UI styling
             Array.from(this._container.children).forEach(el => el.style.backgroundColor = 'transparent');
             clickedTile.style.backgroundColor = '#e0e0e0';
             this._activeLayerId = newLayerId;
@@ -124,15 +118,8 @@ define([
     return ko.components.register('coordinates-map-display-step', {
         viewModel: function(params) {
             const self = this;
-
             const basemapService = basemapServiceModule.default || basemapServiceModule;
-
-            if (params.value) {
-                params.value({
-                    verified: true
-                });
-            }
-            
+            const resourceService = resourceServiceModule.default || resourceServiceModule;
             const inputData = ko.unwrap(params.coordinatesData);
             
             let rawText = '';
@@ -145,7 +132,20 @@ define([
 
             self.coordinatesText = ko.observable(rawText);
             self.ignoreLastLine = ko.observable(rawIgnore);
-            
+            self.crsId = params.crsId || null;
+            self.crsProjDefinition = null;
+
+            self.getProjDefinitionFromCRSId = async function() {
+                if (!self.crsId) return null;
+                try {
+                    const crsResource = await resourceService.getOne(self.crsId);
+                    return crsResource.resource.Definition.PROJ4['PROJ4 String'] || null;
+                } catch (error) {
+                    console.error('Error fetching CRS definition:', error);
+                    return null;
+                }
+            };
+
             self._extractPointsFromText = function(text) {
                 const points = [];
                 const trimmed = (text || '').trim();
@@ -154,8 +154,8 @@ define([
                 const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
                 const delimiter = trimmed.includes('\t') ? '\t' : ' ';
 
-                lines.forEach(line => {
-                    if (self.ignoreLastLine() && line === lines[lines.length - 1]) {
+                lines.forEach((line, index) => {
+                    if (self.ignoreLastLine() && index === lines.length - 1) {
                         return;
                     }
                     const parts = line.trim().split(delimiter).filter(Boolean);
@@ -190,10 +190,10 @@ define([
                                 ${pt.label}
                             </div>
                             <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px; color: #4a4a4a; padding: 2px;">
-                                <span style="font-weight: 600; color: #666;">X:</span>
-                                <span style="font-family: 'Courier New', monospace;">${pt.x.toFixed(3)}</span>
-                                <span style="font-weight: 600; color: #666;">Y:</span>
-                                <span style="font-family: 'Courier New', monospace;">${pt.y.toFixed(3)}</span>
+                                <span style="font-weight: 600; color: #666;">Lng:</span>
+                                <span style="font-family: 'Courier New', monospace;">${pt.x.toFixed(6)}</span>
+                                <span style="font-weight: 600; color: #666;">Lat:</span>
+                                <span style="font-family: 'Courier New', monospace;">${pt.y.toFixed(6)}</span>
                                 <span style="font-weight: 600; color: #666;">Z:</span>
                                 <span style="font-family: 'Courier New', monospace;">${pt.z.toFixed(1)}</span>
                             </div>
@@ -213,7 +213,7 @@ define([
                         .setPopup(popup)
                         .addTo(self.map);
                 });
-            }
+            };
 
             self._drawFeatures = function(points) {
                 if (points.length === 1) {
@@ -285,40 +285,69 @@ define([
                     lngLats.forEach(coord => bounds.extend(coord));
                     self.map.fitBounds(bounds, { padding: 30 });
                 }
-            }
+            };
 
-            const points = self._extractPointsFromText(self.coordinatesText());
-            const centroid = self._findCentroid(points) || [0, 0];
+            (async function() {
+                self.crsProjDefinition = await self.getProjDefinitionFromCRSId();
+                const rawPoints = self._extractPointsFromText(self.coordinatesText());
+                
+                let displayPoints = rawPoints;
+                let projectedTextStr = self.coordinatesText();
 
-            self.map = new maplibreGl.Map({
-                container: 'coordinates-map-display',
-                style: {
-                    version: 8,
-                    sources: {},
-                    layers: [] 
-                },
-                center: centroid,
-                zoom: 15,
-                maxZoom: 23,
-            });
+                if (self.crsProjDefinition && rawPoints.length > 0) {
+                    const wgs84 = '+proj=longlat +datum=WGS84 +no_defs';
+                    
+                    displayPoints = rawPoints.map(pt => {
+                        // Transform from Local CRS to WGS84
+                        const transformed = proj4(self.crsProjDefinition, wgs84, [pt.x, pt.y]);
+                        return new Point(pt.label, transformed[0], transformed[1], pt.z);
+                    });
 
-            self.map.on('load', () => {
-                if (points.length === 0) {
-                    return;
+                    const delimiter = (self.coordinatesText() || '').includes('\t') ? '\t' : ' ';
+                    const lines = displayPoints.map(pt => `${pt.label}${delimiter}${pt.x.toFixed(8)}${delimiter}${pt.y.toFixed(8)}${delimiter}${pt.z}`);
+                    projectedTextStr = lines.join('\n');
                 }
 
-                basemapService.getBasemapsAndOverlaysInfo().then(info => {
-                    const basemapInfo = info.basemaps;
-
-                    const basemapControl = new SimpleBasemapControl({
-                        layers: basemapInfo
+                if (params.value) {
+                    params.value({
+                        text: self.coordinatesText(),
+                        ignoreLastLine: self.ignoreLastLine(),
+                        projectedText: projectedTextStr,
+                        verified: true
                     });
-                    self.map.addControl(basemapControl, 'top-right');
+                }
 
-                    self._generateMarkers(points);
-                    self._drawFeatures(points); // Ensure these lines draw on top of the basemap
+                const centroid = self._findCentroid(displayPoints) || [0, 0];
+
+                self.map = new maplibreGl.Map({
+                    container: 'coordinates-map-display',
+                    style: {
+                        version: 8,
+                        sources: {},
+                        layers: [] 
+                    },
+                    center: centroid,
+                    zoom: 15,
+                    maxZoom: 23,
                 });
-            });
+
+                self.map.on('load', () => {
+                    if (displayPoints.length === 0) return;
+
+                    basemapService.getBasemapsAndOverlaysInfo().then(info => {
+                        const basemapInfo = info.basemaps;
+
+                        const basemapControl = new SimpleBasemapControl({
+                            layers: basemapInfo
+                        });
+                        self.map.addControl(basemapControl, 'top-right');
+
+                        self._generateMarkers(displayPoints);
+                        self._drawFeatures(displayPoints);
+                    });
+                });
+
+            })();
         },
         template: template
     });

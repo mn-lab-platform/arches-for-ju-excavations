@@ -5,11 +5,11 @@ import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
 import store from "../../core/store";
 
-
 export class PrintControl {
-    constructor(mapRootContainer) {
+    constructor(mapRootContainer, orthoLayer) {
         this._map = null;
         this.mapRootContainer = mapRootContainer;
+        this.orthoLayer = orthoLayer;
         this.printManager = null;
 
         this._paperSizeDict = {
@@ -34,9 +34,9 @@ export class PrintControl {
         this._dpiArr = [72, 96, 150, 300, 400];
 
         this._northArrowDict = {
-            "Arrow 1": { ui: "/arrow-1-light.svg", print: "/arrow-1-dark.svg" },
-            "Arrow 2": { ui: "/arrow-2-light.svg", print: "/arrow-2-dark.svg" },
-            "Arrow 3": { ui: "/arrow-3-light.svg", print: "/arrow-3-dark.svg" },
+            "Arrow 1": { ui: "/static/img/maplibre-viewer/north-icons/arrow-1-light.svg", print: "/static/img/maplibre-viewer/north-icons/arrow-1-dark.svg" },
+            "Arrow 2": { ui: "/static/img/maplibre-viewer/north-icons/arrow-2-light.svg", print: "/static/img/maplibre-viewer/north-icons/arrow-2-dark.svg" },
+            "Arrow 3": { ui: "/static/img/maplibre-viewer/north-icons/arrow-3-light.svg", print: "/static/img/maplibre-viewer/north-icons/arrow-3-dark.svg" },
         };
 
         this.tileStateKeys = {
@@ -44,6 +44,7 @@ export class PrintControl {
             format: "format",
             dpi: "dpi",
             northArrow: "northArrow",
+            legendTitle: "legendTitle",
         };
 
         this.state = {
@@ -51,6 +52,7 @@ export class PrintControl {
             [this.tileStateKeys.format]: "PDF",
             [this.tileStateKeys.dpi]: 96,
             [this.tileStateKeys.northArrow]: this._northArrowDict["Arrow 1"],
+            [this.tileStateKeys.legendTitle]: "",
 
             isHorizontal: false,
             currentlySelectedTileKey: null,
@@ -61,13 +63,14 @@ export class PrintControl {
             icon: "icon"
         }
 
-        const { button, panel } = new MapControl({
+        const { container, button, panel } = new MapControl({
             iconClass: "fa fa-file-photo-o",
             title: "Print Map",
             hasPanel: true,
             controlInstance: this,
         }).build();
 
+        this._controlContainer = container;
         this._controlButton = button;
         this._controlPanel = panel;
         this.printPreview = new PrintPreview(this.mapRootContainer);
@@ -96,8 +99,7 @@ export class PrintControl {
 
     onAdd(map) {
         this._map = map;
-        this.printManager = new PrintManager(this._map);
-
+        this.printManager = new PrintManager(this._map, this.orthoLayer);
         const printOptionsContainer = document.createElement("div");
         printOptionsContainer.classList.add("print-tiles-container");
 
@@ -134,6 +136,14 @@ export class PrintControl {
         );
         printOptionsContainer.appendChild(northArrowTile);
 
+        const legentTitleTile = this._createTile(
+            "fa fa-font",
+            "Legend Title: ",
+            "Set title for the legend in printout",
+            this.tileStateKeys.legendTitle
+        );
+        printOptionsContainer.appendChild(legentTitleTile);
+
         const nonExpandableGroup = this._createNonExpandableTile();
 
         this.flyout = document.createElement("div");
@@ -143,7 +153,7 @@ export class PrintControl {
         this._controlPanel.appendChild(nonExpandableGroup);
         this._controlPanel.appendChild(this.flyout);
 
-        return this._controlButton;
+        return this._controlContainer;
     }
 
     _createTile(icon, label, title, settingKey, type = this.tileTypes.standard) {
@@ -245,7 +255,8 @@ export class PrintControl {
                 this._dpiDict[this.state.dpi] ?? 96,
                 this.printPreview._previewPaper.getBoundingClientRect(),
                 northArrow.print,
-                legendData
+                legendData,
+                this.state.legendTitle
             )
             EventBusInstance.publish(events.CONTROL_DEACTIVATE, this);
         });
@@ -257,6 +268,22 @@ export class PrintControl {
     }
 
     _populateFlyout(settingKey, valueElement) {
+        if (settingKey === this.tileStateKeys.legendTitle) {
+            const textarea = document.createElement("textarea");
+            textarea.classList.add("legend-title-textarea");
+            textarea.value = this.state[settingKey] || "";
+            textarea.placeholder = "Enter legend title...";
+
+            textarea.addEventListener("input", (e) => {
+                this.state[settingKey] = e.target.value;
+                valueElement.textContent = e.target.value;
+            });
+
+            this.flyout.appendChild(textarea);
+
+            return;
+        }
+
         const isIconValue = settingKey === this.tileStateKeys.northArrow;
         let options = [];
         switch (settingKey) {
@@ -328,7 +355,6 @@ export class PrintControl {
     onRemove() {
         window.removeEventListener("resize", this._resizeHandler);
         this._unmountPrintPreview();
-        this._controlButton.parentNode?.removeChild(this._controlButton);
-        this._controlPanel.parentNode?.removeChild(this._controlPanel);
+        this._controlContainer.parentNode?.removeChild(this._controlContainer);
     }
 }

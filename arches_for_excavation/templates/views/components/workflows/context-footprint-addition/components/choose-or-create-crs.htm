@@ -1,0 +1,98 @@
+<style>
+    .title-group {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .switch-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 28px;
+        margin: 0;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        inset: 0;
+        cursor: pointer;
+        background: #d4dae3;
+        transition: 0.2s ease;
+        border-radius: 999px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        top: 3px;
+        background: #fff;
+        transition: 0.2s ease;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked + .slider {
+        background: #2f6fed;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+</style>
+
+<div class="workflow-step-container">
+    <div class="title-group">
+        <h4>Choose or create a Coordinate System Resource</h4>
+        <div class="switch-container">
+            <span class="switch-label">Select Existing</span>
+            <label class="switch">
+                <input type="checkbox" data-bind="checked: useCreateMode">
+                <span class="slider"></span>
+            </label>
+            <span class="switch-label">Create New</span>
+        </div>
+    </div>
+
+    <main class="content-container">
+        <!-- ko if: !useCreateMode() -->
+            <!-- ko component: {
+              name: 'resource-selection-step',
+              params: {
+                graphid: CRS_GRAPHID,
+                searchPlaceHolder: 'Search for existing Coordinate System Resources...',
+                value: value
+              }
+        }-->
+        <!-- /ko -->
+         <!-- /ko -->
+        <!-- ko if: useCreateMode() -->
+          <div id="resource-creator-panel" class="resource-creator-panel">
+            <!-- ko component: {
+              name: 'crs-creation-from-two-points-step',
+              params: {
+                value: value
+              }
+            } --><!-- /ko -->
+          </div>
+        <!-- /ko -->
+    </main>
+</div>

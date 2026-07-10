@@ -1,0 +1,10 @@
+{
+  "pluginid": "8e6a63b9-24f1-4cf3-aac2-9b4f2a95d7d1",
+  "name": "Pottery Record Import Workflow",
+  "icon": "fa fa-table",
+  "component": "views/components/plugins/pottery-record-import-workflow",
+  "componentname": "pottery-record-import-workflow",
+  "config": { "show": false },
+  "slug": "pottery-record-import-workflow",
+  "sortorder": 1
+}

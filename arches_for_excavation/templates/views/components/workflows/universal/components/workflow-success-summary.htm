@@ -1,0 +1,15 @@
+<div class="summary-card text-success" style="max-width: 600px; margin: 40px auto; padding: 30px; text-align: center; border: 1px solid #ddd; border-radius: 4px;">
+    <div style="font-size: 40px; margin-bottom: 20px; color: #28a745;">
+        <i class="fa fa-check-circle"></i>
+    </div>
+    <h3>Success!</h3>
+    <p class="text-muted" data-bind="text: successMessage"></p>
+    
+    <!-- ko if: resourceUrl -->
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+        <a data-bind="attr: { href: resourceUrl }" target="_blank" class="btn btn-primary btn-lg">
+            <i class="fa fa-external-link"></i> View Resource
+        </a>
+    </div>
+    <!-- /ko -->
+</div>

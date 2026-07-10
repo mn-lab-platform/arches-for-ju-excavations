@@ -6,12 +6,14 @@ export class RecenterMapControl {
     constructor() {
         this._map = null;
 
-        const { button, _ } = new MapControl({
+        const { container, button } = new MapControl({
             iconClass: 'fa fa-home',
             title: 'Recenter Map to Default Extent',
             hasPanel: false,
             controlInstance: this
         }).build();
+        
+        this._controlContainer = container;
         this._controlButton = button;
 
         EventBusInstance.subscribe(events.CONTROL_ACTIVATE, (activeControl) => {
@@ -23,11 +25,10 @@ export class RecenterMapControl {
 
     onAdd(map) {
         this._map = map;
-        
-        return this._controlButton;
+        return this._controlContainer;
     }
 
     onRemove() {
-        this._controlButton.parentNode?.removeChild(this._controlButton);
+        this._controlContainer.parentNode?.removeChild(this._controlContainer);
     }
 }

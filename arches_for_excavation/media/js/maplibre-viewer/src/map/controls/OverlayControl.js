@@ -3,19 +3,20 @@ import { EventBusInstance } from "../../core/EventBus";
 import { events } from "../../constants/events";
 import store from "../../core/store";
 
-//TODO: generic control to handle eventbus
 export class OverlayControl {
     constructor(options) {
         this._map = null;
 
         this._layers = options?.layers || [];
         
-        const { button, panel } = new MapControl({
+        const { container, button, panel } = new MapControl({
             iconClass: 'fa fa-list',
             title: 'Select Overlay',
             hasPanel: true,
             controlInstance: this
         }).build();
+        
+        this._controlContainer = container; 
         this._controlButton = button;
         this._controlPanel = panel;
     }
@@ -68,17 +69,14 @@ export class OverlayControl {
             EventBusInstance.publish(events.OVERLAY_ADD, layer);
         });
 
-        // for initial visibility of preview
-        //TODO
         store.overlayLayerIds.forEach(layerId => {
             EventBusInstance.publish(events.LAYER_SHOW, layerId);
         });
 
-        return this._controlButton;
+        return this._controlContainer; 
     }
 
     onRemove() {
-        this._controlButton.parentNode?.removeChild(this._controlButton);
-        this._controlPanel.parentNode?.removeChild(this._controlPanel);
+        this._controlContainer.parentNode?.removeChild(this._controlContainer);
     }
 }

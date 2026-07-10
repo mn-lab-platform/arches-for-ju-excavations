@@ -1,0 +1,37 @@
+<style>
+     .workflow-tab-controls {
+        display: none;
+    }
+    .tabbed-workflow-step-container {
+        overflow-y: auto;
+    }
+    .workflow-nav-tabs {
+        overflow-x: auto;
+    }
+
+</style>
+
+<!-- ko if: mode === 'summary'-->
+<!-- ko component: {
+    name: 'context-footprint-summary-step',
+    params: {
+        value: value,
+        resourceId: resourceId,
+        footprintSaved: prevStepValue.footprintSaved
+    }
+ }
+--><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko if: mode === 'confirmation'-->
+<!-- ko component: {
+    name: 'context-footprint-confirmation-step',
+    params: {
+        value: value,
+        coordinatesData: prevStepValue,
+        graphId: graphId,
+        resourceId: resourceId
+    }
+ }
+--><!-- /ko -->
+<!-- /ko -->

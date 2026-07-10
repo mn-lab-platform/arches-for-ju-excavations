@@ -299,16 +299,16 @@ define([
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
                         self.errorMessage('');
-                        self.successMessage('Basemap processing completed successfully.');
+                        self.successMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} created successfully!`);
                         self.value(info);
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
-                        self.errorMessage(`Basemap processing failed: ${info}`);
+                        self.errorMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} processing failed: ${info}`);
                     } else if (state === CELERY_STATES.revoked) {
                         self.infoMessage('');
                         self.errorMessage('Processing was cancelled (Revoked).');
                     } else {
-                        self.infoMessage(`We are processing your basemap on our servers. Please wait...`);
+                        self.infoMessage(`We are processing your ${self.isOverlay() ? 'Overlay' : 'Basemap'} on our servers. Please wait...`);
                         setTimeout(() => self.pollTask(taskId), 2000);
                     }
                 }).catch(err => {

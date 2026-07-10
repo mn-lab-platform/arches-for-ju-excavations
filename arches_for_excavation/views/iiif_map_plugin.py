@@ -3,11 +3,15 @@ from django.http import JsonResponse
 from django.views import View
 from pyproj.enums import TransformDirection
 import numpy as np
-from django.conf import settings
 
 from arches.app.models.models import Resource
 from arches.app.models.tile import Tile
 from .services.iiif_utils import _resolve_manifest_path_and_current
+from .services.iiif_image_service import (
+    public_origin,
+    public_service_url_from_any,
+    rewrite_manifest_image_services,
+)
 from .local_coordinate_system import CRSNodeIds, LocalCoordinateSystemAssignToResourcesView
 from .services.crs.local_mercator.oblique_mercator import ObliqueMercator
 
@@ -17,9 +21,16 @@ class IiifAllmapsLayersView(View):
     DERIVATIVE_SUFFIXES = (" (hillshade)", " (color relief)")
 
     def _get_base_url(self, request):
-        host = request.get_host() 
-        scheme = "http" if "localhost" in host or "127.0.0.1" in host else request.scheme
-        return f"{scheme}://{host}"
+        return public_origin(request)
+
+    def _absolute_url(self, request, value):
+        value = str(value or "").strip()
+        if not value:
+            return ""
+        if value.startswith("http://") or value.startswith("https://"):
+            return value
+        base_url = self._get_base_url(request).rstrip("/")
+        return f"{base_url}/{value.lstrip('/')}"
 
     def _md_value(self, canvas, key):
         md = canvas.get("metadata") or []
@@ -30,7 +41,7 @@ class IiifAllmapsLayersView(View):
         return None
 
     def _get_local_crs_resource_id(self, iiif_resource_id):
-        rel_node_id = LocalCoordinateSystemAssignToResourcesView.LOCAL_CRS_NODE_ID
+        rel_node_id = LocalCoordinateSystemAssignToResourcesView.IIIF_CRS_NODE_ID
         tile = Tile.objects.filter(
             resourceinstance_id=iiif_resource_id,
             data__has_key=rel_node_id
@@ -92,6 +103,48 @@ class IiifAllmapsLayersView(View):
                 return label[: -len(suffix)]
         return None
 
+    def _md_bool(self, canvas, key):
+        raw = self._md_value(canvas, key)
+        if isinstance(raw, bool):
+            return raw
+        return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
+
+    def _should_include_canvas(self, canvas, layer_kind, base_label):
+        if layer_kind == "all":
+            return True
+
+        is_dem = self._md_bool(canvas, "is_dem_hint")
+        is_derivative = bool(base_label)
+
+        if layer_kind == "ortho":
+            return not is_dem and not is_derivative
+
+        if layer_kind == "dem":
+            return is_dem or is_derivative
+
+        return False
+
+    def _md_bool(self, canvas, key):
+        raw = self._md_value(canvas, key)
+        if isinstance(raw, bool):
+            return raw
+        return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
+
+    def _should_include_canvas(self, canvas, layer_kind, base_label):
+        if layer_kind == "all":
+            return True
+
+        is_dem = self._md_bool(canvas, "is_dem_hint")
+        is_derivative = bool(base_label)
+
+        if layer_kind == "ortho":
+            return not is_dem and not is_derivative
+
+        if layer_kind == "dem":
+            return is_dem or is_derivative
+
+        return False
+
     def _get_canvas_dimensions(self, canvas, fallback_canvas=None):
         def _read_dims(c):
             if not c:
@@ -146,10 +199,10 @@ class IiifAllmapsLayersView(View):
             for (col, row), (lon, lat) in zip(pixel_corners, wgs84_points)
         ]
 
-    def _build_georeference_annotation(self, canvas, gcps, manifest_id, canvas_index, base_url, fallback_canvas=None):
+    def _build_georeference_annotation(self, request, canvas, gcps, manifest_url, canvas_index, fallback_canvas=None):
         canvas_id = canvas.get("id", "")
         if not canvas_id.startswith("http"):
-            canvas_id = f"{base_url}{canvas_id}"
+            canvas_id = self._absolute_url(request, canvas_id)
 
         px_w, px_h = self._get_canvas_dimensions(canvas, fallback_canvas=fallback_canvas)
         service_url = None
@@ -161,7 +214,8 @@ class IiifAllmapsLayersView(View):
                 service = body.get("service", [])
                 if service:
                     raw = service[0].get("@id") or service[0].get("id", "")
-                    service_url = raw if raw.startswith("http") else f"{base_url}{raw}"
+                    service_url = public_service_url_from_any(request, raw).rstrip("/")
+                    service_url = self._absolute_url(request, service_url)
 
         return {
             "type": "Annotation",
@@ -170,7 +224,7 @@ class IiifAllmapsLayersView(View):
                 "http://geojson.org/geojson-ld/geojson-context.jsonld",
                 "http://iiif.io/api/presentation/3/context.json",
             ],
-            "id": f"{base_url}{manifest_id}/georef/{canvas_index}",
+            "id": f"{manifest_url}/georef/{canvas_index}",
             "motivation": "georeferencing",
             "target": {
                 "source": canvas_id,
@@ -224,6 +278,7 @@ class IiifAllmapsLayersView(View):
                 {"status": "error", "message": "Manifest not found"},
                 status=404
             )
+        rewrite_manifest_image_services(manifest, request)
         crs_resource_id = self._get_local_crs_resource_id(resource_id)
         if not crs_resource_id:
             return JsonResponse(
@@ -243,11 +298,17 @@ class IiifAllmapsLayersView(View):
                 {"status": "error", "message": f"Failed to build CRS transformer: {e}"},
                 status=500
             )
-        manifest_id = manifest.get("id", f"/api/iiif/geotiff-manifest/{resource_id}")
+        layer_kind = (request.GET.get("kind") or "all").strip().lower()
+        if layer_kind not in {"all", "ortho", "dem"}:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid kind. Use one of: all, ortho, dem"},
+                status=400
+            )
+
         annotations = []
         skipped = []
-        base_url = self._get_base_url(request)
         manifest_id = manifest.get("id", f"/api/iiif/geotiff-manifest/{resource_id}")
+        manifest_url = self._absolute_url(request, manifest_id).rstrip("/")
 
         canvases = manifest.get("items") or []
         label_to_canvas = {}
@@ -261,6 +322,14 @@ class IiifAllmapsLayersView(View):
             fallback_canvas = None
 
             base_label = self._base_label_for_derivative(label)
+            if not self._should_include_canvas(canvas, layer_kind, base_label):
+                skipped.append({
+                    "canvas_index": idx,
+                    "label": label,
+                    "reason": f"filtered by kind={layer_kind}",
+                })
+                continue
+
             if base_label:
                 fallback_canvas = label_to_canvas.get(base_label)
 
@@ -275,20 +344,21 @@ class IiifAllmapsLayersView(View):
 
             annotations.append(
                 self._build_georeference_annotation(
-                    canvas, gcps, manifest_id, idx, base_url, fallback_canvas=fallback_canvas
+                    request, canvas, gcps, manifest_url, idx, fallback_canvas=fallback_canvas
                 )
             )
 
         annotation_page = {
             "type": "AnnotationPage",
             "@context": "http://www.w3.org/ns/anno.jsonld",
-            "id": f"{base_url}{manifest_id}/georef",
+            "id": f"{manifest_url}/georef",
             "items": annotations,
         }
 
         return JsonResponse({
             "status": "success",
             "resource_id": resource_id,
+            "kind": layer_kind,
             "local_crs_resource_id": crs_resource_id,
             "crs_source": "wkt2" if wkt2 else "proj4",
             "annotation_page": annotation_page,

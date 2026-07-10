@@ -3,32 +3,54 @@ import { getAllResources, getAllResourcesFromFilterString } from '../api/archesS
 import { extractGeommetryFeaturesFromArchesResourceInfo } from '../core/utils/utils';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
+import { LAYER_TYPES } from '../constants/constants';
+import constants from '../constants/constants';
 
 export class FlyoutContentResourceSearch {
     constructor() {
-        this.resourceTypeDicts = {}; // {graphid: {name: resource name, icon: resource icon}}
+        this.LABELS = {
+            SELECT_ALL: 'Select All Of Type',
+            UNSELECT_ALL: 'Unselect All Of Type',
+            CREATE_LAYER_EMPTY: 'Select resource(s) to create layer',
+            SEARCH_PLACEHOLDER: 'Search resources...'
+        };
+
+        this.resourceTypeDicts = {}; 
         this.resources = [];
         this.selectedForLayer = new Map();
         this.currentlyRenderedResources = [];
         this.previewedIds = new Set();
         this.advancedSearchOn = false;
-        this.allResultsSelected = false;
-
+        this.currentlySelectedGraphId = null;
+        this.activeRenderedItemRefs = new Map();
+        this.mapDisplayableGraphIds = new Set();
+        this.IIIF_GRAPH_ID = '401b3051-d1c4-465c-8dd0-1d5784adee98';
+        
+        this.searchTimeout = null;
+        this._initResourceTypes();
         this._fetchAllResources();
-    }
-
-    _fetchAllResources() {
-        getAllResources().then(response => {
-            this.resources = [];
-            this._fillInstanceResourcesFromApiResponse(response);
-            this._renderResults(this.resources);
-        });
     }
 
     build() {
         this.content = document.createElement('div');
         this.content.className = 'flyout-content';
 
+        this.filters = document.createElement('div');
+        this.filters.className = 'flyout-filters';
+        this.filters.appendChild(this._buildSearchContainer());
+        this.filters.appendChild(this._buildFilterGroup());
+
+        this.results = document.createElement('div');
+        this.results.className = 'flyout-results';
+
+        this.content.appendChild(this._buildHeader());
+        this.content.appendChild(this.filters);
+        this.content.appendChild(this.results);
+
+        return this.content;
+    }
+
+    _buildHeader() {
         this.header = document.createElement('div');
         this.header.className = 'flyout-header';
 
@@ -48,7 +70,7 @@ export class FlyoutContentResourceSearch {
 
         this.createLayerButton = document.createElement('button');
         this.createLayerButton.className = 'submit-button';
-        this.createLayerButton.textContent = 'Select resource(s) to create layer';
+        this.createLayerButton.textContent = this.LABELS.CREATE_LAYER_EMPTY;
         this.createLayerButton.title = 'Create a new layer';
         this.createLayerButton.disabled = true;
 
@@ -59,10 +81,11 @@ export class FlyoutContentResourceSearch {
             this.selectedForLayer.clear();
             this.searchInput.value = '';
             this.typeSelect.value = '';
-            this.selectAllButton.textContent = 'Select All';
-            this.allResultsSelected = false;
+            this.selectAllButton.textContent = this.LABELS.SELECT_ALL;
+            this.selectAllButton.disabled = true;
+            this.activeRenderedItemRefs.clear();
+            this.currentlySelectedGraphId = null;
             this.selectedOnlyCheckbox.checked = false;
-            this.selectAllButton.disabled = false;
             this._renderResults(this.resources);
             this._updateCreateLayerButtonState();
         });
@@ -70,21 +93,23 @@ export class FlyoutContentResourceSearch {
         this.header.appendChild(this.introSection);
         this.header.appendChild(this.createLayerButton);
 
-        this.filters = document.createElement('div');
-        this.filters.className = 'flyout-filters';
+        return this.header;
+    }
 
+    _buildSearchContainer() {
         this.searchContainer = document.createElement('div');
         this.searchContainer.className = 'flyout-search-group';
 
         this.searchInput = document.createElement('input');
         this.searchInput.className = 'flyout-text-input';
         this.searchInput.type = 'search';
-        this.searchInput.placeholder = 'Search resources...';
+        this.searchInput.placeholder = this.LABELS.SEARCH_PLACEHOLDER;
         this.searchInput.setAttribute('aria-label', 'Search resources');
+        
         this.searchInput.addEventListener('input', () => {
             if (this.searchInput.classList.contains('flyout-search-error')) {
                 this.searchInput.classList.remove('flyout-search-error');
-                this.searchInput.placeholder = 'Search resources...';
+                this.searchInput.placeholder = this.LABELS.SEARCH_PLACEHOLDER;
             }
 
             if (this.advancedSearchCheckbox.checked && this.searchInput.value.trim()) {
@@ -92,8 +117,12 @@ export class FlyoutContentResourceSearch {
             } else {
                 this.advancedApplyButton.style.display = 'none';
             }
+
             if (!this.advancedSearchCheckbox.checked) {
-                this._applyFilters();
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this._applyFilters();
+                }, 300);
             }
         });
 
@@ -121,7 +150,7 @@ export class FlyoutContentResourceSearch {
                 this.advancedSearchOn = false;
                 this.typeSelect.disabled = false;
                 this.searchInput.value = '';
-                this.searchInput.placeholder = 'Search resources...';
+                this.searchInput.placeholder = this.LABELS.SEARCH_PLACEHOLDER;
                 this.advancedApplyButton.style.display = 'none';
                 this.searchInput.classList.remove('flyout-search-input--error');
                 this._fetchAllResources();
@@ -148,47 +177,56 @@ export class FlyoutContentResourceSearch {
                 this._renderResults(this.resources);
             });
         });
-        this.searchContainer.appendChild(this.advancedApplyButton);
 
         this.searchContainer.appendChild(this.searchInput);
         this.searchContainer.appendChild(this.advancedSearchCheckbox);
         this.searchContainer.appendChild(this.advancedSearchLabel);
         this.searchContainer.appendChild(this.advancedApplyButton);
 
-        this.resultToolbar = document.createElement('div');
-        this.resultToolbar.className = 'flyout-result-toolbar';
-        
+        return this.searchContainer;
+    }
+
+    _buildFilterGroup() {
         this.filterGroup = document.createElement('div');
         this.filterGroup.className = 'flyout-filter-group';
 
         this.typeSelect = document.createElement('select');
-        this.typeSelect.className = 'flyout-type-select';
+        this.typeSelect.className = 'flyout-select';
         this.typeSelect.setAttribute('aria-label', 'Filter by resource type');
-        this._fillTypeSelect();
 
         this.typeSelect.addEventListener('change', () => {
             this._applyFilters();
         });
         
-        this.filterGroup.appendChild(this.typeSelect);
-
         this.actionGroup = document.createElement('div');
         this.actionGroup.className = 'flyout-action-group';
 
         this.selectAllButton = document.createElement('button');
         this.selectAllButton.className = 'flyout-select-all';
-        this.selectAllButton.textContent = 'Select All';
-        this.selectAllButton.title = 'Select all resources in the current filter results';
+        this.selectAllButton.textContent = this.LABELS.SELECT_ALL;
+        this.selectAllButton.title = 'Select a resource to determine layer type first.';
+        this.selectAllButton.disabled = true;
 
         this.selectAllButton.addEventListener('click', () => {
-            this.allResultsSelected = !this.allResultsSelected;
+            const shouldSelectAll = !this._areAllOfTypeSelected();
             const visible = this.currentlyRenderedResources;
-            if (this.allResultsSelected) {
-                visible.forEach(resource => this.selectedForLayer.set(resource.resourceinstanceid, resource));
-                this.selectAllButton.textContent = 'Unselect All';
+            
+            if (shouldSelectAll) {
+                visible.forEach(resource => {
+                    if (this._resourceShouldBeActive(resource) && resource.graph_id === this.currentlySelectedGraphId) {
+                        this.selectedForLayer.set(resource.resourceinstanceid, resource);
+                    }
+                });
+                this.selectAllButton.textContent = this.LABELS.UNSELECT_ALL;
             } else {
-                visible.forEach(resource => this.selectedForLayer.delete(resource.resourceinstanceid));
-                this.selectAllButton.textContent = 'Select All';
+                visible.forEach(resource => {
+                    if (resource.graph_id === this.currentlySelectedGraphId) {
+                        this.selectedForLayer.delete(resource.resourceinstanceid);
+                    }
+                });
+                this.currentlySelectedGraphId = null;
+                this.selectAllButton.textContent = this.LABELS.SELECT_ALL;
+                this.selectAllButton.disabled = true;
             }
             this._renderResults(visible);
             this._updateCreateLayerButtonState();
@@ -204,7 +242,6 @@ export class FlyoutContentResourceSearch {
         this.selectedOnlyCheckbox.type = 'checkbox';
 
         const toggleSpan = document.createElement('span');
-
         const toggleText = document.createTextNode(' Selected only');
 
         this.selectedOnlySwitch.appendChild(this.selectedOnlyCheckbox);
@@ -215,31 +252,21 @@ export class FlyoutContentResourceSearch {
             if (this.selectedOnlyCheckbox.checked) {
                 this._renderResults(Array.from(this.selectedForLayer.values()));
                 this.selectAllButton.disabled = true;
-            }
-            else {                
+            } else {                
                 this._renderResults(this.resources);
-                this.selectAllButton.disabled = false;
+                this.selectAllButton.disabled = !this.currentlySelectedGraphId;
             }
         });
 
         this.selectedOnlyToggle.appendChild(this.selectedOnlySwitch);
 
-        this.filterGroup.appendChild(this.actionGroup);
         this.actionGroup.appendChild(this.selectAllButton);
         this.actionGroup.appendChild(this.selectedOnlyToggle);
         
-        this.filters.appendChild(this.searchContainer);
-        this.filters.appendChild(this.filterGroup);
+        this.filterGroup.appendChild(this.typeSelect);
+        this.filterGroup.appendChild(this.actionGroup);
 
-        this.results = document.createElement('div');
-        this.results.className = 'flyout-results';
-
-        this.content.appendChild(this.header);
-        this.content.appendChild(this.filters);
-        this.content.appendChild(this.results);
-
-
-        return this.content;
+        return this.filterGroup;
     }
 
     _isValidSearchUrl(url) {
@@ -268,7 +295,28 @@ export class FlyoutContentResourceSearch {
         this.createLayerButton.disabled = !hasSelection;
         this.createLayerButton.textContent = hasSelection
         ? `Create Layer (${count} selected)`
-        : "Select resource(s) to create layer";
+        : this.LABELS.CREATE_LAYER_EMPTY;
+    }
+
+    _updateAggregateCheckboxesState() {
+        this.activeRenderedItemRefs.forEach(({graphId, aggregateCheckbox}) => {
+            if (graphId === this.currentlySelectedGraphId || this.currentlySelectedGraphId === null) {
+                aggregateCheckbox.disabled = false;
+                aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';
+                aggregateCheckbox.style.cursor = 'pointer';
+            } else {                
+                aggregateCheckbox.disabled = true;
+                aggregateCheckbox.checked = false;
+                aggregateCheckbox.title = 'You can only select resources of the same type for layer creation.';
+                aggregateCheckbox.style.cursor = 'not-allowed';
+            }
+        });
+    }
+
+    _areAllOfTypeSelected() {
+        if (!this.currentlySelectedGraphId) return false;
+        const visibleOfType = Array.from(this.activeRenderedItemRefs.values()).filter(r => r.graphId === this.currentlySelectedGraphId);
+        return visibleOfType.every(r => r.aggregateCheckbox.checked);
     }
 
     _applyFilters(shouldRender = true) {
@@ -276,8 +324,10 @@ export class FlyoutContentResourceSearch {
         const selectedType = this.typeSelect.value;
 
         const filteredResources = this.resources.filter(resource => {
-            const matchesSearch = resource.displayname.toLowerCase().includes(searchTerm) ||
-                                resource.displaydescription.toLowerCase().includes(searchTerm);
+            const displayName = String(resource.displayname || '').toLowerCase();
+            const displayDescription = String(resource.displaydescription || '').toLowerCase();
+
+            const matchesSearch = displayName.includes(searchTerm) || displayDescription.includes(searchTerm);
             const matchesType = selectedType ? resource.graph_id === selectedType : true;
             return matchesSearch && matchesType;
         });
@@ -289,53 +339,64 @@ export class FlyoutContentResourceSearch {
         return filteredResources;
     }
 
+    _initResourceTypes() {
+        this.resourceTypes = arches?.resources;
+        // this.resourceTypes = [
+        //     {
+        //         "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        //         "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
+        //         "name": "Digital Resource 3D",
+        //         "icon": "fa fa-cube"
+        //     },
+        //     {
+        //         "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        //         "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
+        //         "name": "Trench",
+        //         "icon": "fa fa-crop"
+        //     },
+        //     {
+        //         "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        //         "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
+        //         "name": "New Resource Model",
+        //         "icon": ""
+        //     },
+        //     {
+        //         "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        //         "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
+        //         "name": "Context ",
+        //         "icon": "fa fa-digg"
+        //     },
+        //     {
+        //         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        //         "graphid": "a5219c24-2907-4055-9d68-18216d214458",
+        //         "name": "Coordinate System",
+        //         "icon": "fa fa-arrows-alt"
+        //     },
+        //     {
+        //         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
+        //         "graphid": "401b3051-d1c4-465c-8dd0-1d5784adee98",
+        //         "name": "XXX iiif-photo",
+        //         "icon": "fa fa-photo"
+        //     }
+        // ];
+
+        this._createResourceTypeDict(this.resourceTypes);
+    }
+
     _fillTypeSelect() {
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        const resourceTypes = arches?.resources;
-//         const resourceTypes = [
-//     {
-//         "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-//         "name": "Digital Resource 3D",
-//         "icon": "fa fa-cube"
-//     },
-//     {
-//         "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-//         "name": "Trench",
-//         "icon": "fa fa-crop"
-//     },
-//     {
-//         "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-//         "name": "New Resource Model",
-//         "icon": ""
-//     },
-//     {
-//         "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-//         "name": "Context ",
-//         "icon": "fa fa-digg"
-//     },
-//     {
-//         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-//         "name": "Coordinate System",
-//         "icon": "fa fa-arrows-alt"
-//     }
-// ];
-        resourceTypes.forEach(resource => {
-            const option = document.createElement('option');
-            option.value = resource.graphid;
-            option.textContent = resource.name;
-            this.typeSelect.appendChild(option);
-        });
-
-        this._createResourceTypeDict(resourceTypes);
+        this.resourceTypes
+            .filter(type => this.mapDisplayableGraphIds.has(type.graphid))
+            .forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.graphid;
+                option.textContent = type.name;
+                this.typeSelect.appendChild(option);
+            });
     }
 
     _createResourceTypeDict(resources) {
@@ -350,6 +411,7 @@ export class FlyoutContentResourceSearch {
             this.resources = [];
             this._fillInstanceResourcesFromApiResponse(response);
             this._renderResults(this.resources);
+            this._fillTypeSelect();
         });
     }
 
@@ -367,27 +429,46 @@ export class FlyoutContentResourceSearch {
         } else if (apiResponse) {
             pushHits(apiResponse);
         }
-
+        
         this.resources = allHits
-            .filter(hit => hit?._source?.geometries && hit._source.geometries.length > 0)
-            .map(hit => hit._source);
+            .map(hit => {
+                const source = hit?._source || {};
+                source.type = source.graph_id === this.IIIF_GRAPH_ID ? constants.LAYER_TYPES.iiif : constants.LAYER_TYPES.geojson;
+                return source;
+            });
     }
 
     _renderResults(resourcesToRender) {
         this.currentlyRenderedResources = resourcesToRender;
         this.results.innerHTML = '';
+        this.activeRenderedItemRefs.clear();
         resourcesToRender.forEach(resourceInfo => {
+            if (this._resourceShouldBeActive(resourceInfo)) {
+                this.mapDisplayableGraphIds.add(resourceInfo.graph_id);
+            }
             const item = this._createResultItem(resourceInfo);
             this.results.appendChild(item);
         });
     }
 
-    _createResultItem(resourceInfo) {
-        const resourceTypeInfo = this.resourceTypeDicts[resourceInfo.graph_id];
-        const resourceId = resourceInfo.resourceinstanceid;
+    _resourceShouldBeActive(resourceInfo) {
+        const resourceIsIiif = resourceInfo.graph_id === this.IIIF_GRAPH_ID;
+        return resourceIsIiif || resourceInfo.geometries?.length > 0;
+    }
 
+    _createResultItem(resourceInfo) {
         const item = document.createElement('div');
         item.className = 'flyout-result-item';
+
+        const itemShouldBeActive = this._resourceShouldBeActive(resourceInfo);
+
+        if (!itemShouldBeActive) {
+            item.classList.add('div-disabled');
+            item.title = 'This resource is not georeferenced and cannot be added to the map.';
+        }
+        
+        const resourceTypeInfo = this.resourceTypeDicts[resourceInfo.graph_id];
+        const resourceId = resourceInfo.resourceinstanceid;
 
         const info = document.createElement('div');
         info.className = 'flyout-result-info';
@@ -398,6 +479,7 @@ export class FlyoutContentResourceSearch {
         const icon = document.createElement('i');
         
         icon.className = resourceTypeInfo && resourceTypeInfo.icon ? resourceTypeInfo.icon : 'fa fa-question';
+        resourceInfo.icon = icon.className;
 
         const title = document.createElement('p');
         title.className = 'flyout-result-title';
@@ -429,21 +511,28 @@ export class FlyoutContentResourceSearch {
         aggregateCheckbox.addEventListener('change', () => {
             if (aggregateCheckbox.checked) {
                 this.selectedForLayer.set(resourceId, resourceInfo);
+                this.currentlySelectedGraphId = resourceInfo.graph_id;
+                this._updateAggregateCheckboxesState();
+                this.selectAllButton.disabled = false;
             } else {
                 this.selectedForLayer.delete(resourceId);
+                if (this.selectedForLayer.size === 0) {
+                    this.currentlySelectedGraphId = null;
+                    this.selectAllButton.disabled = true;
+                    this.selectAllButton.textContent = this.LABELS.SELECT_ALL;
+                }
+                this._updateAggregateCheckboxesState();
             }
             item.classList.toggle("aggregated", aggregateCheckbox.checked);
-            this._updateCreateLayerButtonState();
-
-            const visibleResourceIds = this.currentlyRenderedResources.map(r => r.resourceinstanceid);
-            const allChecked = visibleResourceIds.every(id => this.selectedForLayer.has(id));
-        
-            if (allChecked) {
-                this.allResultsSelected = true;
-                this.selectAllButton.textContent = 'Unselect All';
-            } else {
-                this.allResultsSelected = false;
-                this.selectAllButton.textContent = 'Select All';
+            this._updateCreateLayerButtonState(); 
+            
+            if (this.currentlySelectedGraphId) {
+                const allOfTypeSelected = this._areAllOfTypeSelected();
+                if (allOfTypeSelected) {
+                    this.selectAllButton.textContent = this.LABELS.UNSELECT_ALL;
+                } else {
+                    this.selectAllButton.textContent = this.LABELS.SELECT_ALL;
+                }
             }
         });
 
@@ -463,7 +552,8 @@ export class FlyoutContentResourceSearch {
                     resourceId: resourceId,
                     name: resourceInfo.displayname,
                     description: resourceInfo.displaydescription,
-                    geometryFeatures: extractGeommetryFeaturesFromArchesResourceInfo(resourceInfo)
+                    type: resourceInfo.type,
+                    geometryFeatures: extractGeommetryFeaturesFromArchesResourceInfo(resourceInfo) || []
                 });
             }
             else {
@@ -476,9 +566,9 @@ export class FlyoutContentResourceSearch {
         reportLink.target = '_blank';
         reportLink.title = 'View resource report';
         reportLink.innerHTML = '<i class="fa fa-bar-chart"></i>';
-
+        
         controls.appendChild(aggregateCheckbox);
-        controls.appendChild(mapPreviewButton);
+        controls.appendChild(mapPreviewButton);        
         controls.appendChild(reportLink);
         
         info.appendChild(header);
@@ -486,6 +576,15 @@ export class FlyoutContentResourceSearch {
 
         item.appendChild(info);
         item.appendChild(controls);
+
+        if (itemShouldBeActive) {
+            this.activeRenderedItemRefs.set(resourceId, {
+                item: item,
+                aggregateCheckbox: aggregateCheckbox,
+                graphId: resourceInfo.graph_id,
+            });
+        }
+        
         return item;
     }
 
@@ -493,5 +592,4 @@ export class FlyoutContentResourceSearch {
         EventBusInstance.publish(events.PREVIEW_REMOVE_ALL);
         this.previewedIds.clear();
     }
-
 }

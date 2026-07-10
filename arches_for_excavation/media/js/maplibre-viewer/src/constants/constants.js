@@ -1,0 +1,49 @@
+const LAYER_TYPES = {
+    geojson: 'geojson',
+    iiif: 'iiif',
+    none: 'none'
+};
+
+const HATCH_FILL_SOURCE_PATHS = [
+    '/static/img/maplibre-viewer/hatch-fill-icons/hatch-fill-0.png',
+    '/static/img/maplibre-viewer/hatch-fill-icons/hatch-fill-1.png'
+];
+
+const LINE_STYLES = {
+    solid: 'solid',
+    dashed: 'dashed',
+    dotted: 'dotted'
+};
+
+const DEFAULT_LAYER_OPACITY = 0.5;
+const DEFAULT_LAYER_LINE_OPACITY = 1;
+const DEFAULT_LAYER_LINE_WIDTH = 2;
+const DEFAULT_LAYER_HATCH_FILL_OPACITY = 0.6;
+const DEFAULT_LAYER_POINT_RADIUS = 5;
+const DEFAULT_LAYER_POINT_OPACITY = 1;
+const DEFAULT_LAYER_POINT_BORDER_COLOR = '#ffffff';
+const DEFAULT_LAYER_POINT_BORDER_WIDTH = 1;
+const DEFAULT_LAYER_LABEL_FONT_SIZE = 14;
+const DEFAULT_LAYER_LABEL_COLOR = '#333333';
+const DEFAULT_LAYER_LABEL_OPACITY = 1;
+const DEFAULT_LAYER_LABEL_HALO_COLOR = '#ffffff';
+const DEFAULT_LAYER_LABEL_HALO_WIDTH = 2;
+
+export default {
+    LAYER_TYPES,
+    HATCH_FILL_SOURCE_PATHS,
+    LINE_STYLES,
+    DEFAULT_LAYER_OPACITY,
+    DEFAULT_LAYER_LINE_OPACITY,
+    DEFAULT_LAYER_LINE_WIDTH,
+    DEFAULT_LAYER_HATCH_FILL_OPACITY,
+    DEFAULT_LAYER_POINT_RADIUS,
+    DEFAULT_LAYER_POINT_OPACITY,
+    DEFAULT_LAYER_POINT_BORDER_COLOR,
+    DEFAULT_LAYER_POINT_BORDER_WIDTH,
+    DEFAULT_LAYER_LABEL_FONT_SIZE,
+    DEFAULT_LAYER_LABEL_COLOR,
+    DEFAULT_LAYER_LABEL_OPACITY,
+    DEFAULT_LAYER_LABEL_HALO_COLOR,
+    DEFAULT_LAYER_LABEL_HALO_WIDTH
+};

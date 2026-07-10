@@ -15,27 +15,28 @@ define([
 
             const CONTEXT_FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
             const CONTEXT_MEASURED_GEOJSON_NODE_ID = 'bd290f65-b2fe-4de2-a9b6-fa056036facb';
-            const TRENCH_FOOTPRINT_NODE_ID = '3a9f46c0-f538-11ea-ac6d-9fb7e90de197';
+            const CONTEXT_MEASURED_TEXT_NODE_ID = '1d9f2ee2-d024-4c4e-a668-48951c55af63';
+            const TRENCH_FOOTPRINT_NODE_ID = '3a9f46c0-f538-11ea-ac6d-9fb7e90de197'; 
             const TRENCH_MEASURED_GEOJSON_NODE_ID = '6d6accec-cde3-4a6d-b10b-ea217a01c6e7';
+            const TRENCH_MEASURED_TEXT_NODE_ID = '55693a63-9800-4439-8c64-34b72aa2d36b';
 
             self.inputData = ko.unwrap(params.coordinatesData);
             self.graphId = ko.unwrap(params.graphId);
             self.resourceId = ko.unwrap(params.resourceId);
-
-            console.log('Received coordinatesData:', self.inputData);
-            console.log('Received graphId:', self.graphId);
-            console.log('Received resourceId:', self.resourceId);
                         
             let rawText = '';
             let rawIgnore = false;
+            let projectedTextStr = '';
 
             if (self.inputData && typeof self.inputData === 'object') {
                 rawText = self.inputData.text || '';
                 rawIgnore = self.inputData.ignoreLastLine || false;
+                projectedTextStr = self.inputData.projectedText || '';
             }
 
             self.coordinatesText = ko.observable(rawText);
             self.ignoreLastLine = ko.observable(rawIgnore);
+            self.projectedText = ko.observable(projectedTextStr);
 
             self.finalCoordinatesText = ko.computed(() => {
                 if (self.ignoreLastLine()) {
@@ -45,12 +46,19 @@ define([
                 return self.coordinatesText();
             });
 
+            self.finalProjectedText = ko.computed(() => {
+                if (self.ignoreLastLine() && self.projectedText()) {
+                    const lines = self.projectedText().split('\n');
+                    return lines.slice(0, -1).join('\n');
+                }
+                return self.projectedText();
+            });
+
             self.isLoading = ko.observable(false);
             self.infoMessage = ko.observable(self.ignoreLastLine() ? 'The last line of the input will be ignored when generating the footprint.' : null);
             self.errorMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
             
-            // Initialize footprintSaved from existing step value if present
             const existingValue = ko.unwrap(params.value) || {};
             self.footprintSaved = ko.observable(existingValue.footprintSaved || false);
 
@@ -83,11 +91,19 @@ define([
                 }
             };
 
-            self.geojson = ko.computed(() => {
-                const text = self.finalCoordinatesText();
-                if (!text) {
-                    return null;
+            self._getMeasuredTextNodeIdForGraphId = function(graphId) {
+                switch(graphId) {
+                    case CONTEXT_GRAPHID:
+                        return CONTEXT_MEASURED_TEXT_NODE_ID;
+                    case TRENCH_GRAPHID:
+                        return TRENCH_MEASURED_TEXT_NODE_ID;
+                    default:
+                        throw new Error('Unknown graphId for measured text node: ' + graphId);
                 }
+            };
+
+            self._createGeojsonFromText = function(text, targetNodeId) {
+                if (!text) return null;
 
                 const lines = text.trim().split('\n');
                 const coordinates = [];
@@ -102,16 +118,12 @@ define([
                     }
                 });
 
-                if (coordinates.length === 0) {
-                    return null;
-                }
+                if (coordinates.length === 0) return null;
 
-                if (coordinates.length > 0) {
-                    const first = coordinates[0];
-                    const last = coordinates[coordinates.length - 1];
-                    if (first[0] !== last[0] || first[1] !== last[1] || first[2] !== last[2]) {
-                        coordinates.push(first.slice());
-                    }
+                const first = coordinates[0];
+                const last = coordinates[coordinates.length - 1];
+                if (first[0] !== last[0] || first[1] !== last[1] || first[2] !== last[2]) {
+                    coordinates.push(first.slice());
                 }
 
                 return {
@@ -120,7 +132,7 @@ define([
                         id: generateFeatureId(),
                         type: 'Feature',
                         properties: {
-                            nodeId: self._getFootprintNodeIdForGraphId(self.graphId),
+                            nodeId: targetNodeId,
                         },
                         geometry: {
                             type: 'Polygon',
@@ -128,14 +140,28 @@ define([
                         }
                     }]
                 };
+            };
+
+            self.projectedGeojson = ko.computed(() => {
+                const textToUse = self.finalProjectedText() || self.finalCoordinatesText(); 
+                const nodeId = self._getFootprintNodeIdForGraphId(self.graphId);
+                return self._createGeojsonFromText(textToUse, nodeId);
             });
 
-            self.geojsonString = ko.computed(() => {
-                const geojsonObj = self.geojson();
-                if (geojsonObj) {
-                    return JSON.stringify(geojsonObj, null, 2);
-                }
-                return '';
+            self.originalGeojson = ko.computed(() => {
+                const textToUse = self.finalCoordinatesText();
+                const nodeId = self._getMeasuredGeojsonNodeIdForGraphId(self.graphId);
+                return self._createGeojsonFromText(textToUse, nodeId);
+            });
+
+            self.originalGeojsonString = ko.computed(() => {
+                const geojsonObj = self.originalGeojson();
+                return geojsonObj ? JSON.stringify(geojsonObj, null, 2) : '';
+            });
+
+            self.displayGeojsonString = ko.computed(() => {
+                const geojsonObj = self.projectedGeojson(); 
+                return geojsonObj ? JSON.stringify(geojsonObj, null, 2) : '';
             });
 
             self._postTile = function (nodegroup_id, data) {
@@ -152,24 +178,30 @@ define([
                 payload.data[nodegroup_id] = data;
 
                 return tileService.createOne(payload);
-            }
+            };
 
             self.saveFootprint = async function() {
                 self.isLoading(true);
                 self.infoMessage("Saving footprint data...");
                 self.successMessage(null);
                 self.errorMessage(null);
-                const geojsonValue = self.geojson();
-                if (!geojsonValue) {
-                    self.errorMessage('No GeoJSON data to save.');
+                
+                const projectedVal = self.projectedGeojson();
+                const projectedValStr = self.displayGeojsonString();
+                const originalText = self.finalCoordinatesText();
+
+                if (!projectedVal || !projectedValStr) {
+                    self.errorMessage('No GeoJSON data available to save.');
                     self.isLoading(false);
                     return;
                 }
-                const geojsonStr = self.geojsonString();
 
                 try {
-                    await self._postTile(self._getFootprintNodeIdForGraphId(self.graphId), geojsonValue);
-                    await self._postTile(self._getMeasuredGeojsonNodeIdForGraphId(self.graphId), geojsonStr);
+                    await self._postTile(self._getFootprintNodeIdForGraphId(self.graphId), projectedVal);
+                    
+                    await self._postTile(self._getMeasuredGeojsonNodeIdForGraphId(self.graphId), projectedValStr);
+                    
+                    await self._postTile(self._getMeasuredTextNodeIdForGraphId(self.graphId), originalText);
                     
                     self.infoMessage(null);
                     self.successMessage('Footprint data saved successfully.');

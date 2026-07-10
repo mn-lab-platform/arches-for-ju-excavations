@@ -12,27 +12,56 @@
         width: 100%;
         padding: 10px;
     }
+
+  .spinning {
+    -webkit-animation: spin 2s linear infinite;
+    -moz-animation: spin 2s linear infinite;
+    -ms-animation: spin 2s linear infinite;
+    -o-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-blue {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
 </style>
 <div class="workflow-step-container">
   <h4>Manage 3D Model Annotations</h4>
 
-  <div data-bind="visible: isLoading()" class="alert alert-info">
-    <p>Loading 3D models...</p>
+  <div data-bind="visible: infoMessage" class="alert alert-info">
+      <span class="glyphicon glyphicon-refresh spinning"></span> 
+      <span data-bind="text: infoMessage"></span>
   </div>
 
   <div data-bind="visible: error()" class="alert alert-danger">
     <p data-bind="text: error()"></p>
   </div>
 
-  <!-- ko if: !isLoading() && models3D().length > 0 -->
+  <!-- ko if: models3D().length > 0 -->
   <div class="model-annotation-container">
         <!-- ko component: { name: 'cesium-viewer', params: { 
                 models3D: models3D, 
                 allowAnnotationsEdits: allowAnnotationsEdits, 
                 allowObjectPicking: allowObjectPicking,
+                allowObjectAddition: allowObjectAddition,
                 existingAnnotations: existingAnnotations,
-                onAnnotationSaved: onAnnotationSaved,
-                onAnnotationDeleted: onAnnotationDeleted
+                modelCrsDefinitions: modelCrsDefinitions,
+                onPolygonCompleted: onPolygonCompleted,
+                onAnnotationUpdated: onAnnotationUpdated,
+                onAnnotationDeleted: onAnnotationDeleted,
             } } -->
         <!-- /ko -->
   </div>

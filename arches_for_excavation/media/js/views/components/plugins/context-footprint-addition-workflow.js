@@ -6,6 +6,10 @@ define([
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
   'views/components/workflows/universal/process-selection-step',
   'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/context-footprint-addition/crs-twoface-step',
+  'views/components/workflows/context-footprint-addition/coord-twoface-step',
+  'views/components/workflows/context-footprint-addition/confirmation-twoface-step',
+  'views/components/workflows/context-footprint-addition/summary-twoface-step',
   'views/components/workflows/context-footprint-addition/coordinates-addition-step',
   'views/components/workflows/context-footprint-addition/coordinates-map-display-step',
   'views/components/workflows/context-footprint-addition/context-footprint-confirmation-step',
@@ -20,7 +24,7 @@ define([
 
       this.stepConfig = [
         {
-          title: 'Select Process',
+          title: 'Step 1',
           name: 'process-selection',
           required: true,
           layoutSections: [{
@@ -46,7 +50,7 @@ define([
           }]
         },
         {
-          title: 'Select Context Resource',
+          title: 'Step 2',
           name: 'resource-selection',
           required: true,
           layoutSections: [{
@@ -62,52 +66,98 @@ define([
           }]
         },
         {
-          title: 'Add Coordinates to Context',
-          name: 'coordinates-addition',
+          title: 'Step 3',
+          name: 'crs-type-selection',
           required: true,
           layoutSections: [{
             componentConfigs: [{
-              componentName: 'coordinates-addition-step',
-              uniqueInstanceName: 'coordinates-adder',
-              tilesManaged: 'none',
-              parameters: {}
-            }]
-          }]
-        },
-        {
-          title: 'Verify Coordinates',
-          name: 'coordinates-verification',
-          required: true,
-          layoutSections: [{
-            componentConfigs: [{
-              componentName: 'coordinates-map-display-step',
-              uniqueInstanceName: 'coordinates-viewer',
+              componentName: 'process-selection-step',
+              uniqueInstanceName: 'process-selector',
               tilesManaged: 'none',
               parameters: {
-                coordinatesData: "['coordinates-addition']['coordinates-adder']['value']"
+                cards: [
+                  {
+                    id: 'local',
+                    label: 'Coordinates are in Local CRS',
+                    icon: 'fa fa-flag'
+                  },
+                  {
+                    id: 'wgs',
+                    label: 'Coordinates are in WGS84 CRS',
+                    icon: 'fa fa-globe'
+                  }
+                ]
               }
             }]
           }]
         },
         {
-          title: 'Confirm and Save',
-          name: 'context-footprint-confirmation',
+          title: 'Step 4',
+          name: 'crs-twoface',
           required: true,
           layoutSections: [{
             componentConfigs: [{
-              componentName: 'context-footprint-confirmation-step',
-              uniqueInstanceName: 'context-footprint-confirmer',
+              componentName: 'crs-twoface-step',
+              uniqueInstanceName: 'crs-twoface',
               tilesManaged: 'none',
               parameters: {
-                coordinatesData: "['coordinates-addition']['coordinates-adder']['value']",
+                mode: "['crs-type-selection']['process-selector']['value']",
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Step 5',
+          name: 'coord-twoface',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'coord-twoface-step',
+              uniqueInstanceName: 'coord-twoface',
+              tilesManaged: 'none',
+              parameters: {
+                prevStepValue: "['crs-twoface']['crs-twoface']['value']",
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Step 6',
+          name: 'confirmation-twoface',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'confirmation-twoface-step',
+              uniqueInstanceName: 'confirmation-twoface',
+              tilesManaged: 'none',
+              parameters: {
+                prevStepValue: "['coord-twoface']['coord-twoface']['value']",
                 graphId: "['process-selection']['process-selector']['value']",
-                resourceId: "['resource-selection']['resource-selector']['value']"
+                resourceId: "['resource-selection']['resource-selector']['value']",
+                crsId: "['crs-twoface']['crs-twoface']['value']"              
               }
             }]
           }]
         },
         {
-          title: 'Summary',
+          title: 'Step 7',
+          name: 'summary-twoface',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'summary-twoface-step',
+              uniqueInstanceName: 'summary-twoface',
+              tilesManaged: 'none',
+              parameters: {
+                prevStepValue: "['confirmation-twoface']['confirmation-twoface']['value']",
+                graphId: "['process-selection']['process-selector']['value']",
+                resourceId: "['resource-selection']['resource-selector']['value']",
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Step 8',
           name: 'coordinates-summary',
           required: true,
           layoutSections: [{

@@ -1,0 +1,77 @@
+<style>
+.resource-picker-wrapper {
+    width: 100%;
+}
+.resource-picker-container {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+    padding-top: 10px;
+}
+
+.resource-options-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    background: #ffffff;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    box-shadow: none;
+
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
+    padding: 2rem 1.25rem;
+}
+
+.resource-options-card:hover {
+    cursor: pointer;
+    border-color: #3b82f6;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+    transform: translateY(-6px);
+}
+
+/* Highlight the clicked card */
+.resource-options-card.active {
+    border-color: #2563eb;
+    box-shadow: 0 8px 24px rgba(59,130,246,0.22);
+    background: #e6f0fa;
+}
+
+.resource-options-card i {
+    font-size: 4rem;
+    margin-bottom: 0.75rem;
+    color: #3b82f6;
+}
+
+.resource-options-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .resource-picker-container {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="resource-picker-wrapper">
+    <h3 data-bind="text: label, visible: label" style="margin-bottom: 1rem; color: #374151;"></h3>
+    
+    <div class="resource-picker-container" data-bind="foreach: availableResourceTypes">
+        <div class="resource-options-card"
+            data-bind="click: $parent.selectGraph, 
+                       css: { 'active': $parent.selectedGraphId() === $data.graphid }">
+            <i data-bind="attr: { class: $data.icon || 'fa fa-cube' }"></i>
+            <h3 data-bind="text: $data.name"></h3>
+        </div>
+    </div>
+</div>

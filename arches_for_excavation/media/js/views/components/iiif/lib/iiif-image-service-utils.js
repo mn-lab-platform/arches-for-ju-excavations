@@ -25,13 +25,13 @@ export function imageUrlFromServiceUrl(serviceUrl) {
     url.searchParams.set('iiif_size', 'max');
     url.searchParams.set('iiif_rotation', '0');
     url.searchParams.set('iiif_quality', 'default');
-    url.searchParams.set('iiif_format', 'jpg');
+    url.searchParams.set('iiif_format', 'png');
     url.searchParams.delete('suffix');
     return url.toString();
   }
 
   const normalized = raw.replace(/\/+$/, '');
-  return `${normalized}/full/max/0/default.jpg`;
+  return `${normalized}/full/max/0/default.png`;
 }
 
 export async function fetchIiifInfoJson(infoJsonUrl) {

@@ -33,8 +33,6 @@
 
     display: flex;
     flex-direction: column;
-    /* align-items: center;
-    justify-content: center;  */
 }
 
 .context-confirmation-container {
@@ -86,7 +84,6 @@
         margin: 0 0 1rem 0;
     }
 }
-
 </style>
 
 <div class="context-confirmation-wrapper">
@@ -103,7 +100,7 @@
     </div>
     <div class="context-confirmation-container">
         <div class="geojson-display">
-            <pre class="geojson-pre" data-bind="text: geojsonString"></pre>
+            <pre class="geojson-pre" data-bind="text: displayGeojsonString"></pre>
         </div>
         <div class="plain-text-display">
             <textarea name="plain-text-display" id="plain-text-display" data-bind="value: coordinatesText" readonly></textarea>
@@ -112,7 +109,7 @@
     <button id="submit-button"
             type="button" 
             class="btn btn-success save-button" 
-            data-bind="click: saveFootprint, enable: geojsonString() && !footprintSaved()">
+            data-bind="click: saveFootprint, enable: displayGeojsonString() && !footprintSaved()">
             Add to Resource
     </button>
 </div>

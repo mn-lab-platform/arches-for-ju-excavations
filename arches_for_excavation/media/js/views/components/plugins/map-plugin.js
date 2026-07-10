@@ -6,7 +6,6 @@ import 'views/components/custom/maplibre-viewer';
 export default ko.components.register('map-plugin', {
     viewModel: function(params) {
         const self = this;
-        console.log("arches: ", arches);
     },
     template: viewerTemplate
 });

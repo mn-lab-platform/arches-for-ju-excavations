@@ -8,7 +8,6 @@ import logging
 from pathlib import Path
 from celery import chain
 import numpy as np
-import urllib.parse
 from django.conf import settings
 from django.utils.text import get_valid_filename
 from rest_framework.views import APIView
@@ -20,8 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from ..celery_tasks.iiif_tasks import process_geotiff_metadata_task, generate_hillshade_task, generate_color_relief_task
 from ..celery_tasks.convert_task import convert_geotiff_to_cog, convert_dem_geotiff_to_cog
 from .services.raster_metadata import _read_geotiff_metadata
-from django.urls import reverse
-from urllib.parse import urlencode
+from .services.iiif_image_service import make_image_id, register_image, relative_service_url
 from PIL import Image
 
 def _ensure_dir(p: Path) -> None:
@@ -61,7 +59,9 @@ def _safe_image_ext(name: str) -> str:
         return ".jpg"
     if n.endswith(".png"):
         return ".png"
-    raise ValueError("Unsupported file extension (only .jpg/.jpeg/.png)")
+    if n.endswith(".tiff") or n.endswith(".tif"):
+        return ".tif"        
+    raise ValueError("Unsupported file extension (only .jpg/.jpeg/.png/.tif)")
 
 def _map_arche_path_to_titiler_path(p: Path) -> str:
     s = str(p).replace("\\", "/")
@@ -112,7 +112,15 @@ class PhotoUploadView(APIView):
 
         mime = "image/png" if ext == ".png" else "image/jpeg"
         titiler_path = _map_arche_path_to_titiler_path(original_path)
-        titiler_service_url = reverse("titiler-iiif-proxy") + "?" + urlencode({"path": titiler_path})
+        image_id = make_image_id(job_id)
+        register_image(
+            image_id,
+            titiler_path,
+            resource_id=resource_id,
+            job_id=job_id,
+            kind="photo",
+        )
+        iiif_service_url = relative_service_url(image_id)
 
         _write_job_index(file_folder, job_id, {
             "job_id": job_id,
@@ -135,7 +143,8 @@ class PhotoUploadView(APIView):
             "metadata": {"width": width, "height": height, "format": fmt, "count": 3 if ext in (".jpg", ".jpeg") else 4},
             "titiler": {
                 "file_path": titiler_path,
-                "iiif_service_url": titiler_service_url
+                "iiif_service_url": iiif_service_url,
+                "image_id": image_id,
             },
             "role": "photo"
         }, status=status.HTTP_201_CREATED)

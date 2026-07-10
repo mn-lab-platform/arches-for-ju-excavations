@@ -1,0 +1,133 @@
+<div class="ontology-usage-explorer">
+    <header class="ontology-usage-explorer__toolbar">
+        <div>
+            <h2 class="ontology-usage-explorer__title">Ontology Usage Explorer</h2>
+            <p class="ontology-usage-explorer__subtitle" data-bind="visible: !hasGraph()">Resource model ontology diagram</p>
+            <p class="ontology-usage-explorer__subtitle" data-bind="visible: hasGraph(), text: modelGraph() && modelGraph().model.name"></p>
+        </div>
+
+        <select
+            class="ontology-usage-explorer__select"
+            data-bind="
+                value: selectedModelId,
+                options: models,
+                optionsText: 'name',
+                optionsValue: 'graphid',
+                optionsCaption: 'Select resource model'
+            "
+        ></select>
+    </header>
+
+    <main class="ontology-usage-explorer__workspace">
+        <section class="ontology-usage-explorer__canvas">
+            <div class="ontology-usage-explorer__empty" data-bind="visible: !hasGraph() && !isLoading()">
+                Select a resource model to inspect ontology usage.
+            </div>
+
+            <div class="ontology-usage-explorer__empty" data-bind="visible: isLoading">
+                Loading...
+            </div>
+
+            <div class="ontology-usage-explorer__model" data-bind="visible: hasGraph">
+                <div class="ontology-usage-explorer__view">
+                    <ontology-usage-graph-view
+                        params="graph: modelGraph, onSelectNode: selectNode"
+                    ></ontology-usage-graph-view>
+                </div>
+
+                <button
+                    type="button"
+                    class="ontology-usage-explorer__details-toggle"
+                    data-bind="click: toggleDetails"
+                >
+                    <span data-bind="text: showDetails() ? 'Hide usage details' : 'Show usage details'"></span>
+                </button>
+
+                <div class="ontology-usage-explorer__details-drawer" data-bind="visible: showDetails">
+                    <div class="ontology-usage-explorer__stats">
+                        <div class="ontology-usage-explorer__stat">
+                            <span data-bind="text: nodes().length"></span>
+                            <strong>Nodes</strong>
+                        </div>
+                        <div class="ontology-usage-explorer__stat">
+                            <span data-bind="text: edges().length"></span>
+                            <strong>Edges</strong>
+                        </div>
+                        <div class="ontology-usage-explorer__stat">
+                            <span data-bind="text: classUsage().length"></span>
+                            <strong>Classes</strong>
+                        </div>
+                        <div class="ontology-usage-explorer__stat">
+                            <span data-bind="text: propertyUsage().length"></span>
+                            <strong>Properties</strong>
+                        </div>
+                    </div>
+
+                    <div class="ontology-usage-explorer__section">
+                        <h3>Used Classes</h3>
+                        <div class="ontology-usage-explorer__chips" data-bind="foreach: classUsage">
+                            <span class="ontology-usage-explorer__chip">
+                                <strong data-bind="text: code"></strong>
+                                <span data-bind="text: count"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="ontology-usage-explorer__section">
+                        <h3>Used Properties</h3>
+                        <div class="ontology-usage-explorer__chips" data-bind="foreach: propertyUsage">
+                            <span class="ontology-usage-explorer__chip ontology-usage-explorer__chip--property">
+                                <strong data-bind="text: code"></strong>
+                                <span data-bind="text: count"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="ontology-usage-explorer__section">
+                        <h3>Resource Model Nodes</h3>
+                        <div class="ontology-usage-explorer__node-list" data-bind="foreach: nodes">
+                            <button
+                                type="button"
+                                class="ontology-usage-explorer__node"
+                                data-bind="click: $parent.selectNode"
+                            >
+                                <span class="ontology-usage-explorer__node-code" data-bind="text: ontologyClassCode || 'No class'"></span>
+                                <span class="ontology-usage-explorer__node-name" data-bind="text: name || alias || id"></span>
+                                <span class="ontology-usage-explorer__node-property" data-bind="text: parentPropertyCode"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="ontology-usage-explorer__error" data-bind="visible: error, text: error"></p>
+        </section>
+
+        <aside class="ontology-usage-explorer__panel">
+            <h3>Selection</h3>
+
+            <div data-bind="visible: !selectedNode()">
+                <p>No node selected.</p>
+            </div>
+
+            <div data-bind="with: selectedNode">
+                <dl class="ontology-usage-explorer__details">
+                    <dt>Name</dt>
+                    <dd data-bind="text: name || alias || id"></dd>
+
+                    <dt>Ontology Class</dt>
+                    <dd data-bind="text: ontologyClassCode || 'None'"></dd>
+
+                    <dt>Parent Property</dt>
+                    <dd data-bind="text: parentPropertyCode || 'None'"></dd>
+
+                    <dt>Datatype</dt>
+                    <dd data-bind="text: datatype"></dd>
+
+                    <dt>Card</dt>
+                    <dd data-bind="text: card ? card.name : 'None'"></dd>
+                </dl>
+            </div>
+        </aside>
+    </main>
+</div>

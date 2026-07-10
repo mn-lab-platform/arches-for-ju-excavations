@@ -49,6 +49,17 @@ export class PickerTool extends Tool {
         }
     }
 
+    updateAnnotation(annotationData) {
+        if (this.pickedAnnotation) {
+            this.pickedAnnotation.name = annotationData.name;
+            this.pickedAnnotation.description = annotationData.description;
+            this.pickedAnnotation.polygon.material = Color.fromCssColorString(annotationData.color).withAlpha(0.6);
+
+            this._triggerCallback(TOOL_CALLBACKS.ON_ANNOTATION_UPDATED, utils.extractAnnotationData(this.pickedAnnotation));
+            this.pickedAnnotation = null;
+        }
+    }
+
     deactivate() {
         this.active = false;
         if (this.handler) {

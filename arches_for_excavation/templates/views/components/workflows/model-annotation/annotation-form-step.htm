@@ -1,0 +1,73 @@
+<style>
+.workflow-tab-controls {
+    display: none;
+}
+.tabbed-workflow-step-container {
+    overflow-y: auto;
+}
+.workflow-nav-tabs {
+    overflow-x: auto;
+}
+
+.color-switch {
+    width: 50px;
+    height: 50px;
+    
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    border-radius: 4px; 
+}
+
+.color-switch::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.color-switch::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
+}
+
+</style>
+
+<!-- ko if: isLastStep() -->
+    <!-- ko component: { 
+        name: 'workflow-success-summary', 
+        params: { 
+            resourceId: modelResourceId, 
+            successMessage: 'Annotation process completed successfully. You can safely delete the workflow, your changes are saved!' 
+        } 
+    } --><!-- /ko -->
+<!-- /ko -->
+
+<!-- ko ifnot: isLastStep() -->
+<div class="workflow-step-container">
+    <h3>Define the Annotation Object</h3>
+
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+    <div data-bind="visible: successMessage" class="alert alert-success">
+        <span data-bind="text: successMessage"></span>
+    </div>
+
+    <form action="">
+        <div class="form-group">
+            <label for="annotation-name">Annotation Name</label>
+            <input type="text" id="annotation-name" class="form-control" data-bind="value: annotationName" placeholder="Enter annotation name">
+        </div>
+        <div class="form-group">
+            <label for="annotation-description">Annotation Description</label>
+            <textarea id="annotation-description" class="form-control" data-bind="value: annotationDescription" placeholder="Enter annotation description" rows="5"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="annotation-color">Annotation Color</label>
+            <div>
+                <input type="color" id="annotation-color" class="color-switch" data-bind="value: annotationColor">
+            </div>
+        </div>
+    </form>
+</div>
+<!-- /ko -->

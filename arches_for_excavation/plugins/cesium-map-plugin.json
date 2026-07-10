@@ -1,0 +1,12 @@
+{
+  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d218",
+  "name": "3D Plugin",
+  "icon": "fa fa-cubes",
+  "component": "views/components/plugins/cesium-map-plugin",
+  "componentname": "cesium-map-plugin",
+  "config": {
+    "show": true
+  },
+  "slug": "cesium-map-plugin",
+  "sortorder": 2
+}

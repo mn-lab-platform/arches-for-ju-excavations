@@ -8,6 +8,7 @@ import iiifReportTemplate from 'templates/views/report-templates/iiif-report.htm
 // IMPORTANT: samo importowanie rejestruje komponent iiif-map-viewer
 import 'views/components/iiif/iiif-map-viewer';
 import 'views/components/iiif/iiif-photo-viewer'; // NEW
+import 'views/components/iiif/iiif-RTI-viewer';
 
 const DIGITAL_RES_URL_NODE_ID = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
 const LOG = '[iiif-report]';
@@ -72,7 +73,11 @@ export default ko.components.register('iiif-report', {
     function looksLikeManifestUrl(url) {
       if (!url) return false;
       const s = String(url);
-      return (s.indexOf('/manifest/') > -1 || s.indexOf('/api/iiif/geotiff-manifest/') > -1);
+      return (
+        s.indexOf('/manifest/') > -1 ||
+        s.indexOf('/api/iiif/geotiff-manifest/') > -1 ||
+        s.indexOf('/api/iiif/rti-manifest/') > -1
+      );
     }
 
     function normalizeManifestUrl(url) {
@@ -100,6 +105,10 @@ export default ko.components.register('iiif-report', {
     self.manifest = ko.observable(null);
     self.existingAnnotations = ko.observableArray([]);
     self.isPhotoManifest = ko.observable(false); // NEW
+    self.isRtiManifest = ko.observable(false);
+    self.rtiMetadataUrl = ko.observable('');
+    self.rtiPlanes = ko.observableArray([]);
+    self.rtiRotation = ko.observable(0);
 
     function _langFirst(v) {
       if (!v) return null;
@@ -121,6 +130,37 @@ export default ko.components.register('iiif-report', {
         if (k === 'mode' && v === 'photo') return true;
       }
       return false;
+    }
+
+    function detectRtiManifest(manifest) {
+      const rti = manifest && manifest.rti;
+      if (rti && rti.metadata_url && Array.isArray(rti.planes) && rti.planes.length) return true;
+
+      const md = Array.isArray(manifest && manifest.metadata) ? manifest.metadata : [];
+      for (let i = 0; i < md.length; i++) {
+        const k = (_langFirst(md[i] && md[i].label) || '').toLowerCase();
+        if (k === 'rti metadata url') return true;
+      }
+
+      return false;
+    }
+
+    function applyRtiState(manifest) {
+      const rti = manifest && manifest.rti ? manifest.rti : null;
+      const settings = rti && rti.settings ? rti.settings : null;
+
+      self.isRtiManifest(detectRtiManifest(manifest));
+      self.rtiMetadataUrl((rti && rti.metadata_url) || '');
+      self.rtiPlanes(Array.isArray(rti && rti.planes) ? rti.planes : []);
+      self.rtiRotation(Number(settings && settings.rotation || 0));
+
+      console.log(LOG, 'applyRtiState', {
+        isRtiManifest: self.isRtiManifest(),
+        metadataUrl: self.rtiMetadataUrl(),
+        planeCount: self.rtiPlanes().length,
+        settings: settings,
+        rotation: self.rtiRotation()
+      });
     }
 
     function collectV3AnnotationsFromManifest(manifest) {
@@ -151,15 +191,28 @@ export default ko.components.register('iiif-report', {
 
       return $.getJSON(url)
         .then(m => {
+          console.log(LOG, 'manifest loaded', {
+            url: url,
+            id: m && m.id,
+            label: m && m.label,
+            hasRti: !!(m && m.rti),
+            rtiSettings: m && m.rti && m.rti.settings
+          });
+
           self.manifest(m);
           self.existingAnnotations(collectV3AnnotationsFromManifest(m));
           self.isPhotoManifest(detectPhotoManifest(m)); // NEW
+          applyRtiState(m);
           self.status('');
           return m;
         })
         .catch(err => {
           self.manifest(null);
           self.isPhotoManifest(false); // NEW
+          self.isRtiManifest(false);
+          self.rtiMetadataUrl('');
+          self.rtiPlanes([]);
+          self.rtiRotation(0);
           self.status('');
           self.error('Manifest load failed: ' + (err?.message || String(err)));
           throw err;

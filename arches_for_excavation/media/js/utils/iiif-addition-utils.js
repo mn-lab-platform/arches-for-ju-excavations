@@ -102,7 +102,7 @@ define(['../services/tile-service'], function(tileServiceModule) {
     function buildIiifThumbUrl(serviceUrl, maxSize) {
     var base = stripTrailingSlash(serviceUrl);
     var size = maxSize || 420;
-    return base + '/full/!' + size + ',' + size + '/0/default.jpg';
+    return base + '/full/!' + size + ',' + size + '/0/default.png';
     }
     function toAbsoluteUrl(u) {
         if (!u) return null;

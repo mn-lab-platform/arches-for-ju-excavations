@@ -1,5 +1,6 @@
 import basemapService from '../../../services/basemap-service';
 import resourceService from '../../../services/resource-service';
+import tileService from '../../../services/tile-service';
 
 const getCookie = (name) => {
     let cookieValue = null;
@@ -18,7 +19,6 @@ const getCookie = (name) => {
 
 const _extractProjectExtentCoordinates = (payload) => {
     const firstEntry = Object.values(payload)[0];
-    console.log('Extracted first entry from map extent API response: ', firstEntry);
     const coordinates =
         firstEntry.resource['Map Settings']['Project Extent'].DEFAULT_BOUNDS.geojson.features[0].geometry.coordinates;
     return coordinates.flat();
@@ -96,4 +96,23 @@ export const getAllResourcesFromFilterString = async (filterString, maxPages = 1
     }
 
     return results;
+};
+
+export const getAllTileDisplayValuesForResource = (resourceId) => {
+    return tileService.getAllForResource(resourceId).then(tilesData => {
+        const flatProperties = {};
+
+        if (!tilesData.tiles || !Array.isArray(tilesData.tiles)) return flatProperties;
+
+        tilesData.tiles.forEach(tile => {
+            if (tile.display_values && Array.isArray(tile.display_values)) {
+                tile.display_values.forEach(item => {
+                    if (item.label && item.value !== null && item.value !== "") {
+                        flatProperties[item.label] = item.value;
+                    }
+                });
+            }
+        });
+        return flatProperties;
+    });
 };
