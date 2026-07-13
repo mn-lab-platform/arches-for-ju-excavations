@@ -40,8 +40,8 @@ function formatLonLat(lon, lat, digits = 6) {
 export function createMeasureController(opts = {}) {
   const setDistance = typeof opts.setDistance === 'function' ? opts.setDistance : () => {};
   const setCoords = typeof opts.setCoords === 'function' ? opts.setCoords : () => {};
-  const pointColor = opts.pointColor || '#000';
-  const lineColor = opts.lineColor || '#000';
+  const pointColor = opts.pointColor || 'rgb(67, 137, 201)';
+  const lineColor = opts.lineColor || 'rgb(67, 137, 201)';
 
   const MEASURE_SOURCE_ID = 'iiif-measure-source';
   const MEASURE_POINTS_LAYER_ID = 'iiif-measure-points';

@@ -40,8 +40,8 @@ export function createLeafletDemPickerController(opts = {}) {
     marker = L.circleMarker([-y, x], {
         pane : 'iiif-tools-markers',
         radius: 6,
-        color: '#e91e63',
-        fillColor: '#e91e63',
+        color: 'rgb(87, 155, 215)',
+        fillColor: 'rgb(87, 155, 215)',
         fillOpacity: 0.9,
         weight: 2
     }).addTo(map);

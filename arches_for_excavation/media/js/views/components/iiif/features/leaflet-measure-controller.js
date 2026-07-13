@@ -46,11 +46,12 @@ export function createLeafletMeasureController(opts = {}) {
       }
 
       try {
+        const markerColor = idx === 0 ? 'rgb(101, 150, 222)' : 'rgb(67, 137, 201)';
         const marker = L.circleMarker([-pt.y, pt.x], {
           pane : 'iiif-tools-markers',
           radius: 6,
-          color: idx === 0 ? 'blue' : 'red',
-          fillColor: idx === 0 ? 'blue' : 'red',
+          color: markerColor,
+          fillColor: markerColor,
           fillOpacity: 0.8,
           weight: 2
         }).addTo(map);
@@ -64,7 +65,7 @@ export function createLeafletMeasureController(opts = {}) {
       try {
         line = L.polyline([[-pts[0].y, pts[0].x], [-pts[1].y, pts[1].x]], {
           pane : 'iiif-tools-line',
-          color: 'red',
+          color: 'rgb(87, 155, 215)',
           weight: 3
         }).addTo(map);
 
