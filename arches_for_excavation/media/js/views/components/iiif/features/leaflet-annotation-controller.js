@@ -59,7 +59,7 @@ export function createLeafletAnnotationController(opts = {}) {
 
     return layerGroup;
   }
-  function annotationColorFromAnno(anno, fallback = '#64ff64') {
+  function annotationColorFromAnno(anno, fallback = '#6596de') {
     if (anno && typeof anno.color === 'string' && anno.color.trim()) return anno.color.trim();
 
     const b = anno?.body;
@@ -278,7 +278,7 @@ export function createLeafletAnnotationController(opts = {}) {
     <div style="min-width:180px;max-width:320px;font-size:14px;line-height:1.45;">
       <div style="font-weight:600;font-size:16px;margin-bottom:6px;">${escapeHtml(title)}</div>
       <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;">${escapeHtml(txt)}</div>
-      ${onAnnotationDeleted ? '<div style="margin-top:8px;color:#666;font-size:12px;">Shift+Click = usuń</div>' : ''}
+      ${onAnnotationDeleted ? '<div style="margin-top:8px;color:rgb(67, 137, 201);font-size:12px;">Shift+Click = usuń</div>' : ''}
     </div>
   `;
   }
@@ -361,8 +361,8 @@ export function createLeafletAnnotationController(opts = {}) {
     const linkedResources = annotationLinkedResources(anno);
     const linkedResourcesHtml = linkedResources.length
       ? `
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e5e5e5;">
-        <div style="font-weight:600;font-size:12px;color:#555;margin-bottom:4px;">Related Resource</div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgb(221, 221, 221);">
+        <div style="font-weight:600;font-size:12px;color:rgb(67, 137, 201);margin-bottom:4px;">Related Resource</div>
         ${linkedResources.map((resource) => `
           <div>
             <a href="${escapeHtml(resource.reportUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resource.name)}</a>
@@ -376,7 +376,7 @@ export function createLeafletAnnotationController(opts = {}) {
       <div style="font-weight:600;font-size:16px;margin-bottom:6px;">${escapeHtml(title)}</div>
       <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;">${escapeHtml(txt)}</div>
       ${linkedResourcesHtml}
-      ${onAnnotationDeleted ? '<div style="margin-top:8px;color:#666;font-size:12px;">Shift+Click = usuń</div>' : ''}
+      ${onAnnotationDeleted ? '<div style="margin-top:8px;color:rgb(67, 137, 201);font-size:12px;">Shift+Click = usuń</div>' : ''}
     </div>
   `;
   }
@@ -388,7 +388,7 @@ export function createLeafletAnnotationController(opts = {}) {
 
     ensureLayer();
 
-    const fillColor = opts.color || '#64ff64';
+    const fillColor = opts.color || '#6596de';
 
     const poly = L.polygon(pointsToLatLng(points), {
       pane: 'iiif-anno',
@@ -633,7 +633,7 @@ export function createLeafletAnnotationController(opts = {}) {
     const pixelGeom = geojsonPolygonFromPoints(points);
     const localGeom = geojsonPolygonLocal(points, canvas, sourceScale);
 
-    const color = state.annotationColor ? state.annotationColor() : '#64ff64';
+    const color = state.annotationColor ? state.annotationColor() : '#6596de';
 
     const payload = {
       id: `anno-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,

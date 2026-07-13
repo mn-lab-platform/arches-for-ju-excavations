@@ -30,7 +30,7 @@ export function createLeafletImageState(opts = {}) {
   state.annotationEnabled = ko.observable(annotationEnabledInitial);
   state.annotationStatus = ko.observable('');
   state.annotationCanFinish = ko.observable(false);
-  state.annotationColor = ko.observable('#64ff64');
+  state.annotationColor = ko.observable('#6596de');
   state.annotationMode = ko.pureComputed(() => state.activeImageTool() === 'annotate');
   state.leafletMeasureMode = ko.pureComputed(() => state.activeImageTool() === 'measure');
   state.leafletDemPickMode = ko.pureComputed(() => state.activeImageTool() === 'dem-pick');

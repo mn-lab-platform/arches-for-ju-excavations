@@ -307,7 +307,7 @@ function fitAndRotateWhenReady(layer, viewer, viewModel) {
 }
 
 function createOpenLimeScene(container, metadataUrl, planes, skinUrl, viewModel) {
-  const viewer = new Viewer(container, { background: 'black' });
+  const viewer = new Viewer(container, { background: 'rgb(235, 238, 240)' });
   viewer.containerElement.style.touchAction = 'none';
   viewer.canvasElement.style.touchAction = 'none';
 
