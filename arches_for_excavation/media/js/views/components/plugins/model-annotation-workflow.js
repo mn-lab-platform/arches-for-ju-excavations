@@ -31,7 +31,7 @@ define([
                 uniqueInstanceName: 'resource-selection-instance',
                 tilesManaged: 'none',
                 parameters: {
-                    graphid: '5465389c-bba7-4af1-bc9a-9fbb201e8408', // 3D model graph ID                
+                    graphIds: ['5465389c-bba7-4af1-bc9a-9fbb201e8408', '039f5a45-82e2-4597-8609-d24c758bfd59'],                
                     searchPlaceholder: 'Search resources...',
                 }
                 }]

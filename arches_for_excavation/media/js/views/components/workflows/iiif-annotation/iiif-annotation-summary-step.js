@@ -308,15 +308,23 @@ define([
         let overrideReadyFor = null;
 
         function ensureManifestOverride(resourceId, manifest) {
-            return fetchResourceName(resourceId).then(function(resourceName) {
-                return $.ajax({
-                    type: 'POST',
-                    url: manifestEditUrl(resourceId),
-                    data: JSON.stringify({ mode: 'replace', manifest: manifest, resource_name: resourceName }),
-                    contentType: 'application/json',
-                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
-                }).then(function() {
-                    overrideReadyFor = resourceId;
+            return $.ajax({
+                type: 'GET',
+                url: manifestEditUrl(resourceId),
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            }).catch(function() {
+                return fetchResourceName(resourceId).then(function(resourceName) {
+                    return $.ajax({
+                        type: 'POST',
+                        url: manifestEditUrl(resourceId),
+                        data: JSON.stringify({
+                            mode: 'replace',
+                            manifest: manifest,
+                            resource_name: resourceName
+                        }),
+                        contentType: 'application/json',
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                    });
                 });
             });
         }
@@ -442,12 +450,12 @@ define([
         // ===================== CREATE ANNOTATION RESOURCE =====================
         
         self.createAnnotationResource = function(anno, hostResourceId) {
-            // Zawsze używaj domyślnego grafu adnotacji
-            var ANNOTATION_GRAPH_ID = 'ddd13240-8e2b-414f-a652-abab00a02015'; 
-            var NODE_ID_LABEL = 'e202ea9f-e0a9-42a3-85a1-6380bc1115b9';
-            var NODE_ID_DESCRIPTION = 'e4c6d7e5-317d-4d04-9936-e4ad1886ba05';
-            var NODE_ID_GEOMETRY = '4277f805-09e7-4db1-bf26-49c09132c720';
-            var NODE_ID_HOST_LINK = '5266b89c-72f7-41cf-a7f4-cde1df9efef9';
+            var NODE_ID_LABEL = 'c6840b34-8614-4734-bdb2-10d52f258afc';
+            var NODE_ID_DESCRIPTION = '897a4abf-32dd-4d1f-925e-45c8d82828b9';
+            var NODE_ID_GEOMETRY = '2586e7f6-3610-4666-bc27-7efe9639dcaf';
+            var NODE_ID_COLOR = '2a0b5108-ef64-47e3-9460-61c064e397b1';
+            var NODE_ID_HOST_LINK = 'a2ef2d24-20ae-4070-b11b-207834905809';
+            var NODEGROUP_ANNOTATION_BODY = 'a2ef2d24-20ae-4070-b11b-207834905809';
 
             var resourceId = uuidv4();
             console.log('[WF LOG][summary] Creating annotation resource:', resourceId);
@@ -462,11 +470,10 @@ define([
                 descData[NODE_ID_DESCRIPTION] = self.annotationNote();
             }
 
-            var geomData = {};
-            geomData[NODE_ID_GEOMETRY] = JSON.stringify(anno.geometry);
-
-            var hostLinkData = {};
-            hostLinkData[NODE_ID_HOST_LINK] = [{
+            var annotationBodyData = {};
+            annotationBodyData[NODE_ID_GEOMETRY] = JSON.stringify(anno.geometry);
+            annotationBodyData[NODE_ID_COLOR] = anno.color || '#64ff64';
+            annotationBodyData[NODE_ID_HOST_LINK] = [{
                 resourceId: hostResourceId,
                 ontologyProperty: "",
                 inverseOntologyProperty: "",
@@ -484,8 +491,7 @@ define([
             }
 
             return promise
-                .then(() => postTile(NODE_ID_GEOMETRY, geomData, resourceId))
-                .then(() => postTile(NODE_ID_HOST_LINK, hostLinkData, resourceId))
+                .then(() => postTile(NODEGROUP_ANNOTATION_BODY, annotationBodyData, resourceId))
                 .then(() => {
                     console.log('[WF LOG][summary] Annotation resource created:', resourceId);
                     return resourceId; // Zwróć ID stworzonego resource'a

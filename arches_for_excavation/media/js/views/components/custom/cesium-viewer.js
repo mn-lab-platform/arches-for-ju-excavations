@@ -18,7 +18,7 @@ export default ko.components.register('cesium-viewer', {
         self.modelCrsDefinitions = ko.unwrap(params.modelCrsDefinitions) || [];
 
         self.initializedViewers = new Set();
-
+        console.log('[CESIUM] existingAnnotations at init', self.existingAnnotations);
         self.onCesiumViewerRendered = function () {
             self.initializeAllViewers();
         };
@@ -33,12 +33,43 @@ export default ko.components.register('cesium-viewer', {
                 return [];
             }
         }
+        const normalizeRelatedNames = (value) => {
+            if (!value) return [];
 
+            if (typeof value === 'string') {
+                return value.split(',').map(name => name.trim()).filter(Boolean);
+            }
+
+            if (Array.isArray(value)) {
+                return value.flatMap(normalizeRelatedNames);
+            }
+
+            if (typeof value === 'object') {
+                return [
+                    value['@value'],
+                    value.value,
+                    value.displayname,
+                    value.displayName,
+                    value.name,
+                    value.label,
+                    value.resourceName,
+                    value.resourceId
+                ].filter(Boolean).map(String);
+            }
+
+            return [String(value)];
+        };
         self.initializeAllViewers = async function () {
             for (let i = 0; i < self.models.length; i++) {
                 const model = self.models[i];
                 console.log('Model data:', model);
-                const modelName = model.resource.Name || `Model ${i}`;
+                const modelResourceId = model.resourceinstanceid || model.resourceId || model.id;
+                const modelName =
+                    model.resource.Name ||
+                    model.resource.Label ||
+                    model.displayname ||
+                    model.displayName ||
+                    `Model ${i}`;
                 const modelUrl = `${model.resource.URL}/tileset.json`;
                 const georeferenced = String(model.resource.Georeferenced).toLowerCase() === 'true';
                 const viewerId = `cesiumViewer-${i}`;
@@ -53,15 +84,15 @@ export default ko.components.register('cesium-viewer', {
                     console.error(`Viewer element ${viewerId} not found`);
                     continue;
                 }
-
+                
                 const modelAnnotations = self.existingAnnotations
                     .filter(anno => {
                         if (!anno.relatedResourceName) return false;
                         
-                        const relatedNames = anno.relatedResourceName.split(',').map(name => name.trim());
-                        return relatedNames.includes(modelName);
+                        const relatedNames = normalizeRelatedNames(anno.relatedResourceName);
+                        return relatedNames.includes(modelName)|| relatedNames.includes(modelResourceId);
                     });
-                
+                console.log('[CESIUM] modelAnnotations for', modelName, model.resourceinstanceid, modelAnnotations) ;
                 try {
                     const basemaps = await self._fetchBasemaps();
                     await initializeCesiumViewer(

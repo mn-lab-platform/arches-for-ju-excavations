@@ -16,13 +16,14 @@ def normalize_label(value):
 
 
 DATATYPE_COMPATIBILITY = {
-    "string": {"string", "non-localized-string"},
-    "non-localized-string": {"string", "non-localized-string"},
-    "concept": {"concept", "concept-list"},
-    "concept-list": {"concept", "concept-list"},
+    "string": {"string", "non-localized-string", "number"},
+    "non-localized-string": {"string", "non-localized-string", "number"},
+    "number": {"number", "string", "non-localized-string"},
+    "domain-value": {"domain-value", "concept", "concept-list"},
+    "concept": {"concept", "concept-list", "domain-value"},
+    "concept-list": {"concept", "concept-list", "domain-value"},
     "resource-instance": {"resource-instance", "resource-instance-list"},
     "resource-instance-list": {"resource-instance", "resource-instance-list"},
-    "number": {"number"},
     "date": {"date"},
     "boolean": {"boolean"},
     "file-list": {"file-list"},
@@ -95,7 +96,7 @@ def suggest_mapping(source_graph_id, target_graph_id):
 
         best_score, target = scored_targets[0] if scored_targets else (0, None)
 
-        enabled = bool(target) and best_score >= 70
+        enabled = bool(target) and best_score >= 80
 
         mappings.append({
             "source_node_id": source["node_id"],
@@ -138,6 +139,14 @@ def datatypes_compatible(source_type, target_type):
     return target_type in DATATYPE_COMPATIBILITY.get(source_type, {source_type})
 
 
+def datatype_score(source_type, target_type):
+    if source_type == target_type:
+        return 40
+    if datatypes_compatible(source_type, target_type):
+        return 10
+    return -60
+
+
 def score_target(source, target):
     score = 0
 
@@ -160,9 +169,6 @@ def score_target(source, target):
     if source_path and target_path:
         score += int(SequenceMatcher(None, source_path, target_path).ratio() * 30)
 
-    if datatypes_compatible(source["datatype"], target["datatype"]):
-        score += 40
-    else:
-        score -= 60
+    score += datatype_score(source["datatype"], target["datatype"])
 
     return score

@@ -1,32 +1,8 @@
 import ko from 'knockout';
 import photoViewerTemplate from 'templates/views/components/iiif/iiif-photo-viewer.htm';
 import { canvasLabel, extractServiceUrlFromCanvas } from './lib/iiif-manifest-utils';
-import {
-  fetchIiifInfoJson,
-  getIiifImageBounds,
-  getIiifMaxNativeZoom,
-  imageUrlFromServiceUrl,
-  infoJsonFromServiceUrl
-} from './lib/iiif-image-service-utils';
+import { infoJsonFromServiceUrl } from './lib/iiif-image-service-utils';
 import { ensureLeafletIiif } from './lib/leaflet-iiif-loader';
-
-const LOG = '[iiif-photo-viewer]';
-const DEBUG_FLAG = 'iiif.photo.debug';
-
-function isDebugOn() {
-  try {
-    if (typeof window === 'undefined') return false;
-    if (window.__IIIF_PHOTO_DEBUG__ === true) return true;
-    return window.localStorage?.getItem(DEBUG_FLAG) === '1';
-  } catch (_) {
-    return false;
-  }
-}
-
-function dbg(...args) {
-  if (!isDebugOn()) return;
-  console.log(LOG, ...args);
-}
 
 ko.bindingHandlers.iiifPhotoInit = {
   init(element, valueAccessor) {
@@ -55,70 +31,43 @@ ko.components.register('iiif-photo-viewer', {
       });
 
       function buildPages(manifest) {
-        dbg('Building pages from manifest:', manifest);
         const canvases = Array.isArray(manifest?.items) ? manifest.items : [];
-        dbg(`Found ${canvases.length} canvases`);
-        
-        const generatedPages = canvases.map((c, i) => {
+
+        return canvases.map((c, i) => {
           const serviceUrl = extractServiceUrlFromCanvas(c);
           const infoJson = infoJsonFromServiceUrl(serviceUrl);
-          const imageUrl = imageUrlFromServiceUrl(serviceUrl);
 
           return {
             id: c?.id || `canvas-${i + 1}`,
             label: canvasLabel(c, `Page ${i + 1}`),
             serviceUrl,
-            infoJson,
-            imageUrl
+            infoJson
           };
         }).filter(p => !!p.infoJson);
-        
-        dbg('Valid pages to render:', generatedPages);
-        return generatedPages;
       }
 
       function clearCurrentLayer() {
-        dbg('Clearing current layers...');
         try {
-          if (self._layer) {
+          if (self._layer && self._map) {
             self._map.removeLayer(self._layer);
-            self._layer = null;
           }
         } catch (_) {}
-
-        try {
-          if (self._overlay) {
-            self._map.removeLayer(self._overlay);
-            self._overlay = null;
-          }
-        } catch (_) {}
+        self._layer = null;
       }
 
-      function applyBounds() {
-         if (!self._map || !self._currentBounds) return;
-         const { clientWidth, clientHeight } = self._container || {};
-         if (clientWidth > 0 && clientHeight > 0) {
-            self._map.invalidateSize();
-            self._map.fitBounds(self._currentBounds);
-            self._map.scrollWheelZoom.enable();
-            dbg(`Bounds applied. Container size: ${clientWidth}x${clientHeight}`);
-         }
+      function refreshMapSize() {
+        if (!self._map || !self._container) return;
+        const { clientWidth, clientHeight } = self._container;
+        if (clientWidth > 0 && clientHeight > 0) {
+          self._map.invalidateSize();
+        }
       }
 
       async function renderCurrent() {
-        if (!self._map || !self._L) {
-            console.warn(LOG, 'renderCurrent aborted: map or Leaflet not ready');
-            return;
-        }
+        if (!self._map || !self._L) return;
 
-        const pages = self.pages();
-        const p = pages[self.index()];
-        if (!p) {
-            console.warn(LOG, 'renderCurrent aborted: no page found at index', self.index());
-            return;
-        }
-
-        dbg(`renderCurrent starting for page ${self.index()}:`, p.label, p);
+        const p = self.pages()[self.index()];
+        if (!p) return;
 
         self.status(`Loading: ${p.label}`);
         self.error('');
@@ -126,41 +75,29 @@ ko.components.register('iiif-photo-viewer', {
         try {
           clearCurrentLayer();
 
-          const info = await fetchIiifInfoJson(p.infoJson);
-          const bounds = getIiifImageBounds(info);
-          const maxNativeZoom = getIiifMaxNativeZoom(info);
-          
-          self._currentBounds = bounds;
-          dbg('New map bounds configured:', bounds, 'maxNativeZoom:', maxNativeZoom);
+          const layer = self._L.tileLayer.iiif(p.infoJson, {
+            fitBounds: false,
+            setMaxBounds: false,
+            quality: 'default',
+            tileFormat: 'png'
+          });
 
-          self._map.setMaxBounds(null);
-          
-          try {
-            self._layer = self._L.tileLayer.iiif(p.infoJson, {
-              setMaxBounds: false,
-              fitBounds: false,
-              quality: 'default',
-            }).addTo(self._map);
-            const targetMaxZoom = Math.max(8, maxNativeZoom + 8);
-            self._map.setMaxZoom(targetMaxZoom);
-            self._layer.options.maxNativeZoom = maxNativeZoom;
-            self._layer.options.maxZoom = targetMaxZoom;
-          } catch (tileErr) {
-            console.error(LOG, 'L.tileLayer.iiif threw an error, trying fallback...', tileErr);
-            // Fallback for small images or info.json variants the plugin cannot handle.
-            if (!p.imageUrl) throw tileErr;
+          self._layer = layer;
+          layer.addTo(self._map);
 
-            self._overlay = self._L.imageOverlay(p.imageUrl, bounds).addTo(self._map);
-            self._map.setMaxZoom(Math.max(4, maxNativeZoom + 2));
+          if (layer._infoPromise && typeof layer._infoPromise.then === 'function') {
+            await layer._infoPromise;
           }
 
-          self.status('');
-          
-          // Defer fitBounds until the container has a measurable size.
-          setTimeout(() => applyBounds(), 50);
+          if (self._layer !== layer || !self._map.hasLayer(layer)) return;
+          if (!Number.isFinite(layer.x) || !Number.isFinite(layer.y)) {
+            throw new Error('IIIF info.json missing valid width/height');
+          }
 
+          refreshMapSize();
+          self._map.scrollWheelZoom.enable();
+          self.status('');
         } catch (e) {
-          console.error(LOG, 'Page render failed completely:', e);
           self.status('');
           self.error('Page render failed: ' + (e?.message || String(e)));
         }
@@ -169,19 +106,16 @@ ko.components.register('iiif-photo-viewer', {
       self.prev = async () => {
         if (!self.canPrev()) return;
         self.index(self.index() - 1);
-        dbg('Navigating to previous page. Index:', self.index());
         await renderCurrent();
       };
 
       self.next = async () => {
         if (!self.canNext()) return;
         self.index(self.index() + 1);
-        dbg('Navigating to next page. Index:', self.index());
         await renderCurrent();
       };
 
       self.initMap = async (rootEl) => {
-        dbg('initMap called');
         try {
           self._container = rootEl.querySelector('.iiif-photo-leaflet-container');
           if (!self._container) throw new Error('Missing .iiif-photo-leaflet-container');
@@ -190,51 +124,39 @@ ko.components.register('iiif-photo-viewer', {
 
           self._map = self._L.map(self._container, {
             crs: self._L.CRS.Simple,
-            zoomControl: true,
-            maxZoom: 12
+            zoomControl: true
           });
+          self._map.setView([0, 0], 0, { animate: false });
 
           if (typeof ResizeObserver !== 'undefined') {
-              self._resizeObserver = new ResizeObserver(() => {
-                  if (self._map && self._currentBounds) applyBounds();
-              });
-              self._resizeObserver.observe(self._container);
+            self._resizeObserver = new ResizeObserver(() => refreshMapSize());
+            self._resizeObserver.observe(self._container);
           }
 
-          const m = ko.unwrap(self.manifest);
-          dbg('Unwrapped manifest on init:', m);
-          self.pages(buildPages(m));
+          self.pages(buildPages(ko.unwrap(self.manifest)));
           self.index(0);
 
           if (!self.pages().length) {
-            console.warn(LOG, 'No valid pages found during init.');
             self.error('No photo canvases with IIIF service in manifest.');
             return;
           }
 
           setTimeout(async () => {
-            dbg('Invalidating layout size and triggering first render');
-            self._map.invalidateSize();
+            refreshMapSize();
             await renderCurrent();
           }, 0);
         } catch (e) {
-          console.error(LOG, 'initMap failed:', e);
           self.error(e?.message || String(e));
         }
       };
 
       self._manifestSub = ko.computed(async () => {
-        const m = ko.unwrap(self.manifest);
-        dbg('Manifest observable changed:', m);
-        const pages = buildPages(m);
+        const pages = buildPages(ko.unwrap(self.manifest));
         self.pages(pages);
         self.index(0);
 
         if (self._map && pages.length) {
-          setTimeout(async () => {
-             // zamiast invalidateSize w ciemno polegamy na renderCurrent -> applyBounds
-            await renderCurrent();
-          }, 0);
+          setTimeout(async () => renderCurrent(), 0);
         }
       });
 
@@ -242,8 +164,8 @@ ko.components.register('iiif-photo-viewer', {
         try { if (self._manifestSub) self._manifestSub.dispose(); } catch (_) {}
         try {
           if (self._resizeObserver) {
-              self._resizeObserver.disconnect();
-              self._resizeObserver = null;
+            self._resizeObserver.disconnect();
+            self._resizeObserver = null;
           }
         } catch (_) {}
         try {

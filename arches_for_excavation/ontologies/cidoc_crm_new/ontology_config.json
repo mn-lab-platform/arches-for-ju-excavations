@@ -7,6 +7,7 @@
     "CRMgeo_v2.0.rdf.xml",
     "CRMdig_v5.0.rdf.xml",
     "CRMinf_v1.2.1.rdf.xml",
+    "CRMba_v1.4.rdf.xml",
     "arches_crm_enhancements.xml"
   ],
   "base_version": "7.1.3",

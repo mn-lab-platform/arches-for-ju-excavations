@@ -40,8 +40,18 @@ define([
                     icon: 'fa fa-digg'
                   },
                   {
+                    id: '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c',
+                    label: 'Import (O) Context Measurements',
+                    icon: 'fa fa-digg'
+                  },
+                  {
                     id: '9d82972a-f537-11ea-ac6d-9fb7e90de197',
                     label: 'Import Trench Measurements',
+                    icon: 'fa fa-crop'
+                  },
+                  {
+                    id: 'cc91f1ff-6ea8-422c-be14-b818660f66f8',
+                    label: 'Import (O) Trench Measurements',
                     icon: 'fa fa-crop'
                   }
                 ]

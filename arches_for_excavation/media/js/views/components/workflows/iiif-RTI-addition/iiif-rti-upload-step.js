@@ -7,10 +7,10 @@ define([
 ], function(ko, arches, template, utils, serviceUtils) {
   'use strict';
 
-  var NODE_IIIF_LABEL = '78422c09-4994-4eff-b764-60f21f3290cd';
-  var NODE_IIIF_URL = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
-  var NODE_RELATED_RESOURCE = '9c317e5f-76b4-407d-9b8d-b64f446ea17a';
-  var NODE_USED_FILES = 'b1947f78-f339-4e32-b24d-11f78a2b52bd';
+  var NODE_IIIF_LABEL = 'b9a36003-ef1c-4150-83dc-4d979e874065';
+  var NODE_IIIF_URL = 'df47642e-dfc0-442f-a5cf-8c1247e9c5bb';
+  var NODE_RELATED_RESOURCE = '8bedf116-657a-4eb5-af06-b4de29839966';
+  var NODE_USED_FILES = '9469c29f-85c2-4fce-bdb8-cd5d101d49d9';
 
   var REL_ONTOLOGY_PROPERTY_ID = '';
   var REL_INVERSE_PROPERTY_ID = '';
@@ -132,8 +132,8 @@ define([
         return Promise.reject(new Error('Backend did not return manifest_url.'));
       }
 
-      var labelData = utils.makeLangValue(self.resourceName() || data.resource_name || 'RTI', arches);
-      var urlData = utils.makeLangValue(manifestUrl, arches);
+      var labelData = self.resourceName() || data.resource_name || 'RTI';
+      var urlData = manifestUrl;
       var relTargets = [{
         resourceId: self.hostResourceId(),
         ontologyProperty: REL_ONTOLOGY_PROPERTY_ID,

@@ -11,8 +11,10 @@ define([
 ], function(ko, arches, template, _dropzone, utils, iiifApi, FileEntriesStore, QueueRunner, serviceUtils) {
   'use strict';
 
-  var NODE_IIIF_URL = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
-  var NODE_USED_FILES = 'ba3a8689-8bb6-4759-b4e2-328e8cf9bdf8';
+  var NODE_IIIF_URL = 'df47642e-dfc0-442f-a5cf-8c1247e9c5bb';
+  var NODE_USED_FILES = '9469c29f-85c2-4fce-bdb8-cd5d101d49d9';
+  var LEGACY_NODE_IIIF_URL = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
+  var LEGACY_NODE_USED_FILES = 'b1947f78-f339-4e32-b24d-11f78a2b52bd';
 
   function viewModel(params) {
     var self = this;
@@ -44,6 +46,11 @@ define([
     self.tiles = {
       urlTileId: ko.observable(null),
       fileListTileId: ko.observable(null)
+    };
+
+    self.nodeIds = {
+      manifest: NODE_IIIF_URL,
+      usedFiles: NODE_USED_FILES
     };
 
     var resourceIdParam = params.existingResourceId;
@@ -86,6 +93,10 @@ define([
       return { en: { value: _extractText(val), direction: 'ltr' } };
     }
 
+    function _manifestTileValue(val) {
+      return self.nodeIds.manifest === LEGACY_NODE_IIIF_URL ? _langText(val) : _extractText(val);
+    }
+
     function _normalizeUsedFileEntryForStore(entry) {
       var e = Object.assign({}, entry || {});
       e.title = _extractText(e.title);
@@ -103,7 +114,7 @@ define([
       var tileid = self.tiles.fileListTileId();
       self.fileStore.tileId(tileid);
 
-      return self.fileStore.saveToTile(NODE_USED_FILES, self.digitalResourceId())
+      return self.fileStore.saveToTile(self.nodeIds.usedFiles, self.digitalResourceId())
         .then(function(t) {
           if (t && t.tileid) self.tiles.fileListTileId(t.tileid);
           return t;
@@ -138,6 +149,14 @@ define([
       .then(function(ctx) {
         self.resourceName(ctx.resource_name || '');
         self.manifestUrl(ctx.manifest_url || '');
+
+        if (ctx.node_ids) {
+          self.nodeIds.manifest = ctx.node_ids.manifest || self.nodeIds.manifest;
+          self.nodeIds.usedFiles = ctx.node_ids.used_files || self.nodeIds.usedFiles;
+        } else {
+          self.nodeIds.manifest = LEGACY_NODE_IIIF_URL;
+          self.nodeIds.usedFiles = LEGACY_NODE_USED_FILES;
+        }
 
         if (ctx.tiles) {
           self.tiles.urlTileId(ctx.tiles.iiif_url_tile_id || null);
@@ -682,9 +701,9 @@ define([
 
         self.manifestUrl(manifestUrl);
 
-        var data = utils.makeLangValue(manifestUrl, arches);
+        var data = _manifestTileValue(manifestUrl);
         return utils.createOrUpdateTile(
-          NODE_IIIF_URL,
+          self.nodeIds.manifest,
           self.digitalResourceId(),
           self.tiles.urlTileId(),
           data

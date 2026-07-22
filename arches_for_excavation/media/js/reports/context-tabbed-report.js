@@ -10,8 +10,8 @@ export default ko.components.register('context-tabbed-report', {
     viewModel: function(params) {
         const self = this;
 
-        const ANNOTATION_RESOURCE_GRAPHID = '2880934b-0015-4c5a-8ec1-1ab9bca329fd';
-        const CRS_RESOURCE_GRAPHID = 'a5219c24-2907-4055-9d68-18216d214458';
+        const ANNOTATION_RESOURCE_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
+        const CRS_RESOURCE_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
        
         self.models3D = ko.observableArray([]);
         self.allowAnnotationsEdits = ko.observable(false);
@@ -34,6 +34,70 @@ export default ko.components.register('context-tabbed-report', {
         ];
  
         const relatedResources = params.report.relatedResourcesLookup();
+        console.log('[CONTEXT REPORT] relatedResourcesLookup buckets',
+            Object.entries(relatedResources).map(([key, value]) => ({
+                    key,
+                    name: value.name,
+                    count: value.loadedRelatedResources().length,
+                    resources: value.loadedRelatedResources()
+                }))
+            );
+
+            const contextResourceId = params.report.attributes.resourceid;
+            resourceService.getAllRelatedTo(contextResourceId).then(data => {
+                console.log('[CONTEXT REPORT] getAllRelatedTo raw', data);
+            });
+        const findDeepValue = (obj, keys) => {
+            const wanted = Array.isArray(keys) ? keys : [keys];
+            const seen = new Set();
+            const visit = (value) => {
+                if (!value || typeof value !== 'object') return undefined;
+                if (seen.has(value)) return undefined;
+                seen.add(value);
+                for (const key of wanted) {
+                    if (Object.prototype.hasOwnProperty.call(value, key)) return value[key];
+                }
+                for (const child of Object.values(value)) {
+                    const found = visit(child);
+                    if (found !== undefined) return found;
+                }
+                return undefined;
+            };
+            return visit(obj);
+        };
+
+        const unwrapValue = (value) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                if (value['@value'] !== undefined) return value['@value'];
+                if (value.value !== undefined) return value.value;
+            }
+            return value;
+        };
+
+        const parseJsonValue = (value, fallback) => {
+            value = unwrapValue(value);
+
+            if (!value) return fallback;
+            if (Array.isArray(value)) return value;
+            if (typeof value !== 'string') return fallback;
+
+            try {
+                return JSON.parse(value);
+            } catch (_) {
+                return fallback;
+            }
+        };
+
+        const graphIn = (graphId, graphIds) => graphIds.includes(graphId);
+
+        const extractCrsDefinitions = (crsData) => {
+            const resource = crsData && crsData.resource ? crsData.resource : {};
+            return {
+                proj: findDeepValue(resource, ['PROJ4 String', 'PROJ4']) || '',
+                wkt: findDeepValue(resource, ['WKT-2 String', 'WKT-2', 'WKT2']) || '',
+                esri: findDeepValue(resource, ['ESRI WKT String', 'ESRI WKT']) || ''
+            };
+        };
 
         const loadModelBundle = async (modelResource) => {
             if (!modelResource) return null;
@@ -48,11 +112,11 @@ export default ko.components.register('context-tabbed-report', {
             const relatedResourcesArray = relatedData?.related_resources?.related_resources || [];
 
             const annotationIds = relatedResourcesArray
-                .filter(related => related.graph_id === ANNOTATION_RESOURCE_GRAPHID)
+                .filter(related => graphIn(related.graph_id, ANNOTATION_RESOURCE_GRAPHIDS))
                 .map(related => related.resourceinstanceid);
 
             const crsId = relatedResourcesArray.find(
-                related => related.graph_id === CRS_RESOURCE_GRAPHID
+                related => graphIn(related.graph_id, CRS_RESOURCE_GRAPHIDS)
             )?.resourceinstanceid;
 
             const [annotations, crsData] = await Promise.all([
@@ -73,8 +137,7 @@ export default ko.components.register('context-tabbed-report', {
             .map(([_, value]) => value);
        
         if (model3DResource.length > 0) {
-            const actualModels = model3DResource[0].loadedRelatedResources();
-       
+            const actualModels = model3DResource.flatMap(group => group.loadedRelatedResources());
             if (actualModels.length > 0) {
                 myTabs.push(ko.mapping.fromJS({
                     name: 'Cesium Viewer',
@@ -102,23 +165,20 @@ export default ko.components.register('context-tabbed-report', {
                             self.models3D.push(modelData);
 
                             (annotations || []).forEach(anno => {
+                                const annoResource = anno.resource || {};
                                 self.existingAnnotations.push({
                                     id: anno.resourceinstanceid,
                                     name: anno.displayname,
                                     description: anno.displaydescription || '',
-                                    geometry: JSON.parse(anno.resource.Geometry),
-                                    color: anno.resource.Color || '#64ff64',
-                                    relatedResourceName: anno.resource['Related Resource'] || ''
+                                    geometry: parseJsonValue(findDeepValue(annoResource, 'Geometry'), []),
+                                    color: findDeepValue(annoResource, 'Color') || '#64ff64',
+                                    relatedResourceName: findDeepValue(annoResource, ['Related Resource', 'Annotated Resource', 'Annoted Resource']) || ''
                                 });
                             });
                             if (crsData) {
                                 self.modelCrsDefinitions.push({
                                     modelResourceId: resourceId,
-                                    crs: {
-                                        proj: crsData.resource.Definition.PROJ4['PROJ4 String'] || '',
-                                        wkt: crsData.resource.Definition['WKT-2']['WKT-2 String'] || '',
-                                        esri: crsData.resource.Definition['ESRI WKT']['ESRI WKT String'] || ''
-                                    }
+                                    crs: extractCrsDefinitions(crsData)
                                 });
                             }
                         });
@@ -142,11 +202,11 @@ export default ko.components.register('context-tabbed-report', {
                 return name.includes('iiif');
             })
             .map(([_, value]) => value);
- 
-        if (iiifResourceList.length > 0) {
-            const actualIiifResources = iiifResourceList[0].loadedRelatedResources();
-            console.log('[CONTEXT REPORT] Actual IIIF resources:', actualIiifResources);
-           
+            
+            if (iiifResourceList.length > 0) {
+            const actualIiifResources = iiifResourceList.flatMap(group =>
+                group.loadedRelatedResources()
+            );
             const iiifResourceIds = [];
             actualIiifResources.forEach(iiifResource => {
                 if (iiifResource) {

@@ -6,7 +6,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 
-from arches.app.models.models import Card, Edge, Graph, Node
+from arches.app.models.models import Card, Edge, Graph, Node, Relation, Value
 
 LAYOUTS_DIR = Path(__file__).resolve().parents[1] / "ontology_usage_layouts"
 
@@ -39,7 +39,91 @@ def make_code(value):
         text = text.rstrip("/").rsplit("/", 1)[-1]
 
     return text
+def plain_config(config):
+    if not config:
+        return {}
 
+    return dict(config)
+
+
+def get_collection_label(collection_id):
+    if not collection_id:
+        return ""
+
+    return (
+        Value.objects.filter(
+            concept_id=collection_id,
+            valuetype_id="prefLabel",
+        )
+        .values_list("value", flat=True)
+        .first()
+        or ""
+    )
+
+
+def serialize_node_concepts(node):
+    if node.datatype not in ("concept", "concept-list"):
+        return {
+            "collection": None,
+            "values": [],
+        }
+
+    config = plain_config(node.config)
+    collection_id = config.get("rdmCollection")
+
+    if not collection_id:
+        return {
+            "collection": None,
+            "values": [],
+        }
+
+    member_ids = list(
+        Relation.objects.filter(
+            conceptfrom_id=collection_id,
+            relationtype_id="member",
+        ).values_list("conceptto_id", flat=True)
+    )
+
+    concepts = {
+        str(concept_id): {
+            "id": str(concept_id),
+            "prefLabel": "",
+            "altLabels": [],
+            "hiddenLabels": [],
+        }
+        for concept_id in member_ids
+    }
+
+    values = Value.objects.filter(
+        concept_id__in=member_ids,
+        valuetype_id__in=("prefLabel", "altLabel", "hiddenLabel"),
+    ).order_by("value")
+
+    for value in values:
+        concept = concepts.setdefault(str(value.concept_id), {
+            "id": str(value.concept_id),
+            "prefLabel": "",
+            "altLabels": [],
+            "hiddenLabels": [],
+        })
+
+        if value.valuetype_id == "prefLabel" and not concept["prefLabel"]:
+            concept["prefLabel"] = value.value
+        elif value.valuetype_id == "altLabel":
+            concept["altLabels"].append(value.value)
+        elif value.valuetype_id == "hiddenLabel":
+            concept["hiddenLabels"].append(value.value)
+
+    return {
+        "collection": {
+            "id": str(collection_id),
+            "label": get_collection_label(collection_id),
+        },
+        "values": sorted(
+            concepts.values(),
+            key=lambda item: item["prefLabel"] or item["id"],
+        ),
+    }
 
 def get_layout_path(graph_id):
     return LAYOUTS_DIR / f"{graph_id}.json"
@@ -122,6 +206,8 @@ class OntologyUsageModelGraphView(View):
                 "ontologyClassCode": make_code(node.ontologyclass),
                 "parentProperty": "",
                 "parentPropertyCode": "",
+                "config": plain_config(node.config),
+                "concepts": serialize_node_concepts(node),
             })
 
         edges = Edge.objects.filter(graph_id=graph_id)

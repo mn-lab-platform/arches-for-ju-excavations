@@ -7,7 +7,8 @@ from django.http import JsonResponse
 from django.views import View
 from openpyxl import load_workbook
 
-from arches.app.models.models import Node, Resource
+from arches.app.models.models import Edge, Node, Resource
+from arches_slocal.utils.resource_model_compat import node_id
 from arches.app.models.tile import Tile
 
 POTTERY_GRAPH_ID = "55777e89-af36-44f5-b699-d7b90d08a1e8"
@@ -19,7 +20,6 @@ UNDIAGNOSTIC_NODE_ID = "c4d47ac4-d516-4fdf-a0bd-a1ea3741beeb"
 NO_MATERIAL_NODE_ID = "852f6e56-0287-4ee1-b5c4-356c309bfd24"
 SPECIAL_FIND_NODE_ID = "c9489a63-31f2-461f-a0f1-afc17c6fe6aa"
 REMARKS_NODE_ID = "7b943c5b-16af-4baf-b2dd-0639ce2b0a3e"
-FIELD_REMAINS_NODE_ID = "d6559928-9f52-11eb-96c4-020063fe0012"
 
 FIELD_REMAINS_VALUE_MAP = {
     "b_presence": "03f66a84-26a1-44c6-ac89-ce965886531a",   # Bones
@@ -184,6 +184,30 @@ class PotteryImportPreviewView(View):
                 nodegroup_id,
                 resourceid=str(resource.resourceinstanceid),
             )
+            parent_edge = Edge.objects.filter(
+                graph_id=resource.graph_id,
+                rangenode_id=node.nodeid,
+            ).first()
+            while parent_edge:
+                parent_node = Node.objects.get(nodeid=parent_edge.domainnode_id)
+                parent_nodegroup_id = str(parent_node.nodegroup_id or "")
+                if parent_nodegroup_id and parent_nodegroup_id != nodegroup_id:
+                    parent_tile = Tile.objects.filter(
+                        resourceinstance=resource,
+                        nodegroup_id=parent_nodegroup_id,
+                    ).first()
+                    if not parent_tile:
+                        parent_tile = Tile.get_blank_tile_from_nodegroup_id(
+                            parent_nodegroup_id,
+                            resourceid=str(resource.resourceinstanceid),
+                        )
+                        parent_tile.save()
+                    tile.parenttile = parent_tile
+                    break
+                parent_edge = Edge.objects.filter(
+                    graph_id=resource.graph_id,
+                    rangenode_id=parent_node.nodeid,
+                ).first()
 
         tile.data[node_id] = value
         tile.save()
@@ -277,9 +301,18 @@ class PotteryImportPreviewView(View):
             context_resource = Resource.objects.get(resourceinstanceid=context_resource_id)
 
             if field_remains_value:
+                field_remains_node_id = node_id(
+                    "context",
+                    "archaeological_remains",
+                    context_resource.graph_id,
+                )
+                if not field_remains_node_id:
+                    raise ValueError(
+                        f"Unsupported Context graph: {context_resource.graph_id}"
+                    )
                 self._upsert_tile_for_node(
                     context_resource,
-                    FIELD_REMAINS_NODE_ID,
+                    field_remains_node_id,
                     field_remains_value,
                 )
 

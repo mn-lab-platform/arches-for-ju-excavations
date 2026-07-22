@@ -49,9 +49,9 @@ OLD_COLOR_INTENSITY   = "d655995f-9f52-11eb-96c4-020063fe0012"  # concept (singl
 OLD_COLOR_SOIL        = "d655995e-9f52-11eb-96c4-020063fe0012"  # concept (single)
 
 # Nowe node'y (concept-list)
-NEW_DENSITY_NODE      = "96d18f72-65c0-4364-beb8-423cd2dbf08a"
-NEW_COLOR_INTENSITY   = "09fcfb1b-fd35-4ff8-a469-2cb518c51a9f"  # UWAGA: 4ea6, nie 4eae
-NEW_COLOR_SOIL        = "ccf0e32f-9aa3-4b40-a379-0f3057263ef3"
+NEW_DENSITY_NODE      = "37a2f4e3-bf7a-4bca-a9cb-9dbb3c47ea5a"
+NEW_COLOR_INTENSITY   = "59d0a3d7-fc7a-45d9-8915-547421bb8c97"  
+NEW_COLOR_SOIL        = "970b732f-cd8b-498c-8b8c-93abf7ae0bf0"
 
 
 # ---------------------------------------------------------------------------

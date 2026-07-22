@@ -15,10 +15,12 @@ define([
         : tileServiceModule;
 
     var ANNOTATION_NODE_IDS = {
-        label: 'e202ea9f-e0a9-42a3-85a1-6380bc1115b9',
-        description: 'e4c6d7e5-317d-4d04-9936-e4ad1886ba05',
-        geometry: '4277f805-09e7-4db1-bf26-49c09132c720',
-        hostLink: '5266b89c-72f7-41cf-a7f4-cde1df9efef9'
+        label: 'c6840b34-8614-4734-bdb2-10d52f258afc',
+        description: '897a4abf-32dd-4d1f-925e-45c8d82828b9',
+        color: '2a0b5108-ef64-47e3-9460-61c064e397b1',
+        geometry: '2586e7f6-3610-4666-bc27-7efe9639dcaf',
+        hostLink: 'a2ef2d24-20ae-4070-b11b-207834905809',
+        annotationGroup: 'a2ef2d24-20ae-4070-b11b-207834905809'
     };
 
     var manifestOverrideCache = {};
@@ -360,20 +362,25 @@ define([
 
         return chain
             .then(function() {
-                return iiifAdditionUtils.createOrUpdateTile(
-                    ANNOTATION_NODE_IDS.geometry,
-                    resourceId,
-                    '',
-                    JSON.stringify(annotation.geometry || annotation.localGeometry || null)
-                );
-            })
-            .then(function() {
-                return iiifAdditionUtils.createOrUpdateTile(
-                    ANNOTATION_NODE_IDS.hostLink,
-                    resourceId,
-                    '',
-                    [iiifAnnotationUtils.buildResourceLinkValue(hostResourceId)]
-                );
+                var groupData = {};
+                groupData[ANNOTATION_NODE_IDS.geometry] = JSON.stringify(annotation.geometry || annotation.localGeometry || null);
+                groupData[ANNOTATION_NODE_IDS.color] = annotation.color || '#64ff64';
+                groupData[ANNOTATION_NODE_IDS.hostLink] = [{
+                    resourceId: hostResourceId,
+                    ontologyProperty: "",
+                    inverseOntologyProperty: "",
+                    resourceXresourceId: ""
+                }];
+
+                return tileService.createOne({
+                    tileid: '',
+                    nodegroup_id: ANNOTATION_NODE_IDS.annotationGroup,
+                    parenttile_id: null,
+                    resourceinstance_id: resourceId,
+                    sortorder: 0,
+                    tiles: {},
+                    data: groupData
+                });
             })
             .then(function() {
                 console.log('[iiif-annotation-service] createAnnotationResource:success', {
@@ -450,21 +457,19 @@ define([
             annotationResourceId: annotationData && annotationData.annotationResourceId
         });
 
-        return ensureManifestOverride(digitalResourceId, sourceManifest).then(function() {
-            return postJson(manifestEditUrl(digitalResourceId), {
-                mode: 'upsert_annotation',
-                canvas_id: canvasId,
-                annotation: iiifAnnotationUtils.buildV3Annotation(annotationData)
-            }).then(function(result) {
-                console.log('[iiif-annotation-service] upsertAnnotation:success', {
-                    digitalResourceId: digitalResourceId,
-                    canvasId: canvasId,
-                    annotationId: annotationData && annotationData.id,
-                    annotationResourceId: annotationData && annotationData.annotationResourceId,
-                    response: result
-                });
-                return result;
+        return postJson(manifestEditUrl(digitalResourceId), {
+            mode: 'upsert_annotation',
+            canvas_id: canvasId,
+            annotation: iiifAnnotationUtils.buildV3Annotation(annotationData)
+        }).then(function(result) {
+            console.log('[iiif-annotation-service] upsertAnnotation:success', {
+                digitalResourceId: digitalResourceId,
+                canvasId: canvasId,
+                annotationId: annotationData && annotationData.id,
+                annotationResourceId: annotationData && annotationData.annotationResourceId,
+                response: result
             });
+            return result;
         });
     }
 

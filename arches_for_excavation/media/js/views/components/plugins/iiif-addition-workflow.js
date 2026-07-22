@@ -31,7 +31,7 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphid: 'd6559924-9f52-11eb-96c4-020063fe0012', //context id
+                graphIds: ['d6559924-9f52-11eb-96c4-020063fe0012', '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c'],
                 placeholderText: '— Select which resource —',
                 searchPlaceholder: 'Search resources...',
                 enableSearch: true,

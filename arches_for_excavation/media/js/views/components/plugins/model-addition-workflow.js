@@ -26,7 +26,7 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphIds: ['d6559924-9f52-11eb-96c4-020063fe0012', '9d82972a-f537-11ea-ac6d-9fb7e90de197'],
+                graphIds: ['d6559924-9f52-11eb-96c4-020063fe0012', '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c', '9d82972a-f537-11ea-ac6d-9fb7e90de197', 'cc91f1ff-6ea8-422c-be14-b818660f66f8'],
                 searchPlaceholder: 'Search resources...',
               }
             }]

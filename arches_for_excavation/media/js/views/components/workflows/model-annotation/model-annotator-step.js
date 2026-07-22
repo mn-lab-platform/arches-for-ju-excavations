@@ -14,14 +14,15 @@ define([
 
         self.REL_ONTOLOGY_PROPERTY_ID = null;
         self.REL_INVERSE_PROPERTY_ID = null;
-        self.ANNOTATION_NAME_NODE_ID = 'e202ea9f-e0a9-42a3-85a1-6380bc1115b9';
-        self.ANNOTATION_DESCRIPTION_NODE_ID = 'e4c6d7e5-317d-4d04-9936-e4ad1886ba05';
-        self.ANNOTATION_COLOR_NODE_ID = 'd691d389-6259-4765-b2d3-7f7f98057101';
-        self.ANNOTATION_GEOMETRY_NODE_ID = '4277f805-09e7-4db1-bf26-49c09132c720';
-        self.ANNOTATION_RELATED_NODE_ID = '5266b89c-72f7-41cf-a7f4-cde1df9efef9';
+        self.ANNOTATION_NAME_NODE_ID = 'c6840b34-8614-4734-bdb2-10d52f258afc';
+        self.ANNOTATION_DESCRIPTION_NODE_ID = '897a4abf-32dd-4d1f-925e-45c8d82828b9';
+        self.ANNOTATION_COLOR_NODE_ID = '2a0b5108-ef64-47e3-9460-61c064e397b1';
+        self.ANNOTATION_GEOMETRY_NODE_ID = '2586e7f6-3610-4666-bc27-7efe9639dcaf';
+        self.ANNOTATION_RELATED_NODE_ID = 'a2ef2d24-20ae-4070-b11b-207834905809';
+        self.ANNOTATION_GROUP_NODEGROUP_ID = 'a2ef2d24-20ae-4070-b11b-207834905809';
 
-        self.ANNOTATION_MODEL_GRAPHID = '2880934b-0015-4c5a-8ec1-1ab9bca329fd';
-        self.CRS_MODEL_GRAPHID = 'a5219c24-2907-4055-9d68-18216d214458';
+        self.ANNOTATION_MODEL_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
+        self.CRS_MODEL_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
 
         self.MODE = {
             ADD: 'add',
@@ -78,7 +79,7 @@ define([
                     const tiles = tilesWrapper.tiles || [];
                     const nameTile = tiles.find(t => (t.nodegroup === self.ANNOTATION_NAME_NODE_ID));
                     const descriptionTile = tiles.find(t => (t.nodegroup === self.ANNOTATION_DESCRIPTION_NODE_ID));
-                    const colorTile = tiles.find(t => (t.nodegroup === self.ANNOTATION_COLOR_NODE_ID));
+                    const colorTile = tiles.find(t => (t.nodegroup === self.ANNOTATION_GROUP_NODEGROUP_ID || t.nodegroup_id === self.ANNOTATION_GROUP_NODEGROUP_ID));
 
                     const nameData = {};
                     nameData[self.ANNOTATION_NAME_NODE_ID] = annotationData.name || 'Unnamed Annotation';
@@ -93,7 +94,7 @@ define([
                         .then(() =>
                             self._postTile(self.ANNOTATION_DESCRIPTION_NODE_ID, descriptionData, annotationId, descriptionTile.tileid)
                         ).then(() =>
-                            self._postTile(self.ANNOTATION_COLOR_NODE_ID, colorData, annotationId, colorTile.tileid)
+                            self._postTile(self.ANNOTATION_GROUP_NODEGROUP_ID, colorData, annotationId, colorTile && colorTile.tileid)
                         );
                 });
         };
@@ -129,7 +130,7 @@ define([
             return resourceService.getAllRelatedTo(self.modelResourceId()).then(function(relatedResources) {
                 const relatedResourcesArray = relatedResources.related_resources.related_resources || [];
                 self.annotationsIds = relatedResourcesArray.filter(function(rel) {
-                    return rel.graph_id === self.ANNOTATION_MODEL_GRAPHID;
+                    return self.ANNOTATION_MODEL_GRAPHIDS.includes(rel.graph_id);
                 }).map(function(rel) {
                     return rel.resourceinstanceid;
                 });   
@@ -159,7 +160,7 @@ define([
             return resourceService.getAllRelatedTo(self.modelResourceId()).then(function(relatedResources) {
                 const relatedResourcesArray = relatedResources.related_resources.related_resources || [];
                 const relatedCRSObject = relatedResourcesArray.filter(function(rel) {
-                    return rel.graph_id === self.CRS_MODEL_GRAPHID;
+                    return self.CRS_MODEL_GRAPHIDS.includes(rel.graph_id);
                 });
                 if (relatedCRSObject.length === 0) {
                     console.log("No related CRS resource found.");

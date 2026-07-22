@@ -10,15 +10,41 @@ define([
             
             const tileService = tileServiceModule.default || tileServiceModule;
 
-            const CONTEXT_GRAPHID = 'd6559924-9f52-11eb-96c4-020063fe0012';
-            const TRENCH_GRAPHID= '9d82972a-f537-11ea-ac6d-9fb7e90de197';
+            const GRAPH_CONFIG = {
+                'd6559924-9f52-11eb-96c4-020063fe0012': {
+                    legacy: true,
+                    footprintNodeId: 'd6559931-9f52-11eb-96c4-020063fe0012',
+                    measurementGeojsonNodeId: 'bd290f65-b2fe-4de2-a9b6-fa056036facb',
+                    measurementTextNodeId: '1d9f2ee2-d024-4c4e-a668-48951c55af63',
+                },
+                '9d82972a-f537-11ea-ac6d-9fb7e90de197': {
+                    legacy: true,
+                    footprintNodeId: '3a9f46c0-f538-11ea-ac6d-9fb7e90de197',
+                    measurementGeojsonNodeId: '6d6accec-cde3-4a6d-b10b-ea217a01c6e7',
+                    measurementTextNodeId: '55693a63-9800-4439-8c64-34b72aa2d36b',
+                },
+                '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c': {
+                    nodegroupId: '62ce85a9-150c-4485-8a7b-39f5c75b26ae',
+                    parentNodegroupId: 'd45fc0db-a519-45be-911f-fe1e71153ed9',
+                    footprintNodeId: 'e2605398-9cbc-4ce0-bc88-46a96e8bcec8',
+                    measurementGeojsonNodeId: 'a9b48ce5-7590-4972-8f09-38c16294592d',
+                    measurementTextNodeId: '0fc80919-a200-4cfd-981b-27c901a4f5df',
+                },
+                'cc91f1ff-6ea8-422c-be14-b818660f66f8': {
+                    nodegroupId: '13f0cf86-0f4f-4d8c-96dc-3daa5a58af44',
+                    footprintNodeId: 'ecd3d094-57fb-4dd0-80fe-bc17fc4ca7e7',
+                    measurementGeojsonNodeId: 'ca3ca0ce-78df-4594-991c-47c3720cb1fd',
+                    measurementTextNodeId: '39c128ad-df05-4395-8ccf-cf052ac90908',
+                },
+            };
 
-            const CONTEXT_FOOTPRINT_NODE_ID = 'd6559931-9f52-11eb-96c4-020063fe0012';
-            const CONTEXT_MEASURED_GEOJSON_NODE_ID = 'bd290f65-b2fe-4de2-a9b6-fa056036facb';
-            const CONTEXT_MEASURED_TEXT_NODE_ID = '1d9f2ee2-d024-4c4e-a668-48951c55af63';
-            const TRENCH_FOOTPRINT_NODE_ID = '3a9f46c0-f538-11ea-ac6d-9fb7e90de197'; 
-            const TRENCH_MEASURED_GEOJSON_NODE_ID = '6d6accec-cde3-4a6d-b10b-ea217a01c6e7';
-            const TRENCH_MEASURED_TEXT_NODE_ID = '55693a63-9800-4439-8c64-34b72aa2d36b';
+            self._graphConfig = function() {
+                const config = GRAPH_CONFIG[self.graphId];
+                if (!config) {
+                    throw new Error('Unknown graphId: ' + self.graphId);
+                }
+                return config;
+            };
 
             self.inputData = ko.unwrap(params.coordinatesData);
             self.graphId = ko.unwrap(params.graphId);
@@ -70,36 +96,15 @@ define([
             };
 
             self._getFootprintNodeIdForGraphId = function(graphId) {
-                switch(graphId) {
-                    case CONTEXT_GRAPHID:
-                        return CONTEXT_FOOTPRINT_NODE_ID;
-                    case TRENCH_GRAPHID:
-                        return TRENCH_FOOTPRINT_NODE_ID;
-                    default:
-                        throw new Error('Unknown graphId: ' + graphId);
-                }
+                return GRAPH_CONFIG[graphId].footprintNodeId;
             };
 
             self._getMeasuredGeojsonNodeIdForGraphId = function(graphId) {
-                switch(graphId) {
-                    case CONTEXT_GRAPHID:
-                        return CONTEXT_MEASURED_GEOJSON_NODE_ID;
-                    case TRENCH_GRAPHID:
-                        return TRENCH_MEASURED_GEOJSON_NODE_ID;
-                    default:
-                        throw new Error('Unknown graphId: ' + graphId);
-                }
+                return GRAPH_CONFIG[graphId].measurementGeojsonNodeId;
             };
 
             self._getMeasuredTextNodeIdForGraphId = function(graphId) {
-                switch(graphId) {
-                    case CONTEXT_GRAPHID:
-                        return CONTEXT_MEASURED_TEXT_NODE_ID;
-                    case TRENCH_GRAPHID:
-                        return TRENCH_MEASURED_TEXT_NODE_ID;
-                    default:
-                        throw new Error('Unknown graphId for measured text node: ' + graphId);
-                }
+                return GRAPH_CONFIG[graphId].measurementTextNodeId;
             };
 
             self._createGeojsonFromText = function(text, targetNodeId) {
@@ -164,18 +169,67 @@ define([
                 return geojsonObj ? JSON.stringify(geojsonObj, null, 2) : '';
             });
 
-            self._postTile = function (nodegroup_id, data) {
+            self._tileIdFromResponse = function(response) {
+                return response && (response.tileid || response.tileId || response.tile_id || (response.tile && response.tile.tileid));
+            };
+
+            self._postTile = function (nodegroupId, data, parenttileId) {
                 const payload = {
                     tileid: '',
-                    nodegroup_id: nodegroup_id,
-                    parenttile_id: null,
+                    nodegroup_id: nodegroupId,
+                    parenttile_id: parenttileId || null,
                     resourceinstance_id: self.resourceId,
                     sortorder: 0,
                     tiles: {},
                     data: {}
                 };
 
-                payload.data[nodegroup_id] = data;
+                payload.data[nodegroupId] = data;
+
+                return tileService.createOne(payload);
+            };
+
+            self._findTileByNodegroup = async function(nodegroupId) {
+                const tiles = await tileService.getAllForResource(self.resourceId);
+                return (tiles || []).find(tile => String(tile.nodegroup_id) === nodegroupId) || null;
+            };
+
+            self._getOrCreateParentTile = async function(nodegroupId) {
+                const existing = await self._findTileByNodegroup(nodegroupId);
+                if (existing) {
+                    return existing.tileid;
+                }
+
+                const created = await tileService.createOne({
+                    tileid: '',
+                    nodegroup_id: nodegroupId,
+                    parenttile_id: null,
+                    resourceinstance_id: self.resourceId,
+                    sortorder: 0,
+                    tiles: {},
+                    data: {},
+                });
+                return self._tileIdFromResponse(created);
+            };
+
+            self._postGroupedFootprintTile = async function(config, projectedVal, projectedValStr, originalText) {
+                const parenttileId = config.parentNodegroupId
+                    ? await self._getOrCreateParentTile(config.parentNodegroupId)
+                    : null;
+
+                const payload = {
+                    tileid: '',
+                    nodegroup_id: config.nodegroupId,
+                    parenttile_id: parenttileId || null,
+                    resourceinstance_id: self.resourceId,
+                    sortorder: 0,
+                    tiles: {},
+                    data: {},
+                };
+
+                payload.data[config.footprintNodeId] = projectedVal;
+                payload.data[config.measurementGeojsonNodeId] = projectedValStr;
+                payload.data[config.measurementTextNodeId] = originalText;
 
                 return tileService.createOne(payload);
             };
@@ -197,11 +251,14 @@ define([
                 }
 
                 try {
-                    await self._postTile(self._getFootprintNodeIdForGraphId(self.graphId), projectedVal);
-                    
-                    await self._postTile(self._getMeasuredGeojsonNodeIdForGraphId(self.graphId), projectedValStr);
-                    
-                    await self._postTile(self._getMeasuredTextNodeIdForGraphId(self.graphId), originalText);
+                    const config = self._graphConfig();
+                    if (config.legacy) {
+                        await self._postTile(config.footprintNodeId, projectedVal);
+                        await self._postTile(config.measurementGeojsonNodeId, projectedValStr);
+                        await self._postTile(config.measurementTextNodeId, originalText);
+                    } else {
+                        await self._postGroupedFootprintTile(config, projectedVal, projectedValStr, originalText);
+                    }
                     
                     self.infoMessage(null);
                     self.successMessage('Footprint data saved successfully.');

@@ -14,11 +14,12 @@ define([
             resource: 'resource'
         }
 
-        self.ANNOTATION_NAME_NODE_ID = 'e202ea9f-e0a9-42a3-85a1-6380bc1115b9';
-        self.ANNOTATION_DESCRIPTION_NODE_ID = 'e4c6d7e5-317d-4d04-9936-e4ad1886ba05';
-        self.ANNOTATION_COLOR_NODE_ID = 'd691d389-6259-4765-b2d3-7f7f98057101';
-        self.ANNOTATION_GEOMETRY_NODE_ID = '4277f805-09e7-4db1-bf26-49c09132c720';
-        self.ANNOTATION_RELATED_NODE_ID = '5266b89c-72f7-41cf-a7f4-cde1df9efef9';
+        self.ANNOTATION_NAME_NODE_ID = 'c6840b34-8614-4734-bdb2-10d52f258afc';
+        self.ANNOTATION_DESCRIPTION_NODE_ID = '897a4abf-32dd-4d1f-925e-45c8d82828b9';   
+        self.ANNOTATION_COLOR_NODE_ID = '2a0b5108-ef64-47e3-9460-61c064e397b1';
+        self.ANNOTATION_GEOMETRY_NODE_ID = '2586e7f6-3610-4666-bc27-7efe9639dcaf';
+        self.ANNOTATION_RELATED_NODE_ID = 'a2ef2d24-20ae-4070-b11b-207834905809';
+        self.ANNOTATION_GROUP_NODEGROUP_ID = 'a2ef2d24-20ae-4070-b11b-207834905809';
 
         self.mode = params.mode;
         
@@ -33,7 +34,8 @@ define([
         self.errorMessage = ko.observable(null);
         
         self.annotationSaved = ko.observable(false);
-
+        const annotationData = ko.unwrap(self.annotationData) || {};
+        console.log('[ANNOTATION SAVE] annotationData before save', annotationData);
         self._postTile = function(nodegroupId, data, resourceId, tileId='') {
             const payload = {
                 tileid: tileId,
@@ -53,43 +55,63 @@ define([
         };
 
         self._saveAnnotation = function() {
-            if (self.annotationData && self.annotationData.isSavedToDatabase) {
-                console.log("Annotation already saved to DB. Skipping tile creation to prevent duplicates.");
-                self.annotationId = self.annotationData.id;
-                self.annotationSaved(true);
-                self.isLoading(false);
-                return Promise.resolve();
+            self.isLoading(true);
+
+            self.annotationId = annotationData.id || null;
+
+            const relatedResources = Array.isArray(annotationData.relatedResources) && annotationData.relatedResources.length
+                ? annotationData.relatedResources
+                : [{
+                    resourceId: ko.unwrap(self.modelResourceId),
+                    ontologyProperty: "",
+                    inverseOntologyProperty: "",
+                    resourceXresourceId: ""
+                }];
+
+            const groupData = {};
+            groupData[self.ANNOTATION_COLOR_NODE_ID] = annotationData.color || '#64ff64';
+            groupData[self.ANNOTATION_GEOMETRY_NODE_ID] = JSON.stringify(annotationData.geometry);
+            groupData[self.ANNOTATION_RELATED_NODE_ID] = relatedResources;
+
+            if (annotationData.isSavedToDatabase && annotationData.relatedTileId) {
+                console.log('[ANNOTATION SAVE] updating existing annotation grouped tile', annotationData.relatedTileId, groupData);
+
+                return self._postTile(
+                    self.ANNOTATION_GROUP_NODEGROUP_ID,
+                    groupData,
+                    self.annotationId,
+                    annotationData.relatedTileId
+                ).then(function(response) {
+                    annotationData.relatedResources = relatedResources;
+                    annotationData.isSavedToDatabase = true;
+                    self.annotationSaved(true);
+                    return response;
+                });
             }
 
-            self.isLoading(true);
             self.infoMessage(`Saving core annotation... ${self.mode === self.MODES.resource ? ' You will be prompted to select resource type in a second' : ''}`);
+
             
-            self.annotationId = self.annotationData.id || null;
+            self.annotationId = annotationData.id || null;
 
             const nameData = {};
-            nameData[self.ANNOTATION_NAME_NODE_ID] = self.annotationData.name;
+            nameData[self.ANNOTATION_NAME_NODE_ID] = annotationData.name;
             const descriptionData = {};
-            descriptionData[self.ANNOTATION_DESCRIPTION_NODE_ID] = self.annotationData.description;
+            descriptionData[self.ANNOTATION_DESCRIPTION_NODE_ID] = annotationData.description;
             const colorData = {};
-            colorData[self.ANNOTATION_COLOR_NODE_ID] = self.annotationData.color;
+            colorData[self.ANNOTATION_COLOR_NODE_ID] = annotationData.color;
             const geometryData = {};
-            geometryData[self.ANNOTATION_GEOMETRY_NODE_ID] = JSON.stringify(self.annotationData.geometry);
-            const relatedData = {};
-            relatedData[self.ANNOTATION_RELATED_NODE_ID] = [{
-                resourceId: self.modelResourceId
-            }];
+            geometryData[self.ANNOTATION_GEOMETRY_NODE_ID] = JSON.stringify(annotationData.geometry);
             
             return self._postTile(self.ANNOTATION_NAME_NODE_ID, nameData, self.annotationId)
                 .then(() => self._postTile(self.ANNOTATION_DESCRIPTION_NODE_ID, descriptionData, self.annotationId))
-                .then(() => self._postTile(self.ANNOTATION_COLOR_NODE_ID, colorData, self.annotationId))
-                .then(() => self._postTile(self.ANNOTATION_GEOMETRY_NODE_ID, geometryData, self.annotationId))
-                .then(() => self._postTile(self.ANNOTATION_RELATED_NODE_ID, relatedData, self.annotationId))
+                .then(() => self._postTile(self.ANNOTATION_GROUP_NODEGROUP_ID, groupData, self.annotationId))
                 .then(function(response) {
-                    if (self.annotationData && response && response.tileid) {
-                        self.annotationData.relatedTileId = response.tileid;
-                        self.annotationData.relatedResources = relatedData[self.ANNOTATION_RELATED_NODE_ID];
+                    if (annotationData && response && response.tileid) {
+                        annotationData.relatedTileId = response.tileid;
+                        annotationData.relatedResources = groupData[self.ANNOTATION_RELATED_NODE_ID];
                         
-                        self.annotationData.isSavedToDatabase = true; 
+                        annotationData.isSavedToDatabase = true; 
                     }
                     return response;
                 });
@@ -98,10 +120,13 @@ define([
         
         self._saveAnnotation().then(function() {
             self.isLoading(false);
+            if (!Array.isArray(annotationData.geometry) || annotationData.geometry.length < 3) {
+                return Promise.reject(new Error('Annotation geometry is missing.'));
+            }
             self.annotationSaved(true);
             
-            if (self.annotationData && !self.annotationData.id && self.annotationId) {
-                self.annotationData.id = self.annotationId;
+            if (annotationData && !annotationData.id && self.annotationId) {
+                annotationData.id = self.annotationId;
             }
             
         }).catch(function(err) {

@@ -26,7 +26,7 @@ define([
               uniqueInstanceName: 'crs-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphId: 'a5219c24-2907-4055-9d68-18216d214458',
+                graphIds: ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'],
                 multiple: false,
                 searchPlaceholder: 'Search CRS definitions...'
               }
@@ -43,7 +43,7 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphIds: ['401b3051-d1c4-465c-8dd0-1d5784adee98', '5465389c-bba7-4af1-bc9a-9fbb201e8408'],
+                graphIds: ['401b3051-d1c4-465c-8dd0-1d5784adee98', 'f1b9e37a-c3ba-4c26-a797-7f16302c031c', '5465389c-bba7-4af1-bc9a-9fbb201e8408', '039f5a45-82e2-4597-8609-d24c758bfd59'],
                 multiple: true,
                 searchPlaceholder: 'Search IIIF and 3D resources...'
               }

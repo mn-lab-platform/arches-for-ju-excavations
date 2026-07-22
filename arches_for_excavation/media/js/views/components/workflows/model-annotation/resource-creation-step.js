@@ -10,7 +10,9 @@ define([
         const resourceService = resourceServiceModule.default || resourceServiceModule;
         const tileService = tileServiceModule.default || tileServiceModule;
 
-        self.ANNOTATION_RELATED_NODE_ID = '5266b89c-72f7-41cf-a7f4-cde1df9efef9';
+        self.ANNOTATION_RELATED_NODE_ID = 'a2ef2d24-20ae-4070-b11b-207834905809';
+        self.ANNOTATION_GEOMETRY_NODE_ID = '2586e7f6-3610-4666-bc27-7efe9639dcaf';
+        self.ANNOTATION_COLOR_NODE_ID = '2a0b5108-ef64-47e3-9460-61c064e397b1';
 
         self.value = params.value;
         self.useCreateMode = ko.observable(false);
@@ -124,25 +126,42 @@ define([
             
             const relatedTileId = params.annotationData.relatedTileId;
             let relatedResources = params.annotationData.relatedResources || [];
-            
-            const isAlreadyLinked = relatedResources.some(rel => rel.resourceId === createdResourceId);
-            
-            if (!isAlreadyLinked) {
-                relatedResources.push({ resourceId: createdResourceId });
+
+            if (!Array.isArray(relatedResources)) {
+                relatedResources = [relatedResources];
             }
 
+            const isAlreadyLinked = relatedResources.some(rel =>
+                rel && rel.resourceId === createdResourceId
+            );
+
+            if (!isAlreadyLinked) {
+                relatedResources.push({
+                    resourceId: createdResourceId,
+                    ontologyProperty: "",
+                    inverseOntologyProperty: "",
+                    resourceXresourceId: ""
+                });
+            }
+            const annotationData = ko.unwrap(params.annotationData) || params.annotationData || {};
+
+            const fullTileData = {};
+            fullTileData[self.ANNOTATION_RELATED_NODE_ID] = relatedResources;
+            fullTileData[self.ANNOTATION_GEOMETRY_NODE_ID] = Array.isArray(annotationData.geometry)
+                ? JSON.stringify(annotationData.geometry)
+                : annotationData.geometry || null;
+            fullTileData[self.ANNOTATION_COLOR_NODE_ID] = annotationData.color || null;
+
             const payload = {
-                tileid: relatedTileId || null, 
+                tileid: relatedTileId || null,
                 nodegroup_id: self.ANNOTATION_RELATED_NODE_ID,
                 parenttile_id: null,
                 resourceinstance_id: annotationResourceId,
                 sortorder: 0,
                 tiles: {},
-                data: {
-                    [self.ANNOTATION_RELATED_NODE_ID]: relatedResources
-                }
-             };
-             
+                data: fullTileData
+            };
+                        
              if (payload.tileid) {
                  return tileService.updateOne(payload);
              }

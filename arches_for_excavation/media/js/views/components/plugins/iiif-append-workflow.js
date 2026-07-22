@@ -35,7 +35,7 @@ define([
                 searchPlaceholder: 'Search IIIF resources...',
                 enableSearch: true,
                 resultLimit: 50,
-                graphId: "401b3051-d1c4-465c-8dd0-1d5784adee98"
+                graphIds: ['401b3051-d1c4-465c-8dd0-1d5784adee98', 'f1b9e37a-c3ba-4c26-a797-7f16302c031c']
               }
             }]
           }]

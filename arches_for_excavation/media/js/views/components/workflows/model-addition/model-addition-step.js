@@ -12,11 +12,12 @@ define([
             self.value = params.value;
             const tileService = tileServiceModule.default || tileServiceModule;
             
-            self.NAME_NODE_ID = 'e86d68d2-04f0-4d26-b9a1-ee2d17d18232'
-            self.CREATED_AT_NODE_ID = '79e9e772-d8cb-41e5-87a3-f4a0cce70f69'
-            self.GEOREFERENCED_NODE_ID = '6f57cc4e-3c15-4483-8517-753a999ac448'
-            self.URL_NODE_ID = '5c156476-b54c-4e7b-80b2-005667812d4e'
-            self.RELATED_NODE_ID = '19d7fe5b-59ff-46e4-8366-9b2cc77b0a8d',
+            self.NAME_NODE_ID = '5b1ab6bd-faf6-4120-93ae-8e6f4ea1de32';
+            self.CREATED_AT_NODE_ID = '664b24d2-b94d-4cfd-be93-eb7d94ea0c03';
+            self.CREATED_AT_NODEGROUP_ID = '27bb6c9e-cd39-4d8e-ba37-ed6bad2284f3';
+            self.GEOREFERENCED_NODE_ID = 'dc5d3b0a-f66a-4c66-b951-0d99fc68367b';
+            self.URL_NODE_ID = 'c38b2683-4297-4a83-87ba-de31a4ec88d8';
+            self.RELATED_NODE_ID = 'f67c4c42-fe0e-489b-9af7-58405ad7c65f';
 
             self.errorMessage = ko.observable(null);
             self.infoMessage = ko.observable(null);
@@ -72,7 +73,7 @@ define([
                         return self._postTile(self.RELATED_NODE_ID, relData, resourceId);
                     })
                     .then(function() {
-                        return self._postTile(self.CREATED_AT_NODE_ID, createdAtData, resourceId);
+                        return self._postTile(self.CREATED_AT_NODEGROUP_ID, createdAtData, resourceId);
                     })
                     .then(function() {
                         return self._postTile(self.GEOREFERENCED_NODE_ID, georeferencedData, resourceId);

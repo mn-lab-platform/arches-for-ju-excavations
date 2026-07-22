@@ -47,11 +47,30 @@ const _extractProjectExtentCoordinates = (payload) => {
     return coordinates.flat();
 };
 
+const findDeepValue = (obj, keys) => {
+    const wanted = Array.isArray(keys) ? keys : [keys];
+    const seen = new Set();
+    const visit = (value) => {
+        if (!value || typeof value !== 'object') return undefined;
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+        for (const key of wanted) {
+            if (Object.prototype.hasOwnProperty.call(value, key)) return value[key];
+        }
+        for (const child of Object.values(value)) {
+            const found = visit(child);
+            if (found !== undefined) return found;
+        }
+        return undefined;
+    };
+    return visit(obj);
+};
+
 export const getWKT2DefinitionForModelId = (modelId) => {
-    const CRS_MODEL_GRAPHID = 'a5219c24-2907-4055-9d68-18216d214458';
+    const CRS_MODEL_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
     return resourceService.getAllRelatedTo(modelId).then(relatedResources => {
         const relatedResourcesArray = relatedResources.related_resources.related_resources || [];
-        const relatedCRSObject = relatedResourcesArray.filter(rel => rel.graph_id === CRS_MODEL_GRAPHID);
+        const relatedCRSObject = relatedResourcesArray.filter(rel => CRS_MODEL_GRAPHIDS.includes(rel.graph_id));
         if (relatedCRSObject.length === 0) {
             console.log("No related CRS resource found for model ID: ", modelId);
             return null;
@@ -59,8 +78,7 @@ export const getWKT2DefinitionForModelId = (modelId) => {
         const crsResourceId = relatedCRSObject[0].resourceinstanceid;
 
         return resourceService.getOne(crsResourceId).then(crsResource => {
-            const wkt2Definition = crsResource.resource.Definition['WKT-2']['WKT-2 String'] || '';
-            return wkt2Definition;
+            return findDeepValue(crsResource.resource || {}, ['WKT-2 String', 'WKT-2', 'WKT2']) || '';
         });
     });
 };

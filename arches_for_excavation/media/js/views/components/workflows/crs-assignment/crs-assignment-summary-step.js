@@ -25,7 +25,13 @@ define([
         self.crsRaw = ko.observable(null);
 
         self.count = ko.pureComputed(() => (ko.unwrap(self.resourceIds) || []).length);
-
+        const chunkArray = function(items, size) {
+            const chunks = [];
+            for (let i = 0; i < items.length; i += size) {
+                chunks.push(items.slice(i, i + size));
+            }
+            return chunks;
+        };
         function extractName(obj, fallbackId) {
             if (!obj || typeof obj !== 'object') return fallbackId || '(unknown)';
             return (
@@ -149,12 +155,26 @@ define([
             self.error('');
             self.success('');
 
-            return crsService.assignCRSToResources({
-                crs_resource_id: ko.unwrap(self.crsId),
-                resource_ids: ko.unwrap(self.resourceIds) || []
-            }).then(function(resp) {
+            const crsResourceId = ko.unwrap(self.crsId);
+            const resourceIds = ko.unwrap(self.resourceIds) || [];
+            const chunks = chunkArray(resourceIds, 25);
+            let assignedTotal = 0;
+
+            return chunks.reduce(function(promise, chunk, index) {
+                return promise.then(function() {
+                    self.success(`Assigning batch ${index + 1}/${chunks.length}...`);
+
+                    return crsService.assignCRSToResources({
+                        crs_resource_id: crsResourceId,
+                        resource_ids: chunk
+                    }).then(function(resp) {
+                        assignedTotal += resp.assigned_count || chunk.length;
+                        return resp;
+                    });
+                });
+            }, Promise.resolve()).then(function(resp) {
                 self.confirmed(true);
-                self.success(`Assigned CRS to ${resp.assigned_count || self.count()} resource(s).`);
+                self.success(`Assigned CRS to ${assignedTotal} resource(s).`);
                 return resp;
             }).catch(function(err) {
                 self.error(err.message || 'Assignment failed');
@@ -163,7 +183,6 @@ define([
                 self.submitting(false);
             });
         };
-
         self.confirmAssignment = function() { return runAssign(); };
 
         if (params.form) {

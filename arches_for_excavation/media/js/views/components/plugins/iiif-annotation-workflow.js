@@ -34,7 +34,7 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphid: '401b3051-d1c4-465c-8dd0-1d5784adee98', // photo graph ID                
+                graphIds: ['401b3051-d1c4-465c-8dd0-1d5784adee98', 'f1b9e37a-c3ba-4c26-a797-7f16302c031c'],                
                 placeholderText: '— Select which ortomap to annotate —',
                 searchPlaceholder: 'Search resources...',
                 enableSearch: true,

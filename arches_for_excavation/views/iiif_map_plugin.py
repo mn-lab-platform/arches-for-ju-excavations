@@ -1,4 +1,5 @@
 import json
+import uuid
 from django.http import JsonResponse
 from django.views import View
 from pyproj.enums import TransformDirection
@@ -12,12 +13,13 @@ from .services.iiif_image_service import (
     public_service_url_from_any,
     rewrite_manifest_image_services,
 )
-from .local_coordinate_system import CRSNodeIds, LocalCoordinateSystemAssignToResourcesView
+from .local_coordinate_system import get_crs_definition
+from arches_slocal.utils.resource_model_compat import graph_ids, node_id
 from .services.crs.local_mercator.oblique_mercator import ObliqueMercator
 
 
 class IiifAllmapsLayersView(View):
-    IIIF_GRAPH_ID = "401b3051-d1c4-465c-8dd0-1d5784adee98"
+    IIIF_GRAPH_IDS = graph_ids("iiif")
     DERIVATIVE_SUFFIXES = (" (hillshade)", " (color relief)")
 
     def _get_base_url(self, request):
@@ -40,40 +42,99 @@ class IiifAllmapsLayersView(View):
                 return ((row.get("value") or {}).get("en") or [None])[0]
         return None
 
-    def _get_local_crs_resource_id(self, iiif_resource_id):
-        rel_node_id = LocalCoordinateSystemAssignToResourcesView.IIIF_CRS_NODE_ID
-        tile = Tile.objects.filter(
-            resourceinstance_id=iiif_resource_id,
-            data__has_key=rel_node_id
-        ).first()
-        if not tile:
+    def _normalize_uuid(self, value):
+        try:
+            return str(uuid.UUID(str(value or "").strip()))
+        except (ValueError, TypeError, AttributeError):
             return None
-        rels = tile.data.get(rel_node_id) or []
-        return rels[0].get("resourceId") if rels else None
+
+    def _manifest_resource_id_from_value(self, value):
+        if isinstance(value, dict):
+            value = (
+                value.get("@value")
+                or value.get("value")
+                or ((value.get("en") or [None])[0] if isinstance(value.get("en"), list) else value.get("en"))
+            )
+
+        raw = str(value or "").strip().rstrip("/")
+        if not raw:
+            return None
+
+        marker = "/geotiff-manifest/"
+        if marker in raw:
+            raw = raw.rsplit(marker, 1)[-1].split("/", 1)[0]
+
+        return self._normalize_uuid(raw)
+
+    def _manifest_resource_ids_for_resource(self, resource):
+        seen = set()
+        candidate = self._normalize_uuid(resource.resourceinstanceid)
+        if candidate:
+            seen.add(candidate)
+            yield candidate
+
+        manifest_node_id = node_id("iiif", "manifest", resource.graph_id)
+        if not manifest_node_id:
+            return
+
+        for tile in Tile.objects.filter(
+            resourceinstance=resource,
+            data__has_key=manifest_node_id,
+        ):
+            candidate = self._manifest_resource_id_from_value((tile.data or {}).get(manifest_node_id))
+            if candidate and candidate not in seen:
+                seen.add(candidate)
+                yield candidate
+
+    def _resolve_manifest_for_resource(self, resource):
+        for manifest_resource_id in self._manifest_resource_ids_for_resource(resource):
+            path, manifest, resolved_name = _resolve_manifest_path_and_current(
+                resource_id=manifest_resource_id,
+                resource_name=None,
+                current=None,
+            )
+            if manifest:
+                return path, manifest, resolved_name, manifest_resource_id
+        return None, None, None, None
+
+    def _get_local_crs_resource_id(self, iiif_resource_id):
+        resource = Resource.objects.filter(
+            resourceinstanceid=iiif_resource_id,
+            graph_id__in=self.IIIF_GRAPH_IDS,
+        ).first()
+        if not resource:
+            return None
+
+        relation_node_id = node_id("iiif", "crs", resource.graph_id)
+        if relation_node_id:
+            tile = Tile.objects.filter(
+                resourceinstance=resource,
+                data__has_key=relation_node_id,
+            ).first()
+            relations = (tile.data or {}).get(relation_node_id, []) if tile else []
+            if relations:
+                return relations[0].get("resourceId")
+
+        path, manifest, _name, _manifest_resource_id = self._resolve_manifest_for_resource(resource)
+        del path
+        for row in (manifest or {}).get("metadata", []):
+            label = ((row.get("label") or {}).get("en") or [""])[0]
+            if str(label).lower() == "local_crs_resource_id":
+                return ((row.get("value") or {}).get("en") or [None])[0]
+        return None
 
     def _get_crs_definition(self, crs_resource_id):
-        wkt2_node = getattr(CRSNodeIds, "WKT2_STRING_NODE_ID", None)
-        if wkt2_node:
-            tile = Tile.objects.filter(
-                resourceinstance_id=crs_resource_id,
-                data__has_key=wkt2_node
-            ).first()
-            if tile:
-                wkt2 = tile.data.get(wkt2_node)
-                if wkt2:
-                    return wkt2, None
-
-        # fallback proj4
-        tile = Tile.objects.filter(
-            resourceinstance_id=crs_resource_id,
-            data__has_key=CRSNodeIds.PROJ4_STRING_NODE_ID
+        resource = Resource.objects.filter(
+            resourceinstanceid=crs_resource_id,
+            graph_id__in=graph_ids("coordinate_system"),
         ).first()
-        if tile:
-            proj4 = tile.data.get(CRSNodeIds.PROJ4_STRING_NODE_ID)
-            if proj4:
-                return None, proj4
+        if not resource:
+            return None, None
 
-        return None, None
+        wkt2 = get_crs_definition(resource, "wkt2")
+        if wkt2:
+            return wkt2, None
+        return None, get_crs_definition(resource, "proj4")
     def _build_oblique_mercator(self, wkt2=None, proj4=None) -> ObliqueMercator:
         import pyproj
         if wkt2:
@@ -261,18 +322,17 @@ class IiifAllmapsLayersView(View):
 
     def get(self, request, resource_id: str):
         try:
-            Resource.objects.get(
+            resource = Resource.objects.get(
                 resourceinstanceid=resource_id,
-                graph_id=self.IIIF_GRAPH_ID
+                graph_id__in=self.IIIF_GRAPH_IDS
             )
         except Resource.DoesNotExist:
             return JsonResponse(
                 {"status": "error", "message": "IIIF resource not found"},
                 status=404
             )
-        path, manifest, _ = _resolve_manifest_path_and_current(
-            resource_id=resource_id, resource_name=None, current=None
-        )
+        path, manifest, _, manifest_resource_id = self._resolve_manifest_for_resource(resource)
+        del path
         if not manifest:
             return JsonResponse(
                 {"status": "error", "message": "Manifest not found"},
@@ -307,7 +367,7 @@ class IiifAllmapsLayersView(View):
 
         annotations = []
         skipped = []
-        manifest_id = manifest.get("id", f"/api/iiif/geotiff-manifest/{resource_id}")
+        manifest_id = manifest.get("id", f"/api/iiif/geotiff-manifest/{manifest_resource_id or resource_id}")
         manifest_url = self._absolute_url(request, manifest_id).rstrip("/")
 
         canvases = manifest.get("items") or []

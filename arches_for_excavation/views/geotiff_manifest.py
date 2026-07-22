@@ -15,6 +15,8 @@ from urllib.parse import unquote
 from .services.iiif_utils import _resolve_manifest_path_and_current, _append_items_v3
 from .services.iiif_image_service import public_service_url_from_any, rewrite_manifest_image_services
 from arches.app.models.models import TileModel
+from arches.app.models.resource import Resource
+from arches_slocal.utils.resource_model_compat import node_id
 
 def _manifest_dir(resource_name: str, resource_id: str) -> Path:
     # Store inside: {resource_name}_{resource_id}/manifest/
@@ -154,7 +156,25 @@ class GetGeoTiffManifestView(APIView):
         matches = list(root.glob(f"*_{resource_id}/manifest/{resource_id}.json"))
         if not matches:
             raise Http404("Manifest not found")
-        p = matches[0]
+        def count_canvas_annotations(path):
+            try:
+                manifest = json.loads(path.read_text(encoding="utf-8"))
+                return sum(
+                    len(page.get("items", []))
+                    for canvas in manifest.get("items", [])
+                    if isinstance(canvas, dict)
+                    for page in (canvas.get("annotations") or [])
+                    if isinstance(page, dict)
+                )
+            except Exception:
+                return 0
+
+        annotated = [path for path in matches if count_canvas_annotations(path) > 0]
+
+        p = _generated_manifest_path(resource_id)
+        if not p:
+            raise Http404("Manifest not found")
+
         data = json.loads(p.read_text(encoding="utf-8"))
         rewrite_manifest_image_services(data, request)
         return JsonResponse(data, safe=False)
@@ -173,7 +193,27 @@ def _manifest_override_dir() -> Path:
 def _generated_manifest_path(resource_id: str) -> Path | None:
     root = Path(getattr(settings, "RASTER_DATA_DIR"))
     matches = list(root.glob(f"*_{resource_id}/manifest/{resource_id}.json"))
-    return matches[0] if matches else None  
+
+    if not matches:
+        return None
+
+    def count_canvas_annotations(path):
+        try:
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            return sum(
+                len(page.get("items", []))
+                for canvas in manifest.get("items", [])
+                if isinstance(canvas, dict)
+                for page in (canvas.get("annotations") or [])
+                if isinstance(page, dict)
+            )
+        except Exception:
+            return 0
+
+    return max(
+        matches,
+        key=lambda path: (count_canvas_annotations(path), path.stat().st_mtime)
+    )
 
 def _manifest_override_path(resource_name: str, resource_id: str) -> Path:
     # Zapisuj override w tym samym katalogu co manifest generowany
@@ -358,7 +398,6 @@ class ManifestEditView(APIView):
                     path = gen_path
                 except Exception:
                     current = None
-
         if not resource_name and isinstance(current, dict):
             try:
                 first_canvas = current.get("items", [])[0] if current.get("items") else None
@@ -381,15 +420,8 @@ class ManifestEditView(APIView):
             except Exception:
                 pass
 
-            if not resource_name:
-                label = current.get("label", {})
-                if isinstance(label, dict):
-                    resource_name = label.get("en", ["unnamed"])[0]
-                else:
-                    resource_name = str(label or "unnamed")
-
-            path = _manifest_override_path(resource_name, resource_id)
-
+            if resource_name:
+                path = _manifest_override_path(resource_name, resource_id)
         try:
             if mode == "replace":
                 if not isinstance(manifest, dict):
@@ -453,8 +485,15 @@ class ManifestEditView(APIView):
                     )
 
                 if current is None:
+                    path, current, _resolved_resource_name = _resolve_manifest_path_and_current(
+                        resource_id=resource_id,
+                        resource_name=resource_name,
+                        current=None,
+                    )
+
+                if current is None:
                     return Response(
-                        {"error": "override manifest does not exist and cannot be loaded; use mode=replace first"},
+                        {"error": "manifest does not exist and cannot be loaded for upsert_annotation"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
@@ -465,7 +504,6 @@ class ManifestEditView(APIView):
                     {"ok": True, "mode": "upsert_annotation", **result},
                     status=status.HTTP_200_OK
                 )
-
             if mode in ("delete_annotation", "delete_annotation_everywhere"):
                 canvas_id = request.data.get("canvas_id")
                 annotation_id = request.data.get("annotation_id")
@@ -536,17 +574,30 @@ class ResourceContextView(APIView):
 
         manifest_url = current.get("id") or _public_manifest_url(resource_id)
 
-        node_iiif_url = "e0216dc7-89ba-4a27-9126-bf7e06d859a8"
-        node_used_files = "ba3a8689-8bb6-4759-b4e2-328e8cf9bdf8"
+        try:
+            resource = Resource.objects.get(resourceinstanceid=resource_id)
+        except Resource.DoesNotExist:
+            return Response(
+                {"error": "resource not found", "resource_id": str(resource_id)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        node_iiif_url = node_id("iiif", "manifest", resource.graph_id)
+        node_used_files = node_id("iiif", "used_files", resource.graph_id)
+        if not node_iiif_url or not node_used_files:
+            return Response(
+                {"error": f"unsupported IIIF graph: {resource.graph_id}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         iiif_url_tile = TileModel.objects.filter(
             resourceinstance_id=resource_id,
-            data__has_key=node_iiif_url
+            data__has_key=node_iiif_url,
         ).order_by("-sortorder").first()
 
         used_files_tile = TileModel.objects.filter(
             resourceinstance_id=resource_id,
-            data__has_key=node_used_files
+            data__has_key=node_used_files,
         ).order_by("-sortorder").first()
 
         used_files = []
@@ -562,9 +613,13 @@ class ResourceContextView(APIView):
                 "manifest_url": manifest_url,
                 "tiles": {
                     "iiif_url_tile_id": str(iiif_url_tile.tileid) if iiif_url_tile else None,
-                    "used_files_tile_id": str(used_files_tile.tileid) if used_files_tile else None
+                    "used_files_tile_id": str(used_files_tile.tileid) if used_files_tile else None,
                 },
-                "used_files": used_files
+                "node_ids": {
+                    "manifest": node_iiif_url,
+                    "used_files": node_used_files,
+                },
+                "used_files": used_files,
             },
             status=status.HTTP_200_OK
         )

@@ -10,8 +10,8 @@ export default ko.components.register('digital-resource-3d-report', {
         const self = this;
         params.configKeys = [];
 
-        self.ANNOTATION_MODEL_GRAPHID = '2880934b-0015-4c5a-8ec1-1ab9bca329fd';
-        self.CRS_MODEL_GRAPHID = 'a5219c24-2907-4055-9d68-18216d214458';
+        self.ANNOTATION_MODEL_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
+        self.CRS_MODEL_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
         self.annotationsIds = [];
         self.crsResourceId = '';
         self.resourceId = params.report.attributes.resourceid;
@@ -28,10 +28,44 @@ export default ko.components.register('digital-resource-3d-report', {
         
         const relatedResourcesArray = self.report.get('related_resources') || [];
 
-        const relatedAnnotationsObject = relatedResourcesArray.filter(rel => rel.graphid === self.ANNOTATION_MODEL_GRAPHID)[0] || { resources: [] };
-        self.annotationsIds = relatedAnnotationsObject.resources?.map(res => res.resourceinstanceid);
+        const findDeepValue = (obj, keys) => {
+            const wanted = Array.isArray(keys) ? keys : [keys];
+            const seen = new Set();
+            const visit = (value) => {
+                if (!value || typeof value !== 'object') return undefined;
+                if (seen.has(value)) return undefined;
+                seen.add(value);
+                for (const key of wanted) {
+                    if (Object.prototype.hasOwnProperty.call(value, key)) return value[key];
+                }
+                for (const child of Object.values(value)) {
+                    const found = visit(child);
+                    if (found !== undefined) return found;
+                }
+                return undefined;
+            };
+            return visit(obj);
+        };
 
-        const relatedCRSObject = relatedResourcesArray.filter(rel => rel.graphid === self.CRS_MODEL_GRAPHID)[0] || { resources: [] };
+        const parseJsonValue = (value, fallback) => {
+            if (!value) return fallback;
+            if (typeof value !== 'string') return value;
+            try { return JSON.parse(value); } catch (_) { return fallback; }
+        };
+
+        const extractCrsDefinitions = (crsData) => {
+            const resource = crsData && crsData.resource ? crsData.resource : {};
+            return {
+                proj: findDeepValue(resource, ['PROJ4 String', 'PROJ4']) || '',
+                wkt: findDeepValue(resource, ['WKT-2 String', 'WKT-2', 'WKT2']) || '',
+                esri: findDeepValue(resource, ['ESRI WKT String', 'ESRI WKT']) || ''
+            };
+        };
+
+        const relatedAnnotationsObject = relatedResourcesArray.filter(rel => self.ANNOTATION_MODEL_GRAPHIDS.includes(rel.graphid))[0] || { resources: [] };
+        self.annotationsIds = relatedAnnotationsObject.resources?.map(res => res.resourceinstanceid) || [];
+
+        const relatedCRSObject = relatedResourcesArray.filter(rel => self.CRS_MODEL_GRAPHIDS.includes(rel.graphid))[0] || { resources: [] };
         self.crsResourceId = relatedCRSObject.resources?.[0]?.resourceinstanceid || '';
 
         (async function () {
@@ -45,23 +79,20 @@ export default ko.components.register('digital-resource-3d-report', {
                 self.models3D.push(modelData);
 
                 self.existingAnnotations(annotationsData.map(annoRaw => {
+                    const resource = annoRaw.resource || {};
                     return {
                         id: annoRaw.resourceinstanceid,
                         name: annoRaw.displayname,
                         description: annoRaw.displaydescription || '',
-                        geometry: JSON.parse(annoRaw.resource.Geometry),
-                        color: annoRaw.resource.Color || '#64ff64',
-                        relatedResourceName: annoRaw.resource["Related Resource"] || ''
+                        geometry: parseJsonValue(findDeepValue(resource, 'Geometry'), []),
+                        color: findDeepValue(resource, 'Color') || '#64ff64',
+                        relatedResourceName: findDeepValue(resource, ['Related Resource', 'Annotated Resource', 'Annoted Resource']) || ''
                     };
                 }));
                 if (crsData) {
                     self.modelCrsDefinitions([{
                         modelResourceId: self.resourceId,
-                        crs: {
-                            proj: crsData.resource.Definition.PROJ4['PROJ4 String'] || '',
-                            wkt: crsData.resource.Definition['WKT-2']['WKT-2 String'] || '',
-                            esri: crsData.resource.Definition['ESRI WKT']['ESRI WKT String'] || ''
-                        }
+crs: extractCrsDefinitions(crsData)
                     }]);
                 }
             } catch (error) {

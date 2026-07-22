@@ -5,9 +5,10 @@ from contextlib import nullcontext
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from arches.app.models.models import GraphModel, Node, Resource
+from arches.app.models.models import Edge, GraphModel, Node, Resource
 from arches.app.models.tile import Tile
 from arches_slocal.utils.resource_mapping import (
+    datatypes_compatible,
     get_graph_info,
     get_graph_nodes,
     get_graph_options,
@@ -23,6 +24,7 @@ class Command(BaseCommand):
         parser.add_argument("--generate-mapping", type=str, default="")
         parser.add_argument("--mapping", type=str, default="")
         parser.add_argument("--apply", action="store_true", default=False)
+        parser.add_argument("--update-existing", action="store_true", default=False)
         parser.add_argument("--limit", type=int, default=0)
         parser.add_argument("--verbose", action="store_true", default=False)
         parser.add_argument("--list-graphs", action="store_true", default=False)
@@ -101,13 +103,220 @@ class Command(BaseCommand):
             if node.nodegroup_id
         }
 
+    def build_parent_nodegroup_lookup(self, graph_id):
+        nodes = {
+            str(node.nodeid): node
+            for node in Node.objects.filter(graph_id=graph_id)
+        }
+        parent_by_node = {
+            str(edge.rangenode_id): str(edge.domainnode_id)
+            for edge in Edge.objects.filter(graph_id=graph_id)
+            if edge.rangenode_id and edge.domainnode_id
+        }
+        parent_nodegroup_by_nodegroup = {}
+
+        for node in nodes.values():
+            if not node.nodegroup_id:
+                continue
+
+            nodegroup_id = str(node.nodegroup_id)
+            parent_node_id = parent_by_node.get(str(node.nodeid))
+
+            while parent_node_id:
+                parent_node = nodes.get(parent_node_id)
+                parent_nodegroup_id = (
+                    str(parent_node.nodegroup_id)
+                    if parent_node and parent_node.nodegroup_id
+                    else ""
+                )
+
+                if parent_nodegroup_id and parent_nodegroup_id != nodegroup_id:
+                    parent_nodegroup_by_nodegroup.setdefault(
+                        nodegroup_id,
+                        parent_nodegroup_id,
+                    )
+                    break
+
+                parent_node_id = parent_by_node.get(parent_node_id)
+
+        return parent_nodegroup_by_nodegroup
+
+    def nodegroup_depth(self, nodegroup_id, parent_nodegroup_by_nodegroup):
+        depth = 0
+        current = parent_nodegroup_by_nodegroup.get(nodegroup_id)
+        seen = set()
+
+        while current and current not in seen:
+            seen.add(current)
+            depth += 1
+            current = parent_nodegroup_by_nodegroup.get(current)
+
+        return depth
+
 
     def build_mapping_lookup(self, mappings):
         return {
-            item["source_node_id"]: item["target_node_id"]
+            item["source_node_id"]: item
             for item in mappings
             if item.get("enabled") and item.get("source_node_id") and item.get("target_node_id")
         }
+
+    def get_localized_text(self, value):
+        if isinstance(value, str):
+            return value
+
+        if isinstance(value, list):
+            parts = [self.get_localized_text(item) for item in value]
+            return ", ".join(part for part in parts if part)
+
+        if isinstance(value, dict):
+            if "value" in value:
+                return self.get_localized_text(value.get("value"))
+
+            for lang in ("en", "none"):
+                if lang in value:
+                    text = self.get_localized_text(value.get(lang))
+                    if text:
+                        return text
+
+            for item in value.values():
+                text = self.get_localized_text(item)
+                if text:
+                    return text
+
+        if value is None:
+            return ""
+
+        return str(value)
+
+    def make_localized_text(self, value):
+        if isinstance(value, dict):
+            if "value" in value:
+                return {"en": {"value": self.get_localized_text(value), "direction": "ltr"}}
+            if any(isinstance(item, dict) and "value" in item for item in value.values()):
+                return value
+
+        text = self.get_localized_text(value)
+        return {"en": {"value": text, "direction": "ltr"}}
+
+    def get_number_value(self, value):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return value
+
+        text = self.get_localized_text(value).strip().replace(",", ".")
+        if not text:
+            return None
+
+        try:
+            number = float(text)
+        except ValueError:
+            return None
+
+        return int(number) if number.is_integer() else number
+
+    def first_value(self, value):
+        if isinstance(value, list):
+            return value[0] if value else None
+        return value
+
+    def list_value(self, value):
+        if isinstance(value, list):
+            return value
+        if value in (None, ""):
+            return []
+        return [value]
+
+    def convert_value_for_target(self, value, source_datatype, target_datatype):
+        if source_datatype == target_datatype:
+            return value
+
+        if target_datatype in {"non-localized-string", "url"}:
+            return self.get_localized_text(value)
+
+        if target_datatype == "string":
+            return self.make_localized_text(value)
+
+        if target_datatype == "number":
+            return self.get_number_value(value)
+
+        if target_datatype in {"concept", "domain-value"}:
+            return self.first_value(value)
+
+        if target_datatype == "concept-list":
+            return self.list_value(value)
+
+        return value
+
+    def is_truthy(self, value):
+        if isinstance(value, bool):
+            return value
+
+        text = self.get_localized_text(value).strip().lower()
+        return text in {"1", "true", "t", "yes", "y", "tak"}
+
+    def apply_special_transform(
+        self,
+        mapping,
+        value,
+        target_nodegroup_by_node,
+        target_tiles_data,
+        extra_tiles_data,
+    ):
+        transform = mapping.get("special_transform")
+
+        if transform == "descriptive_statement":
+            statement_node_id = mapping.get("target_node_id")
+            statement_type_node_id = mapping.get("statement_type_node_id")
+            statement_type_value_id = (
+                mapping.get("statement_type_value_id")
+                or mapping.get("statement_type_concept_id")
+            )
+            target_nodegroup_id = target_nodegroup_by_node.get(statement_node_id)
+
+            if not target_nodegroup_id or not statement_type_node_id or not statement_type_value_id:
+                return False
+
+            statement_value = self.convert_value_for_target(
+                value,
+                mapping.get("source_datatype"),
+                mapping.get("target_datatype") or "string",
+            )
+
+            if statement_value in (None, "", []):
+                return False
+
+            extra_tiles_data.append((
+                target_nodegroup_id,
+                {
+                    statement_node_id: statement_value,
+                    statement_type_node_id: statement_type_value_id,
+                },
+            ))
+            return True
+
+        if transform == "procedure_if_true":
+            if not self.is_truthy(value):
+                return False
+
+            target_node_id = mapping.get("target_node_id")
+            procedure_value_id = (
+                mapping.get("procedure_value_id")
+                or mapping.get("procedure_concept_id")
+            )
+            target_nodegroup_id = target_nodegroup_by_node.get(target_node_id)
+
+            if not target_nodegroup_id or not procedure_value_id:
+                return False
+
+            data = target_tiles_data.setdefault(target_nodegroup_id, {})
+            procedures = data.setdefault(target_node_id, [])
+
+            if procedure_value_id not in procedures:
+                procedures.append(procedure_value_id)
+
+            return True
+
+        return False
 
 
     def get_or_create_target_resource(self, source_resource, target_graph_id, do_apply):
@@ -135,12 +344,18 @@ class Command(BaseCommand):
         target_resource,
         mapping_lookup,
         target_nodegroup_by_node,
+        parent_nodegroup_by_nodegroup,
         do_apply,
         verbose=False,
     ):
         target_tiles_data = {}
+        extra_tiles_data = []
 
-        source_tiles = Tile.objects.filter(resourceinstance_id=source_resource.resourceinstanceid)
+        source_tiles = list(Tile.objects.filter(resourceinstance_id=source_resource.resourceinstanceid))
+        source_nodegroup_tile_counts = {}
+        for tile in source_tiles:
+            key = str(tile.nodegroup_id)
+            source_nodegroup_tile_counts[key] = source_nodegroup_tile_counts.get(key, 0) + 1
 
         stats = {
             "source_tiles": 0,
@@ -152,11 +367,15 @@ class Command(BaseCommand):
         for source_tile in source_tiles:
             stats["source_tiles"] += 1
             data = source_tile.data or {}
+            repeated_tiles_data = {}
+            source_nodegroup_is_repeated = (
+                source_nodegroup_tile_counts.get(str(source_tile.nodegroup_id), 0) > 1
+            )
 
             for source_node_id, value in data.items():
-                target_node_id = mapping_lookup.get(source_node_id)
+                mapping = mapping_lookup.get(source_node_id)
 
-                if not target_node_id:
+                if not mapping:
                     stats["skipped_values"] += 1
                     continue
 
@@ -164,31 +383,127 @@ class Command(BaseCommand):
                     stats["skipped_values"] += 1
                     continue
 
+                if mapping.get("special_transform"):
+                    if self.apply_special_transform(
+                        mapping,
+                        value,
+                        target_nodegroup_by_node,
+                        target_tiles_data,
+                        extra_tiles_data,
+                    ):
+                        stats["copied_values"] += 1
+                    else:
+                        stats["skipped_values"] += 1
+                    continue
+
+                target_node_id = mapping["target_node_id"]
                 target_nodegroup_id = target_nodegroup_by_node.get(target_node_id)
 
                 if not target_nodegroup_id:
                     stats["skipped_values"] += 1
                     continue
 
-                target_tiles_data.setdefault(target_nodegroup_id, {})[target_node_id] = value
+                if not datatypes_compatible(mapping.get("source_datatype"), mapping.get("target_datatype")):
+                    stats["skipped_values"] += 1
+                    continue
+
+                value = self.convert_value_for_target(
+                    value,
+                    mapping.get("source_datatype"),
+                    mapping.get("target_datatype"),
+                )
+
+                if value in (None, "", []):
+                    stats["skipped_values"] += 1
+                    continue
+
+                target_data = repeated_tiles_data if source_nodegroup_is_repeated else target_tiles_data
+                target_data.setdefault(target_nodegroup_id, {})[target_node_id] = value
                 stats["copied_values"] += 1
 
+            if repeated_tiles_data:
+                extra_tiles_data.extend(repeated_tiles_data.items())
+
+        tiles_data = list(target_tiles_data.items()) + extra_tiles_data
+        parent_nodegroups = set(parent_nodegroup_by_nodegroup.values())
+        required_parent_nodegroups = set()
+
+        for target_nodegroup_id, _data in tiles_data:
+            parent_nodegroup_id = parent_nodegroup_by_nodegroup.get(target_nodegroup_id)
+            while parent_nodegroup_id:
+                required_parent_nodegroups.add(parent_nodegroup_id)
+                parent_nodegroup_id = parent_nodegroup_by_nodegroup.get(parent_nodegroup_id)
+
+        missing_parent_nodegroups = required_parent_nodegroups.difference(
+            target_nodegroup_id for target_nodegroup_id, _data in tiles_data
+        )
+
         if not do_apply:
-            stats["created_tiles"] = len(target_tiles_data)
+            stats["created_tiles"] = len(tiles_data) + len(missing_parent_nodegroups)
             return stats
 
-        for target_nodegroup_id, data in target_tiles_data.items():
+        tiles_data.sort(
+            key=lambda item: self.nodegroup_depth(
+                item[0],
+                parent_nodegroup_by_nodegroup,
+            )
+        )
+        parent_tile_by_nodegroup = {}
+        placeholder_tile_ids = set()
+
+        def ensure_parent_tile(nodegroup_id):
+            if not nodegroup_id:
+                return None
+
+            if nodegroup_id in parent_tile_by_nodegroup:
+                return parent_tile_by_nodegroup[nodegroup_id]
+
+            parent_nodegroup_id = parent_nodegroup_by_nodegroup.get(nodegroup_id)
+            parent_tile = ensure_parent_tile(parent_nodegroup_id)
             tile = Tile.get_blank_tile_from_nodegroup_id(
-                target_nodegroup_id,
+                nodegroup_id,
                 resourceid=str(target_resource.resourceinstanceid),
             )
-            tile.data.update(data)
+            if parent_tile:
+                tile.parenttile = parent_tile
             tile.save(index=False)
             stats["created_tiles"] += 1
+            parent_tile_by_nodegroup[nodegroup_id] = tile
+            placeholder_tile_ids.add(str(tile.tileid))
 
             if verbose:
                 self.stdout.write(
-                    f"  tile {tile.tileid}: nodegroup={target_nodegroup_id}, values={len(data)}"
+                    f"  parent tile {tile.tileid}: nodegroup={nodegroup_id}"
+                )
+
+            return tile
+
+        for target_nodegroup_id, data in tiles_data:
+            parent_nodegroup_id = parent_nodegroup_by_nodegroup.get(target_nodegroup_id)
+            parent_tile = ensure_parent_tile(parent_nodegroup_id)
+
+            cached_tile = parent_tile_by_nodegroup.get(target_nodegroup_id)
+            if cached_tile and str(cached_tile.tileid) in placeholder_tile_ids:
+                tile = cached_tile
+                placeholder_tile_ids.remove(str(tile.tileid))
+            else:
+                tile = Tile.get_blank_tile_from_nodegroup_id(
+                    target_nodegroup_id,
+                    resourceid=str(target_resource.resourceinstanceid),
+                )
+                if parent_tile:
+                    tile.parenttile = parent_tile
+                stats["created_tiles"] += 1
+
+            tile.data.update(data)
+            tile.save(index=False)
+
+            if target_nodegroup_id in parent_nodegroups and target_nodegroup_id not in parent_tile_by_nodegroup:
+                parent_tile_by_nodegroup[target_nodegroup_id] = tile
+
+            if verbose:
+                self.stdout.write(
+                    f"  tile {tile.tileid}: nodegroup={target_nodegroup_id}, parent={tile.parenttile_id}, values={len(data)}"
                 )
 
         return stats    
@@ -199,6 +514,7 @@ class Command(BaseCommand):
         do_apply = opts["apply"]
         limit = opts["limit"]
         verbose = opts["verbose"]
+        update_existing = opts["update_existing"]
 
         source_graph_id = payload["source_graph_id"]
         target_graph_id = payload["target_graph_id"]
@@ -212,6 +528,12 @@ class Command(BaseCommand):
 
         mapping_lookup = self.build_mapping_lookup(enabled_mappings)
         target_nodegroup_by_node = self.build_nodegroup_lookup(target_graph_id)
+        parent_nodegroup_by_nodegroup = self.build_parent_nodegroup_lookup(target_graph_id)
+        mapped_target_nodegroup_ids = {
+            target_nodegroup_by_node.get(item["target_node_id"])
+            for item in enabled_mappings
+        }
+        mapped_target_nodegroup_ids.discard(None)
 
         qs = Resource.objects.filter(graph_id=source_graph_id).order_by("resourceinstanceid")
         total = qs.count()
@@ -222,6 +544,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Target graph: {target_graph_id}")
         self.stdout.write(f"Source resources: {total}")
         self.stdout.write(f"Enabled mappings: {len(mapping_lookup)}")
+        if update_existing:
+            self.stdout.write("Update existing target resources: yes")
         if limit:
             self.stdout.write(f"Limit: {limit}")
         self.stdout.write("=" * 60)
@@ -230,6 +554,7 @@ class Command(BaseCommand):
             "processed_resources": 0,
             "created_resources": 0,
             "existing_resources": 0,
+            "updated_resources": 0,
             "source_tiles": 0,
             "created_tiles": 0,
             "copied_values": 0,
@@ -255,17 +580,30 @@ class Command(BaseCommand):
                     stats["created_resources"] += 1
                 else:
                     stats["existing_resources"] += 1
+                    if not update_existing:
+                        if verbose:
+                            self.stdout.write(
+                                f"SKIP existing target for source {source_resource.resourceinstanceid}"
+                            )
+                        continue
+
+                    stats["updated_resources"] += 1
+                    if do_apply and mapped_target_nodegroup_ids:
+                        Tile.objects.filter(
+                            resourceinstance_id=target_resource.resourceinstanceid,
+                            nodegroup_id__in=mapped_target_nodegroup_ids,
+                        ).delete()
                     if verbose:
                         self.stdout.write(
-                            f"SKIP existing target for source {source_resource.resourceinstanceid}"
+                            f"UPDATE existing target for source {source_resource.resourceinstanceid}"
                         )
-                    continue
 
                 tile_stats = self.copy_resource_tiles(
                     source_resource=source_resource,
                     target_resource=target_resource,
                     mapping_lookup=mapping_lookup,
                     target_nodegroup_by_node=target_nodegroup_by_node,
+                    parent_nodegroup_by_nodegroup=parent_nodegroup_by_nodegroup,
                     do_apply=do_apply,
                     verbose=verbose,
                 )

@@ -10,7 +10,7 @@ import 'views/components/iiif/iiif-map-viewer';
 import 'views/components/iiif/iiif-photo-viewer'; // NEW
 import 'views/components/iiif/iiif-RTI-viewer';
 
-const DIGITAL_RES_URL_NODE_ID = 'e0216dc7-89ba-4a27-9126-bf7e06d859a8';
+const DIGITAL_RES_URL_NODE_IDS = ['e0216dc7-89ba-4a27-9126-bf7e06d859a8', 'df47642e-dfc0-442f-a5cf-8c1247e9c5bb'];
 const LOG = '[iiif-report]';
 
 export default ko.components.register('iiif-report', {
@@ -48,12 +48,16 @@ export default ko.components.register('iiif-report', {
       return [];
     }
 
-    function getNodeRawFromTiles(nodeId, tilesResp) {
+    function getNodeRawFromTiles(nodeIds, tilesResp) {
+      const candidates = Array.isArray(nodeIds) ? nodeIds : [nodeIds];
       const tiles = tilesArray(tilesResp);
       for (let i = 0; i < tiles.length; i++) {
         const tile = tiles[i];
         if (!tile || !tile.data) continue;
-        if (tile.data[nodeId] !== undefined) return tile.data[nodeId];
+        for (let j = 0; j < candidates.length; j++) {
+          const nodeId = candidates[j];
+          if (tile.data[nodeId] !== undefined) return tile.data[nodeId];
+        }
       }
       return null;
     }
@@ -223,7 +227,7 @@ export default ko.components.register('iiif-report', {
       const tilesUrl = baseRoot() + 'resource/' + encodeURIComponent(resourceId) + '/tiles';
       return $.ajax({ url: tilesUrl, method: 'GET', xhrFields: { withCredentials: true } })
         .then(resp => {
-          const raw = getNodeRawFromTiles(DIGITAL_RES_URL_NODE_ID, resp);
+          const raw = getNodeRawFromTiles(DIGITAL_RES_URL_NODE_IDS, resp);
           const val = normalizeLangString(raw) || raw;
           const url = (typeof val === 'string') ? val : null;
           if (url && looksLikeManifestUrl(url)) return url;

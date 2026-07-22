@@ -43,11 +43,11 @@ from arches.app.models.models import Value
 NODEGROUP_ID        = "d655993d-9f52-11eb-96c4-020063fe0012"  # Field - Characterization
 
 # Źródłowe (już wypełnione przez migrate_context_nodes)
-NEW_COLOR_SOIL      = "e788d411-78c8-4426-94fd-2096acc64635"   # concept-list
-NEW_COLOR_INTENSITY = "7a13af90-0e73-4d63-b995-6cb1f3e1e1bc"   # concept-list  ← UWAGA: 4ea6
+NEW_COLOR_SOIL      = "970b732f-cd8b-498c-8b8c-93abf7ae0bf0"   # concept-list
+NEW_COLOR_INTENSITY = "59d0a3d7-fc7a-45d9-8915-547421bb8c97"   # concept-list  ← UWAGA: 4ea6
 
 # Docelowe
-COLOR_V2_NODE       = "9d765c87-524d-4e71-88ef-ff13e27f920b"   # concept-list
+COLOR_V2_NODE       = "393904f1-8240-4eb9-9b01-e981f1bad434"   # concept-list
 
 
 # ---------------------------------------------------------------------------

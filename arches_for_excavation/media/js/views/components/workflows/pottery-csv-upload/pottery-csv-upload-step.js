@@ -8,7 +8,7 @@ define([
         viewModel: function(params) {
             const self = this;
             const tileService = tileServiceModule.default || tileServiceModule;
-            const CONTEXT_NUMBER_NODE_ID = '1b5b4e9a-a38d-11eb-96c4-020063fe0012';
+            const CONTEXT_NUMBER_NODE_IDS = ['1b5b4e9a-a38d-11eb-96c4-020063fe0012', 'cf7f2532-74f3-487f-9261-bf27825fe04c'];
 
             self.selectedContextNumber = ko.observable('');            
             self.selectedContextResourceId = ko.observable(ko.unwrap(params.selectedContextResourceId) || '');
@@ -50,9 +50,13 @@ define([
 
                         tiles.forEach(function(tile) {
                             const tileData = tile.data || {};
-                            if (tileData[CONTEXT_NUMBER_NODE_ID]) {
-                                contextNumber = getLocalizedStringValue(tileData[CONTEXT_NUMBER_NODE_ID]);
-                            }
+                            CONTEXT_NUMBER_NODE_IDS.forEach(function(nodeId) {
+                                const tileNodeValue = tileData[nodeId];
+                                console.log('Tile ID:', tile.id, 'Node ID:', nodeId, 'Value:', tileNodeValue);
+                                if (tileData[nodeId]) {
+                                    contextNumber = tileData[nodeId];
+                                }
+                            });
                         });
 
                         self.selectedContextNumber(contextNumber);
@@ -128,27 +132,6 @@ define([
             function toBoolean(value) {
                 const normalized = String(value || '').trim().toLowerCase();
                 return ['1', 'yes', 'y', 'true', 'x'].includes(normalized);
-            }
-            function getLocalizedStringValue(value) {
-                if (!value) return '';
-
-                if (typeof value === 'string') {
-                    return value;
-                }
-
-                if (value.en && value.en.value) {
-                    return value.en.value;
-                }
-
-                const languages = Object.keys(value);
-                for (let i = 0; i < languages.length; i++) {
-                    const langValue = value[languages[i]];
-                    if (langValue && langValue.value) {
-                        return langValue.value;
-                    }
-                }
-
-                return '';
             }
             function summaryHasData(summary) {
                 return summary.diagnostic !== null ||
