@@ -82,7 +82,10 @@ define([
                 return rows.map(function(row) {
                     return {
                         contextNo: row.context_no,
+                        formId: row.id || '',
+                        lastShredNo: row.lsn_p_no || '',
                         fieldRemains: buildFieldRemains(row),
+                        specialFinds: buildSpecialFinds(row),
                         pottery: [
                             buildPotterySummary(row, 'TW', 'Table Ware'),
                             buildPotterySummary(row, 'A', 'Amphorae'),
@@ -97,11 +100,35 @@ define([
             function buildFieldRemains(row) {
                 return {
                     b_presence: toBoolean(row.b_presence),
+                    b_objects_presence: toBoolean(row.b_objects_presence),
+                    c_presence: toBoolean(row.c_presence),
                     g_presence: toBoolean(row.g_presence),
                     m_presence: toBoolean(row.m_presence),
+                    pp_presence: toBoolean(row.pp_presence),
+                    pl_presence: toBoolean(row.pl_presence),
+                    sp_presence: toBoolean(row.sp_presence),
                     sh_presence: toBoolean(row.sh_presence),
                     s_presence: toBoolean(row.s_presence),
-                    c_presence: toBoolean(row.c_presence)
+                    tr_presence: toBoolean(row.tr_presence),
+                    t_presence: toBoolean(row.t_presence),
+                    v_presence: toBoolean(row.v_presence)
+                };
+            }
+            function buildSpecialFinds(row) {
+                return {
+                    b_special_finds: toBoolean(row.b_special_finds),
+                    b_objects_special_finds: toBoolean(row.b_objects_special_finds),
+                    c_special_finds: toBoolean(row.c_special_finds),
+                    g_special_finds: toBoolean(row.g_special_finds),
+                    m_special_finds: toBoolean(row.m_special_finds),
+                    pp_special_finds: toBoolean(row.pp_special_finds),
+                    pl_special_finds: toBoolean(row.pl_special_finds),
+                    sp_special_finds: toBoolean(row.sp_special_finds),
+                    sh_special_finds: toBoolean(row.sh_special_finds),
+                    s_special_finds: toBoolean(row.s_special_finds),
+                    tr_special_finds: toBoolean(row.tr_special_finds),
+                    t_special_finds: toBoolean(row.t_special_finds),
+                    v_special_finds: toBoolean(row.v_special_finds)
                 };
             }
             function buildPotterySummary(row, prefix, label) {
@@ -178,6 +205,24 @@ define([
                 reader.readAsArrayBuffer(file);
             };
 
+            function parseJsonResponse(response) {
+                return response.text().then(function(text) {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (error) {
+                        throw new Error(
+                            'HTTP ' + response.status + ': the server returned an invalid response.'
+                        );
+                    }
+
+                    if (!response.ok || data.status === 'error') {
+                        throw new Error(data.message || ('HTTP ' + response.status));
+                    }
+                    return data;
+                });
+            }
+
             function loadWorkbookPreview(file) {
                 const formData = new FormData();
                 formData.append('file', file);
@@ -193,12 +238,7 @@ define([
                     body: formData
                 })
                     .then(function(response) {
-                        return response.json().then(function(data) {
-                            if (!response.ok || data.status === 'error') {
-                                throw new Error(data.message || ('HTTP ' + response.status));
-                            }
-                            return data;
-                        });
+                        return parseJsonResponse(response);
                     })
                     .then(function(result) {
                         applyParsedFile(file, result, 'XLSX loaded. No data has been imported yet.');
@@ -255,7 +295,11 @@ define([
                 const selectedContextNumber = String(self.selectedContextNumber() || '').trim();
 
                 const dataForSelectedContext = self.potteryImportData().filter(function(row) {
-                    return row.pottery.length > 0;
+                    return String(row.contextNo || '').trim() === selectedContextNumber;
+                });
+                const rowsForOtherContexts = self.potteryImportData().filter(function(row) {
+                    const contextNo = String(row.contextNo || '').trim();
+                    return contextNo && contextNo !== selectedContextNumber;
                 });
 
                 if (!selectedContextNumber) {
@@ -263,7 +307,9 @@ define([
                     return;
                 }
 
-                if (dataForSelectedContext.length === 0) {
+                if (dataForSelectedContext.length === 0 || !dataForSelectedContext.some(function(row) {
+                    return row.pottery.length > 0;
+                })) {
                     self.selectedPotteryRows([]);
                     self.importResult({
                         created: 0,
@@ -274,6 +320,13 @@ define([
                     });
                     self.errorMessage('No pottery rows with importable pottery data were found in the selected file.');
                     return;
+                }
+
+                if (rowsForOtherContexts.length > 0) {
+                    self.errorMessage(
+                        'The file contains rows for a different Context. Only rows for Context ' +
+                        selectedContextNumber + ' will be imported.'
+                    );
                 }
 
                 const payload = {
@@ -301,12 +354,7 @@ define([
                     body: JSON.stringify(payload)
                 })
                     .then(function(response) {
-                        return response.json().then(function(data) {
-                            if (!response.ok || data.status === 'error') {
-                                throw new Error(data.message || ('HTTP ' + response.status));
-                            }
-                            return data;
-                        });
+                        return parseJsonResponse(response);
                     })
                     .then(function(data) {
                         console.log('Backend pottery response:', data);
@@ -314,13 +362,13 @@ define([
                         self.importResult({
                             created: data.created ? 1 : 0,
                             updated: data.updated ? 1 : 0,
-                            skipped: 0,
-                            missing_concepts: [],
+                            skipped: self.potteryImportData().length - dataForSelectedContext.length,
+                            missing_concepts: data.missingConcepts || [],
                             errors: []
                         });
 
                         self.successMessage(
-                            data.message + ' Saved ' + data.summaryCount + ' pottery summaries.'
+                            data.message + ' Saved ' + data.fragmentCount + ' pottery fragments.'
                         );
                     })
                     .catch(function(error) {

@@ -115,6 +115,21 @@ def _get_dictionary_concept_ids(dictionary_concept):
 
         return concept_ids
 
+    if str(dictionary_concept.nodetype_id) == "ConceptScheme":
+        top_concept_ids = {
+            str(concept_id)
+            for concept_id in Relation.objects.filter(
+                conceptfrom_id=dictionary_concept_id,
+                relationtype_id="hasTopConcept",
+            ).values_list("conceptto_id", flat=True)
+        }
+
+        concept_ids = set(top_concept_ids)
+        for concept_id in top_concept_ids:
+            concept_ids.update(_get_descendant_concept_ids(concept_id))
+
+        return concept_ids
+
     return _get_descendant_concept_ids(dictionary_concept_id)
 
 

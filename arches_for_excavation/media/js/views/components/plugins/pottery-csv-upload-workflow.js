@@ -25,8 +25,8 @@ define([
               uniqueInstanceName: 'context-selector',
               tilesManaged: 'none',
               parameters: {
-                graphIds: ['d6559924-9f52-11eb-96c4-020063fe0012', '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c'],
-                searchPlaceholder: 'Search for a Context resource...'
+                graphIds: ['2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c'],
+                searchPlaceholder: 'Search for an (O) Context resource...'
               }
             }]
           }]

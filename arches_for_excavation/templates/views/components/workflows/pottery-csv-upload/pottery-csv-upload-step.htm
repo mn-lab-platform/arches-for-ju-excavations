@@ -165,6 +165,10 @@
                 <div class="panel-heading">
                     Context from file:
                     <strong data-bind="text: contextNo"></strong>
+                    &nbsp; | &nbsp; Form ID:
+                    <strong data-bind="text: formId || '—'"></strong>
+                    &nbsp; | &nbsp; Last Shred No:
+                    <strong data-bind="text: lastShredNo || '—'"></strong>
                 </div>
 
                 <table class="table table-condensed table-striped">
@@ -199,11 +203,12 @@
             <h4>Missing Concepts</h4>
             <ul data-bind="foreach: importResult().missing_concepts">
                 <li>
-                    Row <span data-bind="text: row"></span>,
-                    Context <span data-bind="text: context"></span>:
                     <span data-bind="text: field"></span>
                     =
                     <span data-bind="text: value"></span>
+                    <!-- ko if: potteryType -->
+                    (<span data-bind="text: potteryType"></span>)
+                    <!-- /ko -->
                 </li>
             </ul>
             <!-- /ko -->
