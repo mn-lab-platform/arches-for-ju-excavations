@@ -18,6 +18,7 @@ from .views.iiif_map_plugin import IiifAllmapsLayersView
 from .views.iiif_rti_handler import RTIUploadView, RTIInfoView, RTIManifestView, RTIManifestSettingsView, RTIManifestCropView
 from .views.iiif_thumbnail import IiifThumbnailView
 from .views.pottery import PotteryImportPreviewView, PotteryImportWorkbookPreviewView
+from .views.pac_wikidata import PacWikidataDictionarySearchView
 from .views.pottery_records import (
     AmphoraeRecordImportView,
     PotteryRecordCommitView,
@@ -68,6 +69,7 @@ urlpatterns = [
     path("api/iiif/rti-manifest/<uuid:resource_id>", RTIManifestView.as_view(), name="iiif-rti-manifest"),
     path("api/pottery/import-preview", PotteryImportPreviewView.as_view(), name="pottery_import_preview"),
     path("api/pottery/import-preview/workbook", PotteryImportWorkbookPreviewView.as_view(), name="pottery_import_workbook_preview"),
+    path("api/wikidata/dictionaries/search", PacWikidataDictionarySearchView.as_view(), name="pac_wikidata_dictionary_search"),
     path("api/pottery/records/<str:record_type>/preview", PotteryRecordPreviewView.as_view(), name="pottery_record_preview"),
     path("api/pottery/records/<str:record_type>/commit", PotteryRecordCommitView.as_view(), name="pottery_record_commit"),
     path("api/pottery/records/amphorae/import",AmphoraeRecordImportView.as_view(),name="amphorae_record_import"),

@@ -1,21 +1,28 @@
+import json
 import re
 from collections import Counter
 from dataclasses import dataclass
 from functools import lru_cache
 from uuid import UUID
 
+import requests
 from arches.app.models.models import Concept, Node, Relation, Value
 
 from arches_slocal.utils.pottery.common import clean_cell
 
 
 LABEL_VALUE_TYPES = ("prefLabel", "altLabel", "hiddenLabel")
+PAC_SPARQL_ENDPOINT = "https://pac.cenagis.edu.pl/wiki/sparql"
+PAC_CHRONOLOGY_SCHEME_LEGACYOID = "https://pac.cenagis.edu.pl/entity/Q454"
+PAC_ENTITY_BASE_URL = "https://pac.cenagis.edu.pl/entity/"
+PAC_REQUEST_TIMEOUT_SECONDS = 10
 
 
 @dataclass(frozen=True)
 class DictionaryIndex:
     dictionary: str
     concept_id: str
+    legacyoid: str
     values_by_label: dict
     value_ids: frozenset
     ambiguous_labels: frozenset
@@ -149,6 +156,66 @@ def _get_preferred_value_ids(concept_ids):
     return preferred
 
 
+@lru_cache(maxsize=256)
+def _find_pac_chronology_qid(label):
+    """Find one PAC chronology concept whose alternative label is ``label``."""
+    normalized_label = clean_cell(label)
+    if not normalized_label:
+        return ""
+
+    # json.dumps creates a safe SPARQL string literal, including quotes and
+    # backslashes that could otherwise change the query.
+    sparql_literal = json.dumps(normalized_label)
+    query = f"""
+PREFIX wd: <https://pac.cenagis.edu.pl/entity/>
+PREFIX wdt: <https://pac.cenagis.edu.pl/prop/direct/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?concept WHERE {{
+  ?concept skos:altLabel ?alternative_label .
+  FILTER(LCASE(STR(?alternative_label)) = LCASE({sparql_literal}))
+  ?concept wdt:P20* wd:Q454 .
+}}
+LIMIT 2
+""".strip()
+
+    response = requests.get(
+        PAC_SPARQL_ENDPOINT,
+        params={"query": query},
+        headers={"Accept": "application/sparql-results+json"},
+        timeout=PAC_REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+
+    bindings = response.json().get("results", {}).get("bindings", [])
+    if len(bindings) != 1:
+        return ""
+
+    concept_url = bindings[0].get("concept", {}).get("value", "")
+    match = re.fullmatch(r"https://pac\.cenagis\.edu\.pl/entity/(Q\d+)", concept_url)
+    return match.group(1) if match else ""
+
+
+def _local_value_id_for_pac_qid(period_id, allowed_value_ids):
+    """Return the English preferred Arches value for a PAC Q identifier."""
+    values = Value.objects.filter(
+        concept__legacyoid=f"{PAC_ENTITY_BASE_URL}{period_id}",
+        valuetype_id="prefLabel",
+    ).order_by("language_id")
+
+    for value in values:
+        value_id = str(value.valueid)
+        if value_id in allowed_value_ids and value.language_id == "en":
+            return value_id
+
+    for value in values:
+        value_id = str(value.valueid)
+        if value_id in allowed_value_ids:
+            return value_id
+
+    return ""
+
+
 @lru_cache(maxsize=64)
 def get_dictionary_index(dictionary):
     dictionary_concept = _resolve_dictionary_concept(dictionary)
@@ -157,6 +224,7 @@ def get_dictionary_index(dictionary):
         return DictionaryIndex(
             dictionary=dictionary,
             concept_id="",
+            legacyoid="",
             values_by_label={},
             value_ids=frozenset(),
             ambiguous_labels=frozenset(),
@@ -192,6 +260,7 @@ def get_dictionary_index(dictionary):
     return DictionaryIndex(
         dictionary=dictionary,
         concept_id=str(dictionary_concept.conceptid),
+        legacyoid=dictionary_concept.legacyoid or "",
         values_by_label=values_by_label,
         value_ids=frozenset(values_by_label.values()),
         ambiguous_labels=frozenset(ambiguous_labels),
@@ -211,7 +280,31 @@ def resolve_dictionary_value(dictionary, value):
         if value_id in dictionary_index.value_ids:
             return value_id
 
-    return dictionary_index.values_by_label.get(normalize_dictionary_label(raw), "")
+    local_value_id = dictionary_index.values_by_label.get(
+        normalize_dictionary_label(raw),
+        "",
+    )
+    if local_value_id:
+        return local_value_id
+
+    # The PAC RDF import used here contains the preferred labels but may not
+    # include its skos:altLabel values. Excel files can therefore use e.g.
+    # "MH", while Arches still stores the canonical "Middle Hellenistic".
+    if dictionary_index.legacyoid != PAC_CHRONOLOGY_SCHEME_LEGACYOID:
+        return ""
+
+    try:
+        pac_qid = _find_pac_chronology_qid(raw)
+    except requests.RequestException:
+        return ""
+
+    if not pac_qid:
+        return ""
+
+    return _local_value_id_for_pac_qid(
+        pac_qid,
+        dictionary_index.value_ids,
+    )
 
 
 def get_dictionary_options(dictionary):

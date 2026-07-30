@@ -10,37 +10,23 @@ from openpyxl import load_workbook
 from arches.app.models.models import Node, Resource
 from arches.app.models.tile import Tile
 from arches_slocal.utils.pottery.concept_lookup import resolve_dictionary_value
+from arches_slocal.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
 
-# (O) Pottery Collection resource model
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
-
-# Context tile and fields
 CONTEXT_NODE_ID = "622addb9-60c1-498c-ab40-bef9ded91f2f"
 ARCHAEOLOGICAL_REMAINS_NODE_ID = "6b77bb10-1d42-445f-bbc6-dc2e5db3f129"
 SPECIAL_FINDS_NODE_ID = "e912a3bd-dfa8-485a-9a8b-0ed952aafbd9"
-
-# Repeating Pottery Fragments tile and its fields
 POTTERY_FRAGMENTS_NODEGROUP_ID = "8f7a5ca4-9c49-405d-9a08-a8debb13a9ec"
-# Form metadata belongs to the Pottery Collection resource, not to each
-# repeatable Pottery Fragments tile.
 RESOURCE_FORM_ID_NODE_ID = "25e31613-69ac-45ce-a6db-a15239de70a4"
 LAST_SHRED_NO_NODE_ID = "51618119-e3a6-4bcb-bb93-ce2987f7ac56"
 POTTERY_TYPE_NODE_ID = "3bc235a3-2240-4e94-b8af-f4c70ee13af0"
 UNDIAGNOSTIC_NODE_ID = "edecb9f5-4b8e-4d6f-890b-76f8a3521b41"
 NO_MATERIAL_NODE_ID = "3d57d956-38a5-4982-a0f6-d8fb388e1cb9"
 CATEGORY_REMARKS_NODE_ID = "3c371503-9028-464a-8b85-53a43c853781"
-# General Chronology of Category is a semantic branch. Its Period child is
-# the actual concept-list field which receives the Wikidata/RDM value.
 CATEGORY_CHRONOLOGY_NODEGROUP_ID = "13c63c03-ffc3-455a-a1ce-23082b4111e8"
 CATEGORY_PERIOD_NODE_ID = "ab05ac4b-4fd8-4eb9-9549-9d4a2a86893c"
 CONTAINS_SPECIAL_FINDS_NODE_ID = "f0930ca8-a24f-458c-a27e-463601ca574a"
-
-# Diagnostic and Undiagnostic are fields of the Pottery Fragments tile.
 DIAGNOSTIC_NODE_ID = "99affc33-fc6e-4fee-9ac4-e2d4f13087cc"
-
-# The source workbook uses abbreviations. Resolve them against the Trench
-# Parameters concept scheme at runtime so a dictionary re-import does not
-# invalidate hard-coded Arches value UUIDs.
 FIELD_REMAINS_DICTIONARY_ID = "d00fe4ba-c5a2-307d-91d2-537ca8276392"
 FIELD_REMAINS_LABEL_MAP = {
     "b_presence": "bone (B)",
@@ -263,7 +249,10 @@ class PotteryImportPreviewView(View):
         if remarks:
             fragment_data[CATEGORY_REMARKS_NODE_ID] = localized_string(remarks)
         if chronology:
-            chronology_value = resolve_dictionary_value("Pottery Chronology", chronology)
+            chronology_value = resolve_dictionary_value(
+                POTTERY_DICTIONARY_CHRONOLOGY,
+                chronology,
+            )
             if chronology_value:
                 category_chronology_value = chronology_value
             else:

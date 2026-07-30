@@ -1,6 +1,8 @@
 POTTERY_DICTIONARY_POTTERY_TYPE = "Pottery Type"
 POTTERY_DICTIONARY_VESSEL_PART = "Pottery Vessel Part"
-POTTERY_DICTIONARY_CHRONOLOGY = "Pottery Chronology"
+# PAC Chronology ConceptScheme (Q454).  Use its Arches ID instead of the
+# local Pottery Chronology collection, which contains abbreviated labels.
+POTTERY_DICTIONARY_CHRONOLOGY = "bcde9832-a327-323d-b94d-d61370d02388"
 POTTERY_DICTIONARY_SUB_CATEGORY = "Pottery Sub-category"
 POTTERY_DICTIONARY_FORM = "Pottery Form"
 POTTERY_DICTIONARY_TYPE = "Pottery Type/Form Classification"

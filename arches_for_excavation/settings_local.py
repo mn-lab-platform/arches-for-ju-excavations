@@ -29,7 +29,7 @@ DEBUG = ast.literal_eval(get_env_variable("DJANGO_DEBUG"))
 
 DOMAIN_NAMES = get_env_variable("DOMAIN_NAMES").split()
 is_localhost = any(host in ['localhost', '127.0.0.1', '0.0.0.0'] for host in DOMAIN_NAMES)
-
+DEPLOY_HOST = get_env_variable("DEPLOY_HOST")
 if not DEBUG:
     DEPLOY_HOST = get_env_variable("DEPLOY_HOST")
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -62,6 +62,12 @@ EMAIL_PORT = int(get_optional_env_variable("EMAIL_PORT") or "587")
 
 _DEPLOY_HOST = get_env_variable('DEPLOY_HOST')
 _DOMAIN_URL = f"https://{_DEPLOY_HOST}"
+
+# PAC Wikidata SPARQL endpoint used by the reusable dictionary-search view.
+PAC_WIKIDATA_ENDPOINT = (
+    get_optional_env_variable("PAC_WIKIDATA_ENDPOINT")
+    or "https://pac.cenagis.edu.pl/wiki/sparql"
+)
 
 APP_TITLE = get_optional_env_variable("APP_TITLE") or "Arches for Excavation"
 
