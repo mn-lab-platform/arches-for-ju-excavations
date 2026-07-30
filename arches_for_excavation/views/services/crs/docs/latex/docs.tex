@@ -1,0 +1,75 @@
+\documentclass{article}
+
+\usepackage[polish]{babel}
+\usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage[T1]{fontenc}
+
+\title{Wyznaczanie aproksymacji układu lokalnego przez ukośne odwzorowanie Merkatora}
+
+\begin{document}
+\maketitle
+
+\section{Koncepcja}
+Celem omawianego narzędzia jest wyznaczenie definicji \href{https://proj.org/en/stable/operations/projections/omerc.html}{ukośnego odwzorowania Merkatora} 
+aproksymującego lokalny układ współrzędnych kartezjańskich. Lokalne układy nadal często wykorzystywane są w przypadku obsługi geodezyjnej takich obiektów 
+jak np. inwestycje budowlane lub place budowy. Układ lokalny ma wiele przewag w przypadku obsługi mniejszych powierzchniowo obszarów. Przez wyraźne zdefiniowanie 
+jego początku (punktu przyłożenia) oraz osi możliwe jest między innymi łatwiejsze interpretowanie wartości współrzędnych w codziennych pracach.
+
+Standardowo pracując z układem lokalnym konieczne jest określenie reguł matematycznych umożliwiających ścisłe przeliczanie pomiędzy współrzędnymi w układzie lokalnym, 
+a innym globalnym układem współrzędnych. Rozwiązanie to choć najbardziej poprawne merytorycznie znacznie utrudnia pracę z danymi geodezyjnymi w środowisku GIS. 
+W każdym wypadku kiedy potrzebny jest import danych do oprogramowania GIS konieczne jest przeliczenia współrzędnych lokalnych poza nim (i potencjalnie w kierunku odwrotnym 
+- z układu globalnego do lokalnego). Z tego powodu alternatywnym rozwiązaniem jest zdefiniowanie poprawnego z punktu widzenia GIS układu odwzorowania będącego aproksymacją 
+układu lokalnego, które dla odpowiednio małych obszarów nie będzie generowało żadnych różnic w wartościach współrzędnych.
+
+\section{Ogólny opis procesu}
+Generalny zarys procesu można zamknąć w dwóch głównych krokach - wyznaczeniu parametrów odwzorowania (punkt przyłożenia oraz azymut skręcenia), a następnie utworzeniu definicji układu.
+
+Przewidujemy dwa warianty wyznaczania parametrów odwzorowania. W pierwszym z nich parametry wyznaczamy na podstawie dwóch punktów, gdzie jeden służy jako punkt przyłożenia, 
+a drugi definiuje kierunek osi Y nowego układu. W drugim wariancie na podstawie większej grupy punktów w procesie wyrównania na podstawie wielu odpowiadających sobie par współrzędnych 
+w układzie lokalnym i globalnym wyznaczane są parametry definiujące odwzorowanie. W wyniku obu tych wariantów finalnie otrzymujemy zestaw 3 parametrów określających definicję układu odwzorowania.
+
+Znając wartości wszystkich wymaganych parametrów w następnym kroku definiujemy z wykorzystaniem PROJ/PyPROJ nowe odwzorowanie, 
+które może być potem wykorzystywane do przeliczania współrzędnych, transformacji rastrów etc. w programach i bibliotekach do danych GIS.
+
+
+\section{Kroki pośrednie}
+\subsection{Definicja odwzorowania}
+Żeby poprawnie zdefiniować odwzorowanie ukośne Merkatora konieczna jest znajomość następujących parametrów:
+\begin{enumerate}
+\item Punktu przyłożenia walca (2 wartości - szerokość i długość geograficzna),
+\item Azymutu skręcenia walca (1 wartość kątowa)
+\item Sztucznego przesunięcia do wartości współrzędnych XY (2 wartości)
+\end{enumerate}
+Należy nadmienić jednak, że musimy zdefiniować elipsoidę na której oparty jest układ. W naszym przypadku można wybierać pomiędzy
+już istniejącymi definicjami WGS84 i GRS80 (w teorii minimalnie się różnią).
+
+Znając podane parametry żeby zdefiniować odwzorowanie można skorzystać z jednej z dostępnych w PROJ metod definiowania układów.
+Zgodnie z ich dokumentacją w naszej implemntacji wykorzystujemy standard OGC tzw. \href{https://proj.org/en/stable/faq.html#what-is-the-best-format-for-describing-coordinate-reference-systems}{CRS WKT-2}.
+
+Sama definicja sprowadza się więc do wstawieniu w tekst z definicją układu odpowiednich wartości numerycznych, a następnie w razie potrzeby konwersja tej definicji do innych formatów opisu (np. PROJ4JS 
+dla portali mapowych lub ESRI WKT dla oprogramowania ArcGIS). 
+
+\subsection{Wyznaczanie parametrów odwzorowania z 2 punktów}
+Znając dwa punkty o znanych współrzędnych w układzie lokalnym oraz układzie globalnym (docelowo we współrzędnych geodezyjnych na elipsoidzie) możemy wyznaczyć wszystkie z wymienionych wcześniej parametrów odwzorowania.
+
+W pierwszej kolejności musimy ustalić rolę każdego z punktów: 
+\begin{itemize}
+    \item Punkt O - punkt który będzie stanowił punkt przyłożenia walca dla odwzorowania Merkatora. Jego położenie w układzie geodezyjnym zostanie podane jako punkt przyłożenia walca, 
+    a wartości współrzędnych w układzie lokalnym posłużą jako wartości dla sztucznego przesunięcia XY.
+    \item Punkt D - punkt który określi kierunek osi Y nowo definiowanego układu. 
+\end{itemize}
+
+Wartości 4 z pięciu potrzebnych parametrów w zasadzie wyznaczane są bezpośrednio z wartości współrzędnych punktu O. W celu wyznaczenia brakującego parametru (azymutu skręcenia) 
+musimy wyznaczyć azymut z punktu O do punktu D. W tym celu trzeba rozwiązać odwrotny problem geodezyjny na elipsoidzie (wyznaczenie długości oraz azymutu linii geodezyjnej 
+pomiędzy dwoma znanymi punktami). \href{https://proj.org/en/stable/faq.html#what-is-the-best-format-for-describing-coordinate-reference-systems}{Implementacja tego zadania} jest dostępna w PROJ/PyPROJ.
+
+% \subsection{Wyznaczanie parametrów odwzorowania z N punktów}
+% \begin{itemize}
+% \item Wyznaczenie centroidu punktów w WGS,
+% \item Wyznaczenie układu ENU dla centroidu.
+% \item 
+% \end{itemize}
+\end{document}
