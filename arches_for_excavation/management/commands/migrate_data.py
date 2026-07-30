@@ -7,7 +7,7 @@ from django.db import transaction
 
 from arches.app.models.models import Edge, GraphModel, Node, Resource
 from arches.app.models.tile import Tile
-from arches_slocal.utils.resource_mapping import (
+from arches_for_excavation.utils.resource_mapping import (
     datatypes_compatible,
     get_graph_info,
     get_graph_nodes,

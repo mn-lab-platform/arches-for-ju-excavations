@@ -9,8 +9,8 @@ from openpyxl import load_workbook
 
 from arches.app.models.models import Node, Resource
 from arches.app.models.tile import Tile
-from arches_slocal.utils.pottery.concept_lookup import resolve_dictionary_value
-from arches_slocal.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
+from arches_for_excavation.utils.pottery.concept_lookup import resolve_dictionary_value
+from arches_for_excavation.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
 
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
 CONTEXT_NODE_ID = "622addb9-60c1-498c-ab40-bef9ded91f2f"

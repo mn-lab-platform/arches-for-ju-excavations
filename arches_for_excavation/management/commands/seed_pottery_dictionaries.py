@@ -5,11 +5,11 @@ from django.db import transaction
 
 from arches.app.models.models import CardXNodeXWidget, Concept, Relation, Value
 
-from arches_slocal.utils.pottery.concept_lookup import (
+from arches_for_excavation.utils.pottery.concept_lookup import (
     get_dictionary_node_ids,
     normalize_dictionary_label,
 )
-from arches_slocal.utils.pottery.constants import (
+from arches_for_excavation.utils.pottery.constants import (
     POTTERY_DICTIONARY_CHRONOLOGY,
     POTTERY_DICTIONARY_FORM,
     POTTERY_DICTIONARY_MORPHOLOGY,

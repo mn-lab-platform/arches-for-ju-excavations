@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ArchesSlocalConfig(AppConfig):
-    name = "arches_slocal"
+class ArchesForExcavationConfig(AppConfig):
+    name = "arches_for_excavation"
     is_arches_application = True

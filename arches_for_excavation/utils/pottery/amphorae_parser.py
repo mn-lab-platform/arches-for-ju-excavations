@@ -1,4 +1,4 @@
-from arches_slocal.utils.pottery.generic_record_parser import (
+from arches_for_excavation.utils.pottery.generic_record_parser import (
     create_pottery_record,
     parse_pottery_record_workbook,
 )

@@ -1,4 +1,5 @@
 import ko from 'knockout';
+import arches from 'arches';
 import { Viewer, UIBasic, LayerRTI, Layout, Skin, ControllerPanZoom } from 'openlime';
 
 import rtiViewerTemplate from 'templates/views/components/iiif/iiif-RTI-viewer.htm';
@@ -349,9 +350,9 @@ ko.components.register('iiif-rti-viewer', {
 
       self.metadataUrl = params.metadataUrl;
       self.planes = params.planes;
-      self.skinUrl = params.skinUrl || '/static/img/openlime/skin.svg';
-      self.skinCssUrl = params.skinCssUrl || '/static/css/openlime/skin.css';
-      self.lightCssUrl = params.lightCssUrl || '/static/css/openlime/light.css';
+      self.skinUrl = params.skinUrl || arches.urls.media + 'img/openlime/skin.svg';
+      self.skinCssUrl = params.skinCssUrl || arches.urls.media + 'css/openlime/skin.css';
+      self.lightCssUrl = params.lightCssUrl || arches.urls.media + 'css/openlime/light.css';
 
       self.rotation = params.rotation || ko.observable(0);
       self.cropEnabled = params.cropEnabled || ko.observable(false);

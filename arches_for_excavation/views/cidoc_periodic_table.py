@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views import View
 
-from arches_slocal.utils.cidoc_periodic_table import build_periodic_table_data
+from arches_for_excavation.utils.cidoc_periodic_table import build_periodic_table_data
 
 
 class CidocPeriodicTableDataView(View):

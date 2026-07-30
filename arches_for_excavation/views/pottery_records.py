@@ -4,16 +4,16 @@ from django.http import JsonResponse
 from django.views import View
 from arches.app.models.tile import Tile
 from django.db import transaction
-from arches_slocal.utils.pottery.common import normalize_tile_value
-from arches_slocal.utils.pottery.constants import POTTERY_RECORD_TYPES
-from arches_slocal.utils.pottery.concept_lookup import (
+from arches_for_excavation.utils.pottery.common import normalize_tile_value
+from arches_for_excavation.utils.pottery.constants import POTTERY_RECORD_TYPES
+from arches_for_excavation.utils.pottery.concept_lookup import (
     apply_dictionary_alias,
     get_dictionary_options,
     get_invalid_dictionary_nodes,
     resolve_dictionary_value,
     validate_and_prepare_dictionary_records,
 )
-from arches_slocal.utils.pottery.generic_record_parser import (
+from arches_for_excavation.utils.pottery.generic_record_parser import (
     create_pottery_record,
     parse_pottery_record_workbook,
 )

@@ -38,4 +38,4 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["arches_slocal"]
+packages = ["arches_for_excavation"]

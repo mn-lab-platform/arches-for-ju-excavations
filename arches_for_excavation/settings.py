@@ -1,5 +1,5 @@
 """
-Django settings for arches_slocal project.
+Django settings for arches_for_excavation project.
 """
 
 import os
@@ -13,7 +13,7 @@ try:
 except ImportError:
     pass
 
-APP_NAME = 'arches_slocal'
+APP_NAME = 'arches_for_excavation'
 APP_VERSION = semantic_version.Version(major=0, minor=0, patch=0)
 APP_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -23,10 +23,10 @@ WEBPACK_LOADER = {
     },
 }
 
-DATATYPE_LOCATIONS.append('arches_slocal.datatypes')
-FUNCTION_LOCATIONS.append('arches_slocal.functions')
-ETL_MODULE_LOCATIONS.append('arches_slocal.etl_modules')
-SEARCH_COMPONENT_LOCATIONS.append('arches_slocal.search_components')
+DATATYPE_LOCATIONS.append('arches_for_excavation.datatypes')
+FUNCTION_LOCATIONS.append('arches_for_excavation.functions')
+ETL_MODULE_LOCATIONS.append('arches_for_excavation.etl_modules')
+SEARCH_COMPONENT_LOCATIONS.append('arches_for_excavation.search_components')
 
 LOCALE_PATHS.insert(0, os.path.join(APP_ROOT, 'locale'))
 
@@ -57,10 +57,10 @@ SECRET_KEY = 'django-insecure-1a3xf0j!^%fvtg$)_su0_1u*c7jkm$9abo9=t)#me#w!p!6ing
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ROOT_URLCONF = "arches_slocal.urls"
-ROOT_HOSTCONF = "arches_slocal.hosts"
+ROOT_URLCONF = "arches_for_excavation.urls"
+ROOT_HOSTCONF = "arches_for_excavation.hosts"
 
-DEFAULT_HOST = "arches_slocal"
+DEFAULT_HOST = "arches_for_excavation"
 
 # Modify this line as needed for your project to connect to elasticsearch with a password that you generate
 ELASTICSEARCH_CONNECTION_OPTIONS = {"request_timeout": 30, "verify_certs": False, "basic_auth": ("elastic", "E1asticSearchforArche5")}
@@ -78,11 +78,11 @@ ELASTICSEARCH_CONNECTION_OPTIONS = {"request_timeout": 30, "verify_certs": False
 # Or Kibana: https://www.elastic.co/guide/en/kibana/current/api-keys.html
 
 # a prefix to append to all elasticsearch indexes, note: must be lower case
-ELASTICSEARCH_PREFIX = 'arches_slocal'
+ELASTICSEARCH_PREFIX = 'arches_for_excavation'
 
 ELASTICSEARCH_CUSTOM_INDEXES = []
 # [{
-#     'module': 'arches_slocal.search_indexes.sample_index.SampleIndex',
+#     'module': 'arches_for_excavation.search_indexes.sample_index.SampleIndex',
 #     'name': 'my_new_custom_index', <-- follow ES index naming rules
 #     'should_update_asynchronously': False  <-- denotes if asynchronously updating the index would affect custom functionality within the project.
 # }]
@@ -113,7 +113,7 @@ DATABASES = {
         "CONN_MAX_AGE": 0,
         "ENGINE": "django.contrib.gis.db.backends.postgis",
         "HOST": "localhost",
-        "NAME": "arches_slocal",
+        "NAME": "arches_for_excavation",
         "OPTIONS": {
             "options": "-c cursor_tuple_fraction=1",
         },
@@ -153,7 +153,7 @@ INSTALLED_APPS = (
     "django_celery_results",
     "pgtrigger",
     # "silk",
-    "arches_slocal",  # Ensure the project is listed before any other arches applications
+    "arches_for_excavation",  # Ensure the project is listed before any other arches applications
 )
 
 # Placing this last ensures any templates provided by Arches Applications
@@ -201,7 +201,7 @@ TEMPLATES[0]['OPTIONS']['context_processors'].append(
 )
 
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(APP_ROOT, 'system_settings', 'System_Settings.json')
-WSGI_APPLICATION = 'arches_slocal.wsgi.application'
+WSGI_APPLICATION = 'arches_for_excavation.wsgi.application'
 
 # URL that handles the media served from MEDIA_ROOT, used for managing stored files.
 # It must end in a slash if set to a non-empty value.
@@ -253,7 +253,7 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': True
         },
-        "arches_slocal": {
+        "arches_for_excavation": {
             "handlers": ["file", "console"],
             "level": "WARNING",
             "propagate": True,
@@ -275,7 +275,7 @@ RATE_LIMIT = "5/m"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 15728640
 
 # Unique session cookie ensures that logins are treated separately for each app
-SESSION_COOKIE_NAME = 'arches_slocal'
+SESSION_COOKIE_NAME = 'arches_for_excavation'
 
 # For more info on configuring your cache: https://docs.djangoproject.com/en/2.2/topics/cache/
 CACHES = {
@@ -433,7 +433,7 @@ SHOW_LANGUAGE_SWITCH = len(LANGUAGES) > 1
 
 # Implement this class to associate custom documents to the ES resource index
 # See tests.views.search_tests.TestEsMappingModifier class for example
-# ES_MAPPING_MODIFIER_CLASSES = ["arches_slocal.search.es_mapping_modifier.EsMappingModifier"]
+# ES_MAPPING_MODIFIER_CLASSES = ["arches_for_excavation.search.es_mapping_modifier.EsMappingModifier"]
 
 try:
     from .package_settings import *

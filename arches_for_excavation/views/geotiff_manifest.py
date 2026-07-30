@@ -16,7 +16,7 @@ from .services.iiif_utils import _resolve_manifest_path_and_current, _append_ite
 from .services.iiif_image_service import public_service_url_from_any, rewrite_manifest_image_services
 from arches.app.models.models import TileModel
 from arches.app.models.resource import Resource
-from arches_slocal.utils.resource_model_compat import node_id
+from arches_for_excavation.utils.resource_model_compat import node_id
 
 def _manifest_dir(resource_name: str, resource_id: str) -> Path:
     # Store inside: {resource_name}_{resource_id}/manifest/

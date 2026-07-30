@@ -9,7 +9,7 @@ from django.views import View
 from arches.app.models.models import Node
 from arches.app.models.resource import Resource
 from arches.app.models.tile import Tile
-from arches_slocal.utils.resource_model_compat import (
+from arches_for_excavation.utils.resource_model_compat import (
     RESOURCE_MODELS,
     graph_ids,
     graph_variant,

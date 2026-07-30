@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.http import JsonResponse
 from django.views import View
 
-from arches_slocal.utils.resource_mapping import (
+from arches_for_excavation.utils.resource_mapping import (
     get_graph_info,
     get_graph_nodes,
     get_graph_options,

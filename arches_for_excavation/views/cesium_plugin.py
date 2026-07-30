@@ -2,7 +2,7 @@ from django.views import View
 from django.http import JsonResponse
 from arches.app.models.models import Resource
 
-from arches_slocal.utils.resource_model_compat import graph_ids, node_id
+from arches_for_excavation.utils.resource_model_compat import graph_ids, node_id
 
 
 class Models3DAccessView(View):

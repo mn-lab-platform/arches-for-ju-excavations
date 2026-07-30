@@ -1,6 +1,6 @@
 [run]
 source =
-    arches_slocal/
+    arches_for_excavation/
 
 omit =
     */python?.?/*

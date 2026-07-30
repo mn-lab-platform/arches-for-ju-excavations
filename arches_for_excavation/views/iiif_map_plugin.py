@@ -14,7 +14,7 @@ from .services.iiif_image_service import (
     rewrite_manifest_image_services,
 )
 from .local_coordinate_system import get_crs_definition
-from arches_slocal.utils.resource_model_compat import graph_ids, node_id
+from arches_for_excavation.utils.resource_model_compat import graph_ids, node_id
 from .services.crs.local_mercator.oblique_mercator import ObliqueMercator
 
 

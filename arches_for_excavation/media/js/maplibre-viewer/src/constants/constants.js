@@ -1,13 +1,15 @@
+import arches from 'arches';
+
+export const HATCH_FILL_SOURCE_PATHS = [
+    arches.urls.media + 'img/maplibre-viewer/hatch-fill-icons/hatch-fill-0.png',
+    arches.urls.media + 'img/maplibre-viewer/hatch-fill-icons/hatch-fill-1.png'
+];
+
 const LAYER_TYPES = {
     geojson: 'geojson',
     iiif: 'iiif',
     none: 'none'
 };
-
-const HATCH_FILL_SOURCE_PATHS = [
-    '/static/img/maplibre-viewer/hatch-fill-icons/hatch-fill-0.png',
-    '/static/img/maplibre-viewer/hatch-fill-icons/hatch-fill-1.png'
-];
 
 const LINE_STYLES = {
     solid: 'solid',

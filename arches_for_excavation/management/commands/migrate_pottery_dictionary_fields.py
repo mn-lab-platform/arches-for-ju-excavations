@@ -7,15 +7,15 @@ from django.db import transaction
 
 from arches.app.models.tile import Tile
 
-from arches_slocal.utils.pottery.common import clean_cell
-from arches_slocal.utils.pottery.concept_lookup import (
+from arches_for_excavation.utils.pottery.common import clean_cell
+from arches_for_excavation.utils.pottery.concept_lookup import (
     apply_dictionary_alias,
     format_concept_tile_value,
     get_dictionary_node_ids,
     get_node_datatype,
     resolve_dictionary_value,
 )
-from arches_slocal.utils.pottery.constants import POTTERY_RECORD_TYPES
+from arches_for_excavation.utils.pottery.constants import POTTERY_RECORD_TYPES
 
 
 def is_uuid(value):
