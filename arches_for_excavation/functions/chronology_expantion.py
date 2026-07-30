@@ -58,12 +58,18 @@ details = {
 
 
 def parse_year(raw_date):
-    """Return an integer year from a PAC timestamp, including BCE years."""
     if not isinstance(raw_date, str):
         return None
 
     match = re.match(r"^([+-]?\d+)-", raw_date)
-    return int(match.group(1)) if match else None
+    if not match:
+        return None
+
+    year = int(match.group(1))
+    # PAC uses astronomical numbering, which has a year zero. Arches' BCE
+    # values are historical: 1 BCE immediately precedes 1 CE. Shift every
+    # negative PAC year by one to remove that year-zero offset.
+    return year - 1 if year < 0 else year
 
 
 def extract_pac_qid(legacyoid):
