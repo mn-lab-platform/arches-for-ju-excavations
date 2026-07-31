@@ -196,10 +196,6 @@ TEMPLATES = build_templates_config(
     app_root=APP_ROOT
 )
 
-TEMPLATES[0]['OPTIONS']['context_processors'].append(
-    f"{APP_NAME}.context_processors.custom_context"
-)
-
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(APP_ROOT, 'system_settings', 'System_Settings.json')
 WSGI_APPLICATION = 'arches_for_excavation.wsgi.application'
 

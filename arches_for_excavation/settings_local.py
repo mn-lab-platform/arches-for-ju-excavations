@@ -20,79 +20,11 @@ def get_optional_env_variable(var_name):
     except KeyError:
         return None
 
-
-# options are either "PROD" or "DEV"
-# (installing with Dev mode set gets you extra dependencies)
-MODE = get_env_variable("DJANGO_MODE")
-
-DEBUG = ast.literal_eval(get_env_variable("DJANGO_DEBUG"))
-
-DOMAIN_NAMES = get_env_variable("DOMAIN_NAMES").split()
-is_localhost = any(host in ['localhost', '127.0.0.1', '0.0.0.0'] for host in DOMAIN_NAMES)
-DEPLOY_HOST = get_env_variable("DEPLOY_HOST")
-if not DEBUG:
-    DEPLOY_HOST = get_env_variable("DEPLOY_HOST")
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    
-    if not is_localhost:
-        SESSION_COOKIE_SECURE = True
-        CSRF_COOKIE_SECURE = True
-    
-    CSRF_TRUSTED_ORIGINS = [
-        f"https://{DEPLOY_HOST}",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost",
-        "http://127.0.0.1",
-    ]
-
-# Set the APP_NAME here too, it may be useful for making the URLs
-# work correctly when running gunicorn.
-APP_NAME = get_env_variable("ARCHES_PROJECT")
-
-DEFAULT_FROM_EMAIL = get_optional_env_variable("DEFAULT_FROM_EMAIL") or "xxxx@xxx.com"
-EMAIL_USE_TLS = get_optional_env_variable("EMAIL_USE_TLS") or "false"
-EMAIL_USE_TLS = EMAIL_USE_TLS.lower() in ['true', '1', 't']
-EMAIL_USE_SSL = get_optional_env_variable("EMAIL_USE_SSL") or "false"
-EMAIL_USE_SSL = EMAIL_USE_SSL.lower() in ['true', '1', 't']
-EMAIL_HOST = get_optional_env_variable("EMAIL_HOST") or 'smtp.gmail.com'
-EMAIL_HOST_USER = get_optional_env_variable("EMAIL_HOST_USER") or "xxxx@xxx.com"
-EMAIL_HOST_PASSWORD = get_optional_env_variable("EMAIL_PASSWORD") or "xxxx"
-EMAIL_PORT = int(get_optional_env_variable("EMAIL_PORT") or "587")
-
-_DEPLOY_HOST = get_env_variable('DEPLOY_HOST')
-_DOMAIN_URL = f"https://{_DEPLOY_HOST}"
-
 # PAC Wikidata SPARQL endpoint used by the reusable dictionary-search view.
 PAC_WIKIDATA_ENDPOINT = (
     get_optional_env_variable("PAC_WIKIDATA_ENDPOINT")
     or "https://pac.cenagis.edu.pl/wiki/sparql"
 )
-
-APP_TITLE = get_optional_env_variable("APP_TITLE") or "Arches for Excavation"
-
-IMAGE_SLIDES_CAPTIONS = [
-    "To edit this caption, please check the manual.",
-    "To edit this caption, please check the manual.",
-    "To edit this caption, please check the manual."
-]
-
-EXTRA_EMAIL_CONTEXT = {
-    "salutation": "Hi", 
-    "expiration": '24 hours', 
-    
-    "arches_project_name": APP_TITLE,
-    "greeting": mark_safe("""
-        Thanks for signing up to the <strong><a href="https://www.archesproject.org/" style="color:#0070d2; text-decoration:underline;">Arches</a></strong> instance created as part of the 
-        <strong><a href="https://mare.id.uj.edu.pl/pl" style="color:#0070d2; text-decoration:underline;">Mare Nostrum Lab</a></strong>, a project of the 
-        <strong>Institute of Archaeology at Jagiellonian University</strong>. 
-        All you need to do is confirm your email address by clicking the button below and we are good to go. 🏛️
-    """),
-    "button_text": "Confirm",
-    "domain_url": _DOMAIN_URL,
-    "footer_strong_text": mark_safe("Institute of Archaeology &bull; Jagiellonian University"),
-    "footer_additional_text": mark_safe("Gołębia 11 &middot; 31-007 Kraków &middot; Poland")
-}
 
 DATABASES = {
     "default": {
