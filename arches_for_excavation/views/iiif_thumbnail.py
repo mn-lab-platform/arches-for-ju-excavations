@@ -1,13 +1,21 @@
 import json
+import re
 from pathlib import Path
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect
 
+from arches.app.models.models import TileModel
 from arches.app.views.thumbnail import ThumbnailView
+
+from ..utils.resource_model_compat import node_ids
 
 
 DERIVATIVE_LABELS = ("(hillshade)", "(color relief)")
+UUID_RE = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+    re.IGNORECASE,
+)
 
 
 def _first(value):
@@ -114,8 +122,24 @@ def _service_id_from_canvas(canvas):
 
 def _manifest_path(resource_id):
     root = Path(getattr(settings, "RASTER_DATA_DIR"))
-    matches = list(root.glob(f"*_{resource_id}/manifest/{resource_id}.json"))
-    return matches[0] if matches else None
+    resource_id = str(resource_id)
+    manifest_ids = [resource_id]
+
+    # IIIF resources can point at a manifest with a different UUID.
+    for tile in TileModel.objects.filter(resourceinstance_id=resource_id):
+        for manifest_node_id in node_ids("iiif", "manifest"):
+            manifest_url = tile.data.get(manifest_node_id)
+            if not isinstance(manifest_url, str):
+                continue
+            match = UUID_RE.search(manifest_url)
+            if match and match.group(0) not in manifest_ids:
+                manifest_ids.append(match.group(0))
+
+    for manifest_id in manifest_ids:
+        matches = list(root.glob(f"*_{manifest_id}/manifest/{manifest_id}.json"))
+        if matches:
+            return matches[0]
+    return None
 
 
 def _iiif_thumbnail_url(resource_id):

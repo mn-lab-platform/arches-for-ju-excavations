@@ -8,7 +8,7 @@ from uuid import UUID
 import requests
 from arches.app.models.models import Concept, Node, Relation, Value
 
-from arches_for_excavation.utils.pottery.common import clean_cell
+from arches_slocal.utils.pottery.common import clean_cell
 
 
 LABEL_VALUE_TYPES = ("prefLabel", "altLabel", "hiddenLabel")
@@ -77,6 +77,14 @@ def _resolve_dictionary_concept(dictionary):
 
     if is_uuid(dictionary):
         return _get_concept_by_id(dictionary)
+
+    # PAC concept UUIDs are generated during the RDF import and therefore are
+    # not stable between databases. The PAC entity URL (for example Q454 for
+    # chronology) is stable and is stored as ``legacyoid`` on the imported
+    # ConceptScheme, so allow dictionaries to be configured with that URL.
+    concept = Concept.objects.filter(legacyoid=dictionary).first()
+    if concept:
+        return concept
 
     collection = _get_concept_by_label(dictionary, "Collection")
     if collection:

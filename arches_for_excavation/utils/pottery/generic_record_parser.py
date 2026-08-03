@@ -4,7 +4,7 @@ from openpyxl import load_workbook
 
 from arches.app.models.models import Resource
 
-from arches_for_excavation.utils.pottery.common import (
+from arches_slocal.utils.pottery.common import (
     clean_cell,
     create_tile_for_node,
     decode_vessel_part,
@@ -14,8 +14,8 @@ from arches_for_excavation.utils.pottery.common import (
     parse_p_no_and_count,
     to_boolean,
 )
-from arches_for_excavation.utils.pottery.concept_lookup import format_concept_tile_value
-from arches_for_excavation.utils.pottery.constants import POTTERY_RECORD_TYPES
+from arches_slocal.utils.pottery.concept_lookup import format_concept_tile_value
+from arches_slocal.utils.pottery.constants import POTTERY_RECORD_TYPES
 
 
 DATA_SLOT_COUNT = 36
@@ -211,19 +211,21 @@ def create_pottery_record(record_type, record, pottery_collection_resource_id):
         record_config["related_collection_node_id"],
         related_collection_value,
     )
+    pottery_type_node_id = record_config.get("pottery_type_node_id")
     pottery_type_value = record.get("potteryType")
-    if "potteryType" in dictionary_fields and pottery_type_value:
-        create_tile_for_node(
-            resource,
-            record_config["pottery_type_node_id"],
-            format_concept_tile_value(record_config["pottery_type_node_id"], pottery_type_value),
-        )
-    else:
-        create_tile_for_node(
-            resource,
-            record_config["pottery_type_node_id"],
-            localized_string(pottery_type_value),
-        )
+    if pottery_type_node_id:
+        if "potteryType" in dictionary_fields and pottery_type_value:
+            create_tile_for_node(
+                resource,
+                pottery_type_node_id,
+                format_concept_tile_value(pottery_type_node_id, pottery_type_value),
+            )
+        else:
+            create_tile_for_node(
+                resource,
+                pottery_type_node_id,
+                localized_string(pottery_type_value),
+            )
 
     for key, node_id in record_config.get("fields", {}).items():
         value = record.get(key)
@@ -239,15 +241,17 @@ def create_pottery_record(record_type, record, pottery_collection_resource_id):
         else:
             create_tile_for_node(resource, node_id, localized_string(value))
 
-    create_tile_for_node(
-        resource,
-        record_config["source_sheet_node_id"],
-        localized_string(record.get("sourceSheet")),
-    )
-    create_tile_for_node(
-        resource,
-        record_config["source_row_node_id"],
-        record.get("sourceRow"),
-    )
+    if record_config.get("source_sheet_node_id"):
+        create_tile_for_node(
+            resource,
+            record_config["source_sheet_node_id"],
+            localized_string(record.get("sourceSheet")),
+        )
+    if record_config.get("source_row_node_id"):
+        create_tile_for_node(
+            resource,
+            record_config["source_row_node_id"],
+            record.get("sourceRow"),
+        )
 
     return resource

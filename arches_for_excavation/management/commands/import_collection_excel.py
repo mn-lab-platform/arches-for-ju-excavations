@@ -12,13 +12,13 @@ from openpyxl import load_workbook
 
 from arches.app.models.models import Resource, TileModel, Value
 from arches.app.models.tile import Tile
-from arches_for_excavation.utils.pottery.common import clean_cell, localized_string, to_boolean
-from arches_for_excavation.utils.pottery.concept_lookup import (
+from arches_slocal.utils.pottery.common import clean_cell, localized_string, to_boolean
+from arches_slocal.utils.pottery.concept_lookup import (
     get_dictionary_index,
     normalize_dictionary_label,
     resolve_dictionary_value,
 )
-from arches_for_excavation.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
+from arches_slocal.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
 
 
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
@@ -458,7 +458,7 @@ class Command(BaseCommand):
             context_data[CONTEXT_REMARKS_NODE_ID] = localized_string(
                 clean_cell(row["Remarks_about_Context"])
             )
-        self._save_tile(resource, CONTEXT_NODEGROUP_ID, context_data)
+        context_tile = self._save_tile(resource, CONTEXT_NODEGROUP_ID, context_data)
 
         self._save_tile(resource, FORM_ID_NODEGROUP_ID, {FORM_ID_NODE_ID: clean_cell(row["Form_ID"])})
         last_shred = cell_number(row.get("Last_Shred_No"))
@@ -476,7 +476,12 @@ class Command(BaseCommand):
             # Uncertain is required by the current Dating card. Explicitly
             # write False when the Excel value has no question-mark marker.
             chronology_data[CONTEXT_UNCERTAIN_NODE_ID] = report["context_period_uncertain"]
-            self._save_tile(resource, CONTEXT_CHRONOLOGY_NODEGROUP_ID, chronology_data)
+            self._save_tile(
+                resource,
+                CONTEXT_CHRONOLOGY_NODEGROUP_ID,
+                chronology_data,
+                parent_tile=context_tile,
+            )
 
         for category in report["categories"]:
             fragment_data = {
