@@ -8,7 +8,7 @@ from django.db import transaction
 from openpyxl import load_workbook
 
 from arches.app.models.models import TileModel, Value
-from arches_slocal.utils.pottery.common import clean_cell, localized_string
+from arches_for_excavation.utils.pottery.common import clean_cell, localized_string
 
 
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"

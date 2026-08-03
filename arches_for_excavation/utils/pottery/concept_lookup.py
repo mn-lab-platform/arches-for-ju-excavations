@@ -8,7 +8,7 @@ from uuid import UUID
 import requests
 from arches.app.models.models import Concept, Node, Relation, Value
 
-from arches_slocal.utils.pottery.common import clean_cell
+from arches_for_excavation.utils.pottery.common import clean_cell
 
 
 LABEL_VALUE_TYPES = ("prefLabel", "altLabel", "hiddenLabel")

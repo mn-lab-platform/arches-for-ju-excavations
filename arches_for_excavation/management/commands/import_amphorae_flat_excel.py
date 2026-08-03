@@ -11,9 +11,9 @@ from openpyxl import load_workbook
 
 from arches.app.models.models import Concept, Resource, TileModel, Value
 from arches.app.models.tile import Tile
-from arches_slocal.management.commands.import_collection_excel import Command as CollectionImportCommand
-from arches_slocal.utils.pottery.common import clean_cell, localized_string, to_boolean
-from arches_slocal.utils.pottery.constants import (
+from arches_for_excavation.management.commands.import_collection_excel import Command as CollectionImportCommand
+from arches_for_excavation.utils.pottery.common import clean_cell, localized_string, to_boolean
+from arches_for_excavation.utils.pottery.constants import (
     AMPHORAE_CHRONOLOGY_NODEGROUP_ID,
     AMPHORAE_CHRONOLOGY_NODE_ID,
     AMPHORAE_CHRONOLOGY_UNCERTAIN_NODE_ID,

@@ -4,7 +4,7 @@ from openpyxl import load_workbook
 
 from arches.app.models.models import Resource
 
-from arches_slocal.utils.pottery.common import (
+from arches_for_excavation.utils.pottery.common import (
     clean_cell,
     create_tile_for_node,
     decode_vessel_part,
@@ -14,8 +14,8 @@ from arches_slocal.utils.pottery.common import (
     parse_p_no_and_count,
     to_boolean,
 )
-from arches_slocal.utils.pottery.concept_lookup import format_concept_tile_value
-from arches_slocal.utils.pottery.constants import POTTERY_RECORD_TYPES
+from arches_for_excavation.utils.pottery.concept_lookup import format_concept_tile_value
+from arches_for_excavation.utils.pottery.constants import POTTERY_RECORD_TYPES
 
 
 DATA_SLOT_COUNT = 36

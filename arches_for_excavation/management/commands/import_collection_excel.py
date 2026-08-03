@@ -12,13 +12,13 @@ from openpyxl import load_workbook
 
 from arches.app.models.models import Resource, TileModel, Value
 from arches.app.models.tile import Tile
-from arches_slocal.utils.pottery.common import clean_cell, localized_string, to_boolean
-from arches_slocal.utils.pottery.concept_lookup import (
+from arches_for_excavation.utils.pottery.common import clean_cell, localized_string, to_boolean
+from arches_for_excavation.utils.pottery.concept_lookup import (
     get_dictionary_index,
     normalize_dictionary_label,
     resolve_dictionary_value,
 )
-from arches_slocal.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
+from arches_for_excavation.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
 
 
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"

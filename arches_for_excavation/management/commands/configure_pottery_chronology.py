@@ -8,7 +8,7 @@ from django.db import transaction
 
 from arches.app.models.models import Function, FunctionXGraph, GraphModel, Node
 from arches.app.models.tile import Tile
-from arches_slocal.functions.chronology_expantion import (
+from arches_for_excavation.functions.chronology_expantion import (
     PotteryChronologyExpansionFunction,
     details,
 )
