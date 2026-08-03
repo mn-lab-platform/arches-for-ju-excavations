@@ -20,7 +20,7 @@ def get_optional_env_variable(var_name):
     except KeyError:
         return None
 
-# PAC Wikidata SPARQL endpoint used by the reusable dictionary-search view.
+
 PAC_WIKIDATA_ENDPOINT = (
     get_optional_env_variable("PAC_WIKIDATA_ENDPOINT")
     or "https://pac.cenagis.edu.pl/wiki/sparql"
