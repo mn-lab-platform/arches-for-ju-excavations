@@ -10,7 +10,6 @@ from django.http import JsonResponse
 from django.views import View
 
 
-PAC_WIKIDATA_ENDPOINT = "https://pac.cenagis.edu.pl/wiki/sparql"
 PAC_CACHE_TIMEOUT_SECONDS = 300
 MAX_RESULTS = 100
 
@@ -147,7 +146,7 @@ class PacWikidataDictionarySearchView(View):
             return JsonResponse({**cached_response, "cached": True})
 
         query = _build_query(term, type_ids, language, limit)
-        endpoint = getattr(settings, "PAC_WIKIDATA_ENDPOINT", PAC_WIKIDATA_ENDPOINT)
+        endpoint = getattr(settings, "PAC_WIKIDATA_ENDPOINT")
 
         try:
             response = requests.get(
