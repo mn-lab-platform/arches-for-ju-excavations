@@ -2,7 +2,6 @@ import { jsPDF } from "jspdf";
 import maplibregl from "maplibre-gl";
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
-import { WarpedMapEventType } from "@allmaps/maplibre";
 import { PrintWarpedMapLayer } from "./iiif/PrintWarpedMapLayer";
 import { getOrthoAnnotationPage } from "../api/iiifMapService";
 import store from "../core/store";
@@ -238,7 +237,7 @@ export class PrintManager {
             if (!visibleLayerIds.has(iiifLayer.logicalLayerId)) continue;
             const printLayerId = `print-${iiifLayer.id}`;
             const warpedLayer = new PrintWarpedMapLayer({ layerId: printLayerId, opacity: iiifLayer.opacity ?? 0.5 });
-            const tilesLoaded = new Promise(resolve => printMap.once(WarpedMapEventType.ALLREQUESTEDTILESLOADED, resolve));
+            const tilesLoaded = new Promise(resolve => printMap.once('allrequestedtilesloaded', resolve));
             printMap.addLayer(warpedLayer);
             await warpedLayer.addGeoreferenceAnnotation(await getOrthoAnnotationPage(iiifLayer.resourceId));
             await tilesLoaded;
