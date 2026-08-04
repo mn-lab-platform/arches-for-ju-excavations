@@ -262,7 +262,7 @@ const _addLayersForGeojsonSource = (map, layerInfo, activeLayerIds) => {
         source: layerInfo.source,
         layout: {
             'text-field': ['get', layerInfo.labelProperty || ''],
-            'text-size': 14,
+            'text-size': layerInfo.labelSize || constants.DEFAULT_LAYER_LABEL_FONT_SIZE,
             'text-anchor': [
                 'match',
                 ['geometry-type'],
@@ -330,11 +330,11 @@ export const refreshGeojsonLayer = (map, layerDefinition) => {
                     map.setPaintProperty(layerId, 'circle-stroke-width', layerInfo.pointBorderWidth || constants.DEFAULT_LAYER_POINT_BORDER_WIDTH);
                     map.setPaintProperty(layerId, 'circle-stroke-opacity', layerInfo.pointOpacity || constants.DEFAULT_LAYER_OPACITY);
                 } else if (layerId.endsWith('-symbol')) {
-                    console.log('Received customLabel: ', layerInfo.customLabel, ' and labelProperty: ', layerInfo.labelProperty);
                     map.setLayoutProperty(layerId, 'text-field', layerInfo.customLabel ? layerInfo.customLabel : ['get', layerInfo.labelProperty || '']);
                     map.setPaintProperty(layerId, 'text-color', layerInfo.labelColor || '#333333');
                     map.setPaintProperty(layerId, 'text-halo-color', layerInfo.labelHaloColor || '#FFFFFF');
                     map.setPaintProperty(layerId, 'text-halo-width', layerInfo.labelHaloWidth ?? 2);
+                    map.setLayoutProperty(layerId, 'text-size', layerInfo.labelSize || constants.DEFAULT_LAYER_LABEL_FONT_SIZE);
                 }
             }
         });
