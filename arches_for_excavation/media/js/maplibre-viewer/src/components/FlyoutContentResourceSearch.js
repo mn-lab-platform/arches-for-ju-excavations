@@ -1,5 +1,5 @@
 import arches from 'arches';
-import { getAllResources, getAllResourcesFromFilterString } from '../api/archesService';
+import { getAllResourcesFromFilterString } from '../api/archesService';
 import { extractGeommetryFeaturesFromArchesResourceInfo } from '../core/utils/utils';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
@@ -7,7 +7,7 @@ import { LAYER_TYPES } from '../constants/constants';
 import constants from '../constants/constants';
 
 export class FlyoutContentResourceSearch {
-    constructor() {
+    constructor(preloadedResourceApiResponse = null) {
         this.LABELS = {
             SELECT_ALL: 'Select All Of Type',
             UNSELECT_ALL: 'Unselect All Of Type',
@@ -17,6 +17,9 @@ export class FlyoutContentResourceSearch {
 
         this.resourceTypeDicts = {}; 
         this.resources = [];
+        if (preloadedResourceApiResponse) {
+            this.preloadedResourceApiResponse = preloadedResourceApiResponse;
+        }
         this.selectedForLayer = new Map();
         this.currentlyRenderedResources = [];
         this.previewedIds = new Set();
@@ -28,7 +31,6 @@ export class FlyoutContentResourceSearch {
         
         this.searchTimeout = null;
         this._initResourceTypes();
-        this._fetchAllResources();
     }
 
     build() {
@@ -46,7 +48,9 @@ export class FlyoutContentResourceSearch {
         this.content.appendChild(this._buildHeader());
         this.content.appendChild(this.filters);
         this.content.appendChild(this.results);
-
+        
+        this._initAllResources();
+        
         return this.content;
     }
 
@@ -153,7 +157,7 @@ export class FlyoutContentResourceSearch {
                 this.searchInput.placeholder = this.LABELS.SEARCH_PLACEHOLDER;
                 this.advancedApplyButton.style.display = 'none';
                 this.searchInput.classList.remove('flyout-search-input--error');
-                this._fetchAllResources();
+                this._initAllResources();
                 this._applyFilters();
             }
         });
@@ -341,45 +345,6 @@ export class FlyoutContentResourceSearch {
 
     _initResourceTypes() {
         this.resourceTypes = arches?.resources;
-        // this.resourceTypes = [
-        //     {
-        //         "maplayerid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-        //         "graphid": "5465389c-bba7-4af1-bc9a-9fbb201e8408",
-        //         "name": "Digital Resource 3D",
-        //         "icon": "fa fa-cube"
-        //     },
-        //     {
-        //         "maplayerid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-        //         "graphid": "9d82972a-f537-11ea-ac6d-9fb7e90de197",
-        //         "name": "Trench",
-        //         "icon": "fa fa-crop"
-        //     },
-        //     {
-        //         "maplayerid": "5115ff02-b628-401b-889c-a10328ee21a2",
-        //         "graphid": "5115ff02-b628-401b-889c-a10328ee21a2",
-        //         "name": "New Resource Model",
-        //         "icon": ""
-        //     },
-        //     {
-        //         "maplayerid": "d6559924-9f52-11eb-96c4-020063fe0012",
-        //         "graphid": "d6559924-9f52-11eb-96c4-020063fe0012",
-        //         "name": "Context ",
-        //         "icon": "fa fa-digg"
-        //     },
-        //     {
-        //         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-        //         "graphid": "a5219c24-2907-4055-9d68-18216d214458",
-        //         "name": "Coordinate System",
-        //         "icon": "fa fa-arrows-alt"
-        //     },
-        //     {
-        //         "maplayerid": "a5219c24-2907-4055-9d68-18216d214458",
-        //         "graphid": "401b3051-d1c4-465c-8dd0-1d5784adee98",
-        //         "name": "XXX iiif-photo",
-        //         "icon": "fa fa-photo"
-        //     }
-        // ];
-
         this._createResourceTypeDict(this.resourceTypes);
     }
 
@@ -406,14 +371,11 @@ export class FlyoutContentResourceSearch {
         });
     }
 
-    _fetchAllResources() {
-        getAllResources().then(response => {
-            this.resources = [];
-            this._fillInstanceResourcesFromApiResponse(response);
-            this._renderResults(this.resources);
-            this._fillTypeSelect();
-        });
-    }
+    _initAllResources() {
+        this._fillInstanceResourcesFromApiResponse(this.preloadedResourceApiResponse);
+        this._renderResults(this.resources);
+        this._fillTypeSelect();
+    };
 
     _fillInstanceResourcesFromApiResponse(apiResponse) {
         const allHits = [];
@@ -502,10 +464,19 @@ export class FlyoutContentResourceSearch {
 
         const aggregateCheckbox = document.createElement('input');
         aggregateCheckbox.type = 'checkbox';
-        aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';        
         aggregateCheckbox.id = `aggregate-${resourceId}`;
         aggregateCheckbox.name = `aggregate-${resourceId}`;
         aggregateCheckbox.checked = this.selectedForLayer.has(resourceId);
+
+        if (this.currentlySelectedGraphId !== null && this.currentlySelectedGraphId !== resourceInfo.graph_id) {
+            aggregateCheckbox.disabled = true;
+            aggregateCheckbox.title = 'You can only select resources of the same type for layer creation.';
+            aggregateCheckbox.style.cursor = 'not-allowed';
+        } else {
+            aggregateCheckbox.title = 'Aggregate resources of this type into a single layer';        
+            aggregateCheckbox.style.cursor = 'pointer';
+        }
+        
         item.classList.toggle('aggregated', aggregateCheckbox.checked);
 
         aggregateCheckbox.addEventListener('change', () => {
