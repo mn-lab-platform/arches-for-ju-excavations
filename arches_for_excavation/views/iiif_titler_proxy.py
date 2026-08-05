@@ -14,12 +14,19 @@ from .services.iiif_image_service import (
 TITILER_INTERNAL_URL = "http://titiler:8000"
 
 def _force_png_iiif_suffix(suffix: str) -> str:
-    return re.sub(
+    suffix = re.sub(
+        r"(^|/)(default|native)\.webp$",
+        lambda match: f"{match.group(1)}{match.group(2)}.png",
+        suffix,
+        flags=re.IGNORECASE,
+    )
+    suffix = re.sub(
         r"(^|/)(default|native)\.jpe?g$",
         lambda match: f"{match.group(1)}{match.group(2)}.png",
         suffix,
         flags=re.IGNORECASE,
     )
+    return suffix
 
 
 def _with_cors(response, request=None):
@@ -47,7 +54,7 @@ def _patch_info_json(data: dict, request, image_id: str) -> dict:
     data["type"] = "ImageService3"
     data["protocol"] = "http://iiif.io/api/image"
     data["profile"] = "level2"
-    data.setdefault("preferredFormats", ["png", "jpeg", "webp"])
+    data["preferredFormats"] = ["png", "jpeg"]
     data.pop("@id", None)
 
     if isinstance(data.get("tiles"), list):
@@ -57,6 +64,8 @@ def _patch_info_json(data: dict, request, image_id: str) -> dict:
                 tile.pop("@id", None)
 
     return data
+
+    
 def _public_base(request, file_path: str) -> str:
     host = (request.headers.get("X-Forwarded-Host") or request.get_host() or "").split(",")[0].strip()
 

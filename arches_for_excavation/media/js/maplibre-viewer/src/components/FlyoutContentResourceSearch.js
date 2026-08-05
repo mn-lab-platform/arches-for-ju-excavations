@@ -27,7 +27,7 @@ export class FlyoutContentResourceSearch {
         this.currentlySelectedGraphId = null;
         this.activeRenderedItemRefs = new Map();
         this.mapDisplayableGraphIds = new Set();
-        this.IIIF_GRAPH_IDS = new Set(['401b3051-d1c4-465c-8dd0-1d5784adee98', 'f1b9e37a-c3ba-4c26-a797-7f16302c031c']);
+        this.IIIF_GRAPH_ID = 'f1b9e37a-c3ba-4c26-a797-7f16302c031c';
         
         this.searchTimeout = null;
         this._initResourceTypes();
@@ -395,7 +395,7 @@ export class FlyoutContentResourceSearch {
         this.resources = allHits
             .map(hit => {
                 const source = hit?._source || {};
-                source.type = this.IIIF_GRAPH_IDS.has(source.graph_id) ? constants.LAYER_TYPES.iiif : constants.LAYER_TYPES.geojson;
+                source.type = this.IIIF_GRAPH_ID === source.graph_id ? constants.LAYER_TYPES.iiif : constants.LAYER_TYPES.geojson;
                 return source;
             });
     }
@@ -414,7 +414,7 @@ export class FlyoutContentResourceSearch {
     }
 
     _resourceShouldBeActive(resourceInfo) {
-        const resourceIsIiif = this.IIIF_GRAPH_IDS.has(resourceInfo.graph_id);
+        const resourceIsIiif = this.IIIF_GRAPH_ID === resourceInfo.graph_id;
         return resourceIsIiif || resourceInfo.geometries?.length > 0;
     }
 

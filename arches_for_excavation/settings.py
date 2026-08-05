@@ -91,7 +91,6 @@ KIBANA_URL = "http://localhost:5601/"
 KIBANA_CONFIG_BASEPATH = "kibana"  # must match Kibana config.yml setting (server.basePath) but without the leading slash,
 # also make sure to set server.rewriteBasePath: true
 MEDIA_ROOT = os.path.join(APP_ROOT)
-UPLOADED_FILES_DIR = "uploadedfiles"
 
 RASTER_DATA_DIR = os.path.join(MEDIA_ROOT, UPLOADED_FILES_DIR,"iiif_raster")
 TITILER_DATA_MOUNT = "/data"

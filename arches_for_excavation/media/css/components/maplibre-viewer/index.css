@@ -75,7 +75,7 @@
 
 .print-option-tile {
   display: grid;
-  grid-template-columns: 1fr 2rem;
+  grid-template-columns: 1fr 3rem;
   column-gap: 0.5rem;
 }
 
@@ -104,6 +104,7 @@
   font-weight: 500;
   color: var(--light-text);
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
