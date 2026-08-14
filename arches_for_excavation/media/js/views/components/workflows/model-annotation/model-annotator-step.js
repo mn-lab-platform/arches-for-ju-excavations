@@ -197,9 +197,9 @@ define([
                     self.modelCrsDefinitions([{
                         modelResourceId: self.modelResourceId(),
                         crs: {
-                            proj: crsData.resource.Definition.PROJ4['PROJ4 String'] || '',
-                            wkt: crsData.resource.Definition['WKT-2']['WKT-2 String'] || '',
-                            esri: crsData.resource.Definition['ESRI WKT']['ESRI WKT String'] || ''
+                            proj: crsData.resource["Definition (files)"].find(d => d.Type === 'PROJ4')?.String || '',
+                            wkt: crsData.resource["Definition (files)"].find(d => d.Type === 'WKT-2')?.String || '',
+                            esri: crsData.resource["Definition (files)"].find(d => d.Type === 'ESRI WKT')?.String || ''
                         }
                     }]);
                 }

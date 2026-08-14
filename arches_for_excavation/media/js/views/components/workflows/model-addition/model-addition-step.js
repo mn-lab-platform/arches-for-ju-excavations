@@ -12,7 +12,7 @@ define([
             self.value = params.value;
             const tileService = tileServiceModule.default || tileServiceModule;
             
-            self.NAME_NODE_ID = '5b1ab6bd-faf6-4120-93ae-8e6f4ea1de32';
+            self.LABEL_NODE_ID = '5b1ab6bd-faf6-4120-93ae-8e6f4ea1de32';
             self.CREATED_AT_NODE_ID = '664b24d2-b94d-4cfd-be93-eb7d94ea0c03';
             self.CREATED_AT_NODEGROUP_ID = '27bb6c9e-cd39-4d8e-ba37-ed6bad2284f3';
             self.GEOREFERENCED_NODE_ID = 'dc5d3b0a-f66a-4c66-b951-0d99fc68367b';
@@ -30,7 +30,8 @@ define([
             ); 
 
             self._sanitizeFilename = function(name) {
-                return name.replace(/[\/\\:*?"<>|]/g, '_').trim();
+                const sanitized = name.replace(/[\/\\:*?"<>|]/g, '_').trim();
+                return sanitized;
             };
 
             self._postTile = function(nodegroupId, data, resourceId) {
@@ -44,12 +45,17 @@ define([
                     data: data
                 };
                 
-                return tileService.createOne(payload);
+                return tileService.createOne(payload).then(function(response) {
+                    return response;
+                }).catch(function(error) {
+                    console.error(`[ModelAdditionStep] _postTile ERROR for nodegroupId: ${nodegroupId}`, error);
+                    throw error;
+                });
             } 
 
             self._createModelResource = function(name, url, resourceId) {
-                const nameData = {};
-                nameData[self.NAME_NODE_ID] = name;
+                const labelData = {};
+                labelData[self.LABEL_NODE_ID] = name;
 
                 const urlData = {};
                 urlData[self.URL_NODE_ID] = url;
@@ -65,7 +71,7 @@ define([
                     resourceId: self.parentResourceId()
                 }];
 
-                return self._postTile(self.NAME_NODE_ID, nameData, resourceId)
+                return self._postTile(self.LABEL_NODE_ID, labelData, resourceId)
                     .then(function() {
                         return self._postTile(self.URL_NODE_ID, urlData, resourceId);
                     })
@@ -78,9 +84,12 @@ define([
                     .then(function() {
                         return self._postTile(self.GEOREFERENCED_NODE_ID, georeferencedData, resourceId);
                     })
+                    .then(function() {
+                        console.log('[ModelAdditionStep] All tiles created successfully!');
+                    })
                     .catch(function(error) {
-                        console.error('Error creating model resource:', error);
-                        self.errorMessage('Error creating model resource' + error.message);
+                        console.error('[ModelAdditionStep] Promise chain broken! Error creating model resource:', error);
+                        self.errorMessage('Error creating model resource: ' + (error.message || error));
                     });
             }
 
@@ -104,7 +113,9 @@ define([
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
                         self.errorMessage('');
-                        self.modelName(file.name.split('.').slice(0, -1).join('.'));
+                        
+                        const extractedName = file.name.split('.').slice(0, -1).join('.');
+                        self.modelName(extractedName);
                         
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
@@ -138,10 +149,14 @@ define([
                         self.infoMessage(`Uploading 3D model file...  ${Math.round(progress)}%`);
                     });
 
-                    dz.on('success', function(file, response) {
+                    dz.on('success', function(file, response) {                        
                         const {_, model_id, url, georeferenced} = response;
                         self.isGeoreferenced(georeferenced);
-                        self._createModelResource(self._sanitizeFilename(self.modelName()), url, model_id);
+                        
+                        const currentModelName = self.modelName();                        
+                        const safeName = self._sanitizeFilename(currentModelName);
+                        self._createModelResource(safeName, url, model_id);
+                        
                         self.errorMessage('');
                         self.successMessage('3D model uploaded successfully.');
                         self.canSubmit(false);
@@ -156,26 +171,21 @@ define([
                     });
 
                     dz.on('complete', function() {
+                        console.log('[ModelAdditionStep] Dropzone: upload complete event triggered.');
                         self.infoMessage('');
                     });
 
-                    dz.on('dragover', function() {
-                        dz.element.classList.add('dragover');
-                    });
-
-                    dz.on('dragleave', function() {
-                        dz.element.classList.remove('dragover');
-                    });
-
-                    dz.on('drop', function() {
-                        dz.element.classList.remove('dragover');
-                    });
+                    dz.on('dragover', function() { dz.element.classList.add('dragover'); });
+                    dz.on('dragleave', function() { dz.element.classList.remove('dragover'); });
+                    dz.on('drop', function() { dz.element.classList.remove('dragover'); });
                 }
             };
 
             self.submitUpload = function() {
                 if (self.dropzone.files.length > 0) {
                     self.dropzone.processQueue();
+                } else {
+                    console.warn('[ModelAdditionStep] Cannot submit: No files in Dropzone queue.');
                 }
             };
         },

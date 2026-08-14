@@ -56,9 +56,9 @@ export default ko.components.register('digital-resource-3d-report', {
         const extractCrsDefinitions = (crsData) => {
             const resource = crsData && crsData.resource ? crsData.resource : {};
             return {
-                proj: findDeepValue(resource, ['PROJ4 String', 'PROJ4']) || '',
-                wkt: findDeepValue(resource, ['WKT-2 String', 'WKT-2', 'WKT2']) || '',
-                esri: findDeepValue(resource, ['ESRI WKT String', 'ESRI WKT']) || ''
+                proj: resource["Definition (files)"].find(d => d.Type === 'PROJ4')?.String || '',
+                wkt: resource["Definition (files)"].find(d => d.Type === 'WKT-2')?.String || '',
+                esri: resource["Definition (files)"].find(d => d.Type === 'ESRI WKT')?.String || ''
             };
         };
 
@@ -92,7 +92,7 @@ export default ko.components.register('digital-resource-3d-report', {
                 if (crsData) {
                     self.modelCrsDefinitions([{
                         modelResourceId: self.resourceId,
-crs: extractCrsDefinitions(crsData)
+                        crs: extractCrsDefinitions(crsData)
                     }]);
                 }
             } catch (error) {

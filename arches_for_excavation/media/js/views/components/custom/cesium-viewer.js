@@ -11,7 +11,7 @@ export default ko.components.register('cesium-viewer', {
         self.models = ko.unwrap(params.models3D) || [];
         self.existingAnnotations = ko.unwrap(params.existingAnnotations) || [];
         self.viewerIds = self.models.map((_, index) => `cesiumViewer-${index}`);
-        self.modelLabels = ko.observableArray(self.models.map(m => m.resource.Name || 'Unnamed Model'));
+        self.modelLabels = ko.observableArray(self.models.map(m => m.displayname || 'Unnamed Model'));
         self.allowAnnotationsEdits = params.allowAnnotationsEdits() || false;
         self.allowObjectPicking = params.allowObjectPicking() || false;
         self.allowObjectAddition = params.allowObjectAddition() || false;
@@ -65,13 +65,10 @@ export default ko.components.register('cesium-viewer', {
                 console.log('Model data:', model);
                 const modelResourceId = model.resourceinstanceid || model.resourceId || model.id;
                 const modelName =
-                    model.resource.Name ||
-                    model.resource.Label ||
                     model.displayname ||
-                    model.displayName ||
                     `Model ${i}`;
                 const modelUrl = `${model.resource.URL}/tileset.json`;
-                const georeferenced = String(model.resource.Georeferenced).toLowerCase() === 'true';
+                const georeferenced = String(model.resource.Geospatial["@value"]).toLowerCase() === 'true';
                 const viewerId = `cesiumViewer-${i}`;
 
                 if (self.initializedViewers.has(viewerId)) {
