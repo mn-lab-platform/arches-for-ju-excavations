@@ -21,18 +21,36 @@ const getOne = (resourceId) => {
     });
 };
 
-const getAll = (graphId=null) => {
+const getAll = (graphIds = null, searchTerm = '', limit = 100) => {
     const url = '/search/resources';
     let queryParams = [];
 
-    if (graphId) {
-        const resourceTypeFilter = JSON.stringify([{
-            "graphid": graphId,
-            "inverted": false,
-        }]);
-        queryParams.push('resource-type-filter=' + encodeURIComponent(resourceTypeFilter));  
+    if (graphIds) {
+        const idsArray = Array.isArray(graphIds) ? graphIds : [graphIds];
+        
+        const filterObjects = idsArray.map(id => ({
+            "graphid": id,
+            "inverted": false
+        }));
+        
+        queryParams.push('resource-type-filter=' + encodeURIComponent(JSON.stringify(filterObjects)));  
     }
-    queryParams.push('limit=5000'); //TODO: maybe instead of fetching everything at once fetch based on search
+    
+    if (searchTerm && searchTerm.trim() !== '') {
+        const term = searchTerm.trim();
+        const termFilter = [{
+            "inverted": false,
+            "type": "string",
+            "context": "",
+            "context_label": "",
+            "id": term,
+            "text": term,
+            "value": term
+        }];
+        queryParams.push('term-filter=' + encodeURIComponent(JSON.stringify(termFilter)));
+    }
+
+    queryParams.push('limit=' + limit);
 
     return fetch(queryParams.length > 0 ? url + '?' + queryParams.join('&') : url, {
         method: 'GET',
