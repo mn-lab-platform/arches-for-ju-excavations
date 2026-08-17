@@ -24,7 +24,17 @@ define([
         self.successMessage = ko.observable('');
         self.errorMessage = ko.observable('');
         self.error = ko.observable('');
+
         self.allResources = ko.observableArray([]);
+
+        self.searchText = ko.observable('').extend({ 
+            rateLimit: { timeout: 300, method: "notifyWhenChangesStop" } 
+        });
+
+        self.searchText.subscribe(function(newValue) {
+            self.loadResources(newValue);
+        });
+
         self.selectedResourceId = ko.observable(null);
         self.createdResourceId = ko.observable(null);
         self.createdResourceId.subscribe(function() {
@@ -77,13 +87,13 @@ define([
             }
         };
 
-        self.loadResources = function() {
+        self.loadResources = function(searchTerm = '') {
             const graphId = ko.unwrap(self.selectedGraphId);
 
             self.loading(true);
             self.error('');
 
-            return resourceService.getAll(graphId)
+            return resourceService.getAll(graphId, searchTerm, 100)
                 .then(function(data) {
                     const hits = (((data || {}).results || {}).hits || {}).hits || [];
 

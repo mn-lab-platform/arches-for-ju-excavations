@@ -15,6 +15,8 @@ define([
         ? arches.urls.plugin('init-workflow')
         : '/';
 
+      const CRS_GRAPH_ID = '855343ec-9d7c-4947-970c-e80b6cfacc4f';
+
       this.stepConfig = [
         {
           title: 'Select Local CRS',
@@ -26,7 +28,7 @@ define([
               uniqueInstanceName: 'crs-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphIds: ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'],
+                graphIds: [CRS_GRAPH_ID],
                 multiple: false,
                 searchPlaceholder: 'Search CRS definitions...'
               }
