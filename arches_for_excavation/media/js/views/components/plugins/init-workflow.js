@@ -7,14 +7,14 @@ define([
     var InitWorkflow = function(params) {
         this.workflowButtons = ko.observableArray([
             {
-                name: 'Add 3D Resource',
+                name: 'Add Digital Resource 3D',
                 slug: 'model-addition-workflow',
                 icon: 'fa-cube',
                 description: 'Create and link 3D models to existing resources',
                 backgroundColor: '#e6f0fa'
             },
             {
-                name: 'Annotate 3D Resource',
+                name: 'Annotate Digital Resource 3D',
                 slug: 'model-annotation-workflow',
                 icon: 'fa-bookmark',
                 description: 'Manage annotations for 3D models',
@@ -42,21 +42,21 @@ define([
                 backgroundColor: '#eef3f8'
             },            
             {
-                name: 'Add IIIF Resource',
+                name: 'Add Digital Resource IIIF',
                 slug: 'iiif-addition-workflow',
                 icon: 'fa fa-camera',
                 description: 'Create and link IIIF resources to a resource',
                 backgroundColor: '#e6fae6'
             },    
             {
-                name: 'Add To Existing IIIF Resource',
+                name: 'Add To Existing Digital Resource IIIF',
                 slug: 'iiif-append-workflow',
                 icon: 'fa fa-picture-o',
                 description: 'Add to existing IIIF resources',
                 backgroundColor: '#f0fae6ff'
             },                                     
             {
-                name: 'Annotate IIIF Resource',
+                name: 'Annotate Digital Resource IIIF',
                 slug: 'iiif-annotation-workflow',
                 icon: 'fa fa-asterisk',
                 description: 'Add annotation to IIIF resources',
