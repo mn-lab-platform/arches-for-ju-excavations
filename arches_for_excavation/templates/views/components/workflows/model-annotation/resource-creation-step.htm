@@ -64,6 +64,8 @@
 
     .content-container {
         margin-top: 16px;
+        margin-bottom: 16px;
+        padding-bottom: 20px;
     }
 
     .search-container {
@@ -144,6 +146,16 @@
     .alert {
         margin: 0;
     }
+
+    .resource-search-hint {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #666;
+        margin-top: 20px;
+    }
 </style>
 
 <div class="workflow-step-container">
@@ -186,6 +198,11 @@
                     <div class="resource-card__meta" data-bind="text: graphName"></div>
                     <div class="resource-card__meta" data-bind="text: description"></div>
                 </div>
+            </div>
+
+            <div class="resource-search-hint" data-bind="visible: !loading() && resources().length > 9 && !error()">
+                <p style="margin: 0;">Didn't find the resource you were looking for? </p>
+                <button id="try-search-button" type="button" class="btn btn-sm btn-primary">Try using the searchbar</button>
             </div>
 
             <div class="empty-state" data-bind="visible: !loading() && !error() && resources().length === 0">
