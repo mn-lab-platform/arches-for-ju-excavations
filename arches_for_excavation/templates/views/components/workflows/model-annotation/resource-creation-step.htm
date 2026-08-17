@@ -64,6 +64,27 @@
 
     .content-container {
         margin-top: 16px;
+        margin-bottom: 16px;
+        padding-bottom: 20px;
+    }
+
+    .search-container {
+        margin-bottom: 16px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #d8dee8;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .search-input:focus {
+        border-color: #2f6fed;
+        box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.1);
     }
 
     .resource-grid {
@@ -125,6 +146,16 @@
     .alert {
         margin: 0;
     }
+
+    .resource-search-hint {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #666;
+        margin-top: 20px;
+    }
 </style>
 
 <div class="workflow-step-container">
@@ -148,6 +179,11 @@
 
     <main class="content-container">
         <!-- ko if: !useCreateMode() -->
+            
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search resources..." data-bind="textInput: searchText">
+            </div>
+            
             <div data-bind="visible: loading">
                 Loading resources...
             </div>
@@ -164,10 +200,16 @@
                 </div>
             </div>
 
+            <div class="resource-search-hint" data-bind="visible: !loading() && resources().length > 9 && !error()">
+                <p style="margin: 0;">Didn't find the resource you were looking for? </p>
+                <button id="try-search-button" type="button" class="btn btn-sm btn-primary">Try using the searchbar</button>
+            </div>
+
             <div class="empty-state" data-bind="visible: !loading() && !error() && resources().length === 0">
-                No resources found for this resource type.
+                No resources found for this search.
             </div>
         <!-- /ko -->
+        
         <!-- ko if: useCreateMode() -->
           <div id="resource-creator-panel" class="resource-creator-panel">
             <!-- ko component: {

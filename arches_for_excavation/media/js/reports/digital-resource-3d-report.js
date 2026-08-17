@@ -10,8 +10,8 @@ export default ko.components.register('digital-resource-3d-report', {
         const self = this;
         params.configKeys = [];
 
-        self.ANNOTATION_MODEL_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
-        self.CRS_MODEL_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
+        self.ANNOTATION_MODEL_GRAPHID = 'd1894fdd-41b3-44d3-aebb-ab44999f881e';
+        self.CRS_MODEL_GRAPHID = '855343ec-9d7c-4947-970c-e80b6cfacc4f';
         self.annotationsIds = [];
         self.crsResourceId = '';
         self.resourceId = params.report.attributes.resourceid;
@@ -62,11 +62,15 @@ export default ko.components.register('digital-resource-3d-report', {
             };
         };
 
-        const relatedAnnotationsObject = relatedResourcesArray.filter(rel => self.ANNOTATION_MODEL_GRAPHIDS.includes(rel.graphid))[0] || { resources: [] };
+        console.log('Related Resources Array:', relatedResourcesArray);
+        const relatedAnnotationsObject = relatedResourcesArray.filter(rel => self.ANNOTATION_MODEL_GRAPHID === rel.graphid)[0] || { resources: [] };
         self.annotationsIds = relatedAnnotationsObject.resources?.map(res => res.resourceinstanceid) || [];
 
-        const relatedCRSObject = relatedResourcesArray.filter(rel => self.CRS_MODEL_GRAPHIDS.includes(rel.graphid))[0] || { resources: [] };
+        console.log('Annotations Resources related to the model:', self.annotationsIds);
+
+        const relatedCRSObject = relatedResourcesArray.filter(rel => self.CRS_MODEL_GRAPHID === rel.graphid)[0] || { resources: [] };
         self.crsResourceId = relatedCRSObject.resources?.[0]?.resourceinstanceid || '';
+        console.log('CRS Resource object:', relatedCRSObject);
 
         (async function () {
             try {

@@ -16,13 +16,13 @@ define([
 
         self.graphIds = toArray(params.graphIds || params.graphids || params.graphId || params.graphid);
         self.searchPlaceholder = params.searchPlaceholder || 'Search resources...';
-        self.resultLimit = params.resultLimit || 100;
 
-        console.log('Received multiple from params:', params.multiple);
         self.multiple = params.multiple || false;
-        console.log('Multiple selection enabled:', self.multiple);
 
-        self.searchText = ko.observable('');
+        self.searchText = ko.observable('').extend({ 
+            rateLimit: { timeout: 300, method: "notifyWhenChangesStop" } 
+        });
+        
         self.allResources = ko.observableArray([]);
         self.loading = ko.observable(false);
         self.error = ko.observable('');
@@ -31,27 +31,20 @@ define([
         self.allSelected = ko.observable(false);
         self.selectAllText = ko.observable('Select All');
 
-        self.availableResources = ko.pureComputed(function() {
-            const searchTerm = (self.searchText() || '').trim().toLowerCase();
-            if (!searchTerm) return self.allResources();
+        self.availableResources = self.allResources;
 
-            return self.allResources().filter(function(resource) {
-                const name = (resource.name || '').toLowerCase();
-                return name.indexOf(searchTerm) !== -1;
-            });
+        self.searchText.subscribe(function(newValue) {
+            self.loadResources(newValue);
         });
 
         self.selectedResourceName = ko.pureComputed(function() {
             const ids = self.selectedResourceIds();
-            console.log('Selected resource IDs:', ids);
             if (ids.length > 1) {
                 return `${ids.length} selected`;
             }
             else if (ids.length === 1) {
                 const selectedId = ids[0];
-                console.log('Selected ID:', selectedId);
                 const resource = self.allResources().find(function(r) { return r.id === selectedId; });
-                console.log('Selected resource:', resource);
                 return resource ? resource.name : selectedId;
             }
             return '';
@@ -100,35 +93,31 @@ define([
             }
         };
 
-        self.loadResources = function() {
+        self.loadResources = function(searchTerm = '') {
             self.loading(true);
             self.error('');
 
-            const promises = (self.graphIds).map(function(id) {
-                return resourceService.getAll(id)
-                    .then(function(data) {
-                        const hits = (((data || {}).results || {}).hits || {}).hits || [];
-                        const rows = hits.map(function(hit) { return hit._source; });
+            resourceService.getAll(self.graphIds, searchTerm, self.resultLimit)
+                .then(function(data) {
+                    const hits = (((data || {}).results || {}).hits || {}).hits || [];
+                    const rows = hits.map(function(hit) { return hit._source; });
 
-                        const mapped = rows.map(function(r) {
-                            let computedGraphName = 'Unknown Resource Type';
-                            if (r.graph_id && arches.default && arches.default.resources) {
-                                const graphInfo = arches.default.resources.find(g => g.graphid === r.graph_id);
-                                computedGraphName = graphInfo ? graphInfo.name : computedGraphName;
-                            }
-                            return {
-                                id: r.resourceinstanceid,
-                                name: r.displayname || r.resourceinstanceid,
-                                description: r.displaydescription || '',
-                                graphName: computedGraphName
-                            };
-                        });
-
-                        self.allResources(self.allResources().concat(mapped));
+                    const mapped = rows.map(function(r) {
+                        let computedGraphName = 'Unknown Resource Type';
+                        if (r.graph_id && arches.default && arches.default.resources) {
+                            const graphInfo = arches.default.resources.find(g => g.graphid === r.graph_id);
+                            computedGraphName = graphInfo ? graphInfo.name : computedGraphName;
+                        }
+                        return {
+                            id: r.resourceinstanceid,
+                            name: r.displayname || r.resourceinstanceid,
+                            description: r.displaydescription || '',
+                            graphName: computedGraphName
+                        };
                     });
-            });
 
-            Promise.all(promises)
+                    self.allResources(mapped);
+                })
                 .catch(function(err) {
                     self.error('Failed to load resources: ' + (err && err.message ? err.message : err));
                     self.allResources([]);
