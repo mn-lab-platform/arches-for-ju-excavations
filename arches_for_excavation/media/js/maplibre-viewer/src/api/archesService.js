@@ -52,7 +52,7 @@ export const getBasemapsAndOverlays = () => {
 };
 
 export const getAllResources = (graphId=null) => {
-    return resourceService.getAll(graphId);
+    return resourceService.getAll(graphId, '', 10000);
 };
 
 export const getAllResourcesFromFilterString = async (filterString, maxPages = 1000) => {
