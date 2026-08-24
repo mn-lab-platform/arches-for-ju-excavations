@@ -15,8 +15,16 @@ const createOne = (tileData) => {
         credentials: 'include',
         headers: { 'X-CSRFToken': getCookie('csrftoken') },
         body: formData
-    }).then((resp) => {
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    }).then(async (resp) => {
+        if (!resp.ok) {
+            let errorData;
+            try {
+                errorData = await resp.json();
+            } catch (err) {
+                errorData = { message: 'HTTP ' + resp.status };
+            }
+            throw errorData;
+        }
         return resp.json ? resp.json() : {};
     });
 }

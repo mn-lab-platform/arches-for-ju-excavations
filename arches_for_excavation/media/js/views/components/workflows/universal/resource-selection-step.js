@@ -32,6 +32,7 @@ define([
         self.selectAllText = ko.observable('Select All');
 
         self.availableResources = self.allResources;
+        self.resultLimit = 100;
 
         self.searchText.subscribe(function(newValue) {
             self.loadResources(newValue);

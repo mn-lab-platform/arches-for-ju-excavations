@@ -7,42 +7,35 @@ define([
     return ko.components.register('context-footprint-confirmation-step', {
         viewModel: function(params) {
             const self = this;
-            
             const tileService = tileServiceModule.default || tileServiceModule;
 
             const GRAPH_CONFIG = {
-                'd6559924-9f52-11eb-96c4-020063fe0012': {
-                    legacy: true,
-                    footprintNodeId: 'd6559931-9f52-11eb-96c4-020063fe0012',
-                    measurementGeojsonNodeId: 'bd290f65-b2fe-4de2-a9b6-fa056036facb',
-                    measurementTextNodeId: '1d9f2ee2-d024-4c4e-a668-48951c55af63',
-                },
-                '9d82972a-f537-11ea-ac6d-9fb7e90de197': {
-                    legacy: true,
-                    footprintNodeId: '3a9f46c0-f538-11ea-ac6d-9fb7e90de197',
-                    measurementGeojsonNodeId: '6d6accec-cde3-4a6d-b10b-ea217a01c6e7',
-                    measurementTextNodeId: '55693a63-9800-4439-8c64-34b72aa2d36b',
-                },
-                '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c': {
-                    nodegroupId: '62ce85a9-150c-4485-8a7b-39f5c75b26ae',
-                    parentNodegroupId: 'd45fc0db-a519-45be-911f-fe1e71153ed9',
+                '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c': { // Context
+                    targetNodegroupId: '62ce85a9-150c-4485-8a7b-39f5c75b26ae',
+                    parentNodegroupId: 'd45fc0db-a519-45be-911f-fe1e71153ed9', 
                     footprintNodeId: 'e2605398-9cbc-4ce0-bc88-46a96e8bcec8',
-                    measurementGeojsonNodeId: 'a9b48ce5-7590-4972-8f09-38c16294592d',
-                    measurementTextNodeId: '0fc80919-a200-4cfd-981b-27c901a4f5df',
+                    measurementGeojsonNodeId: 'a6830f40-33ea-4087-a1af-9fc6e7d0bd57',
+                    measurementTextNodeId: 'be23ff04-3be2-443f-99a1-68534946e9cb',
                 },
-                'cc91f1ff-6ea8-422c-be14-b818660f66f8': {
-                    nodegroupId: '13f0cf86-0f4f-4d8c-96dc-3daa5a58af44',
+                'cc91f1ff-6ea8-422c-be14-b818660f66f8': { // Trench
+                    targetNodegroupId: '13f0cf86-0f4f-4d8c-96dc-3daa5a58af44',
+                    parentNodegroupId: null, 
                     footprintNodeId: 'ecd3d094-57fb-4dd0-80fe-bc17fc4ca7e7',
                     measurementGeojsonNodeId: 'ca3ca0ce-78df-4594-991c-47c3720cb1fd',
                     measurementTextNodeId: '39c128ad-df05-4395-8ccf-cf052ac90908',
                 },
+                'ac939663-80ce-43df-967d-42def45ef333': { // Special Find
+                    targetNodegroupId: '99dab25d-d1ee-4336-bb11-bd73d3fd400c', 
+                    parentNodegroupId: null, 
+                    footprintNodeId: 'bbdde26b-edb0-4f14-ba56-11d9a4296800', 
+                    measurementGeojsonNodeId: null,
+                    measurementTextNodeId: 'd7baaa04-3f55-40ac-99ce-2c42bcf66d10', 
+                }
             };
 
             self._graphConfig = function() {
                 const config = GRAPH_CONFIG[self.graphId];
-                if (!config) {
-                    throw new Error('Unknown graphId: ' + self.graphId);
-                }
+                if (!config) throw new Error('Unknown graphId: ' + self.graphId);
                 return config;
             };
 
@@ -66,16 +59,14 @@ define([
 
             self.finalCoordinatesText = ko.computed(() => {
                 if (self.ignoreLastLine()) {
-                    const lines = self.coordinatesText().split('\n');
-                    return lines.slice(0, -1).join('\n');
+                    return self.coordinatesText().split('\n').slice(0, -1).join('\n');
                 }
                 return self.coordinatesText();
             });
 
             self.finalProjectedText = ko.computed(() => {
                 if (self.ignoreLastLine() && self.projectedText()) {
-                    const lines = self.projectedText().split('\n');
-                    return lines.slice(0, -1).join('\n');
+                    return self.projectedText().split('\n').slice(0, -1).join('\n');
                 }
                 return self.projectedText();
             });
@@ -95,18 +86,6 @@ define([
                 });
             };
 
-            self._getFootprintNodeIdForGraphId = function(graphId) {
-                return GRAPH_CONFIG[graphId].footprintNodeId;
-            };
-
-            self._getMeasuredGeojsonNodeIdForGraphId = function(graphId) {
-                return GRAPH_CONFIG[graphId].measurementGeojsonNodeId;
-            };
-
-            self._getMeasuredTextNodeIdForGraphId = function(graphId) {
-                return GRAPH_CONFIG[graphId].measurementTextNodeId;
-            };
-
             self._createGeojsonFromText = function(text, targetNodeId) {
                 if (!text) return null;
 
@@ -119,16 +98,33 @@ define([
                         const x = parseFloat(parts[1]);
                         const y = parseFloat(parts[2]);
                         const z = parseFloat(parts[3]);
-                        coordinates.push([x, y, z]);
+                        if (!isNaN(x) && !isNaN(y)) {
+                            coordinates.push([x, y, z]);
+                        }
                     }
                 });
 
                 if (coordinates.length === 0) return null;
 
-                const first = coordinates[0];
-                const last = coordinates[coordinates.length - 1];
-                if (first[0] !== last[0] || first[1] !== last[1] || first[2] !== last[2]) {
-                    coordinates.push(first.slice());
+                let geometry = {};
+
+                if (coordinates.length === 1) {
+                    geometry = { type: 'Point', coordinates: coordinates[0] };
+                } else if (coordinates.length === 2) {
+                    geometry = { type: 'LineString', coordinates: coordinates };
+                } else {
+                    const first = coordinates[0];
+                    const last = coordinates[coordinates.length - 1];
+                    
+                    if (first[0] !== last[0] || first[1] !== last[1] || first[2] !== last[2]) {
+                        coordinates.push(first.slice());
+                    }
+
+                    if (coordinates.length < 4) {
+                        geometry = { type: 'LineString', coordinates: coordinates.slice(0, 2) };
+                    } else {
+                        geometry = { type: 'Polygon', coordinates: [coordinates] };
+                    }
                 }
 
                 return {
@@ -136,32 +132,19 @@ define([
                     features: [{
                         id: generateFeatureId(),
                         type: 'Feature',
-                        properties: {
-                            nodeId: targetNodeId,
-                        },
-                        geometry: {
-                            type: 'Polygon',
-                            coordinates: [coordinates]
-                        }
+                        properties: { nodeId: targetNodeId },
+                        geometry: geometry
                     }]
                 };
             };
 
             self.projectedGeojson = ko.computed(() => {
                 const textToUse = self.finalProjectedText() || self.finalCoordinatesText(); 
-                const nodeId = self._getFootprintNodeIdForGraphId(self.graphId);
-                return self._createGeojsonFromText(textToUse, nodeId);
+                return self._createGeojsonFromText(textToUse, self._graphConfig().footprintNodeId);
             });
 
             self.originalGeojson = ko.computed(() => {
-                const textToUse = self.finalCoordinatesText();
-                const nodeId = self._getMeasuredGeojsonNodeIdForGraphId(self.graphId);
-                return self._createGeojsonFromText(textToUse, nodeId);
-            });
-
-            self.originalGeojsonString = ko.computed(() => {
-                const geojsonObj = self.originalGeojson();
-                return geojsonObj ? JSON.stringify(geojsonObj, null, 2) : '';
+                return self._createGeojsonFromText(self.finalCoordinatesText(), self._graphConfig().measurementGeojsonNodeId);
             });
 
             self.displayGeojsonString = ko.computed(() => {
@@ -173,34 +156,35 @@ define([
                 return response && (response.tileid || response.tileId || response.tile_id || (response.tile && response.tile.tileid));
             };
 
-            self._postTile = function (nodegroupId, data, parenttileId) {
-                const payload = {
-                    tileid: '',
-                    nodegroup_id: nodegroupId,
-                    parenttile_id: parenttileId || null,
-                    resourceinstance_id: self.resourceId,
-                    sortorder: 0,
-                    tiles: {},
-                    data: {}
+            self._findTileByNodegroup = async function(nodegroupId) {
+                const response = await tileService.getAllForResource(self.resourceId);
+                const rootTiles = Array.isArray(response) ? response : (response.tiles || []);
+                
+                const searchTree = (tilesArray) => {
+                    if (!tilesArray || !Array.isArray(tilesArray)) return null;
+                    
+                    for (const tile of tilesArray) {
+                        if (String(tile.nodegroup) === nodegroupId || String(tile.nodegroup_id) === nodegroupId) {
+                            return tile;
+                        }
+                        if (tile.tiles && typeof tile.tiles === 'object') {
+                            for (const key in tile.tiles) {
+                                const found = searchTree(tile.tiles[key]);
+                                if (found) return found;
+                            }
+                        }
+                    }
+                    return null;
                 };
 
-                payload.data[nodegroupId] = data;
-
-                return tileService.createOne(payload);
-            };
-
-            self._findTileByNodegroup = async function(nodegroupId) {
-                const tiles = await tileService.getAllForResource(self.resourceId);
-                return (tiles || []).find(tile => String(tile.nodegroup_id) === nodegroupId) || null;
+                return searchTree(rootTiles);
             };
 
             self._getOrCreateParentTile = async function(nodegroupId) {
                 const existing = await self._findTileByNodegroup(nodegroupId);
-                if (existing) {
-                    return existing.tileid;
-                }
+                if (existing) return existing.tileid;
 
-                const created = await tileService.createOne({
+                const payload = {
                     tileid: '',
                     nodegroup_id: nodegroupId,
                     parenttile_id: null,
@@ -208,30 +192,43 @@ define([
                     sortorder: 0,
                     tiles: {},
                     data: {},
-                });
+                };
+                const created = await tileService.createOne(payload);
                 return self._tileIdFromResponse(created);
             };
 
-            self._postGroupedFootprintTile = async function(config, projectedVal, projectedValStr, originalText) {
-                const parenttileId = config.parentNodegroupId
-                    ? await self._getOrCreateParentTile(config.parentNodegroupId)
-                    : null;
-
-                const payload = {
-                    tileid: '',
-                    nodegroup_id: config.nodegroupId,
-                    parenttile_id: parenttileId || null,
-                    resourceinstance_id: self.resourceId,
-                    sortorder: 0,
-                    tiles: {},
-                    data: {},
+            self._postGroupedFootprintTile = async function(config, projectedVal, originalGeojson, originalText) {
+                const buildCleanPayload = (existing, nodegroupId, parentTileId) => {
+                    return {
+                        tileid: existing ? existing.tileid : '',
+                        nodegroup_id: nodegroupId,
+                        parenttile_id: parentTileId || null,
+                        resourceinstance_id: self.resourceId,
+                        sortorder: existing ? (existing.sortorder || 0) : 0,
+                        tiles: existing ? (existing.tiles || {}) : {},
+                        data: existing ? (existing.data || {}) : {}
+                    };
                 };
 
-                payload.data[config.footprintNodeId] = projectedVal;
-                payload.data[config.measurementGeojsonNodeId] = projectedValStr;
-                payload.data[config.measurementTextNodeId] = originalText;
+                let parentTileId = null;
+                if (config.parentNodegroupId) {
+                    parentTileId = await self._getOrCreateParentTile(config.parentNodegroupId);
+                }
 
-                return tileService.createOne(payload);
+                const existingTile = await self._findTileByNodegroup(config.targetNodegroupId);
+                const payload = buildCleanPayload(existingTile, config.targetNodegroupId, parentTileId);
+
+                if (config.footprintNodeId) {
+                    payload.data[config.footprintNodeId] = projectedVal;
+                }
+                if (config.measurementGeojsonNodeId) {
+                    payload.data[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson); 
+                }
+                if (config.measurementTextNodeId) {
+                    payload.data[config.measurementTextNodeId] = originalText;
+                }
+                
+                return existingTile ? await tileService.updateOne(payload) : await tileService.createOne(payload);
             };
 
             self.saveFootprint = async function() {
@@ -241,24 +238,17 @@ define([
                 self.errorMessage(null);
                 
                 const projectedVal = self.projectedGeojson();
-                const projectedValStr = self.displayGeojsonString();
+                const originalGeojson = self.originalGeojson(); 
                 const originalText = self.finalCoordinatesText();
 
-                if (!projectedVal || !projectedValStr) {
+                if (!projectedVal || !originalGeojson) {
                     self.errorMessage('No GeoJSON data available to save.');
                     self.isLoading(false);
                     return;
                 }
 
                 try {
-                    const config = self._graphConfig();
-                    if (config.legacy) {
-                        await self._postTile(config.footprintNodeId, projectedVal);
-                        await self._postTile(config.measurementGeojsonNodeId, projectedValStr);
-                        await self._postTile(config.measurementTextNodeId, originalText);
-                    } else {
-                        await self._postGroupedFootprintTile(config, projectedVal, projectedValStr, originalText);
-                    }
+                    await self._postGroupedFootprintTile(self._graphConfig(), projectedVal, originalGeojson, originalText);
                     
                     self.infoMessage(null);
                     self.successMessage('Footprint data saved successfully.');
@@ -273,7 +263,12 @@ define([
 
                 } catch (e) {
                     console.error('Failed to save footprint tile:', e);
-                    self.errorMessage('Failed to save footprint data.');
+                    if (e && e.message) {
+                        self.errorMessage(e.message);
+                    } else {
+                        self.errorMessage('Failed to save footprint data due to an unknown error.');
+                    }
+                    
                     self.infoMessage(null);
                 } finally {
                     self.isLoading(false);
