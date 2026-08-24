@@ -139,7 +139,8 @@ define([
                 if (!self.crsId) return null;
                 try {
                     const crsResource = await resourceService.getOne(self.crsId);
-                    return crsResource.resource.Definition.PROJ4['PROJ4 String'] || null;
+                    console.log('Fetched CRS resource:', crsResource);
+                    return crsResource.resource["Definition (files)"]?.find((crs) => crs.Type === 'PROJ4').String || null;
                 } catch (error) {
                     console.error('Error fetching CRS definition:', error);
                     return null;
@@ -289,6 +290,7 @@ define([
 
             (async function() {
                 self.crsProjDefinition = await self.getProjDefinitionFromCRSId();
+                console.log('CRS PROJ4 Definition:', self.crsProjDefinition);
                 const rawPoints = self._extractPointsFromText(self.coordinatesText());
                 
                 let displayPoints = rawPoints;

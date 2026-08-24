@@ -257,9 +257,11 @@
         <!-- /ko -->
     </div>
 
-    <div class="resource-search-hint" data-bind="visible: !loading() && availableResources().length > 9 && !error()">
-        <p style="margin: 0;">Didn't find the resource you were looking for? </p>
-        <button id="try-search-button" type="button" class="btn btn-sm btn-primary">Try using the searchbar</button>
+    <div class="resource-search-hint" data-bind="visible: !loading() && availableResources().length === resultLimit && !error()">
+        <p style="margin: 0;">
+            Didn't find the resource you were looking for? It might be because there are more than <span data-bind="text: resultLimit"></span> results.
+        </p>
+        <button id="try-search-button" type="button" class="btn btn-sm btn-primary">Try using the searchbar to find it</button>
     </div>
     
     <!-- Empty State -->
