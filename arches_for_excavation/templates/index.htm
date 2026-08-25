@@ -63,6 +63,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
         .navbar-toggle {
             z-index: 1000;
         }
+
         @media (max-width: 1024px) {
         .v5-splash-navbar .container-fluid {
             flex-wrap: wrap;
@@ -70,6 +71,19 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
         .navbar-header {
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .application-name h1 {
+            font-size: 1rem !important;
+            margin: 0;
+        }
+
+        .nav-brand-container {
+            max-width: calc(100% - 60px);
+            overflow: hidden;
         }
 
         #myNavbar .navbar-nav {
@@ -79,6 +93,95 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
             margin: 0;
         }
     }
+
+        .slide-img-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .image-attribution {
+            position: absolute;
+            bottom: 25px;
+            right: 15px; 
+            color: #bbb; 
+            padding: 10px; 
+            background: rgba(0,0,0,.5);
+            font-size: 0.61rem;
+            z-index: 9999; 
+        }
+
+        .info-section-dark {
+            background-color: #1a1e24 !important;
+            color: #e2e8f0;
+            padding: 80px 0;
+        }
+        .info-section-light {
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 80px 0;
+        }
+        .info-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .info-section-dark .info-title {
+            color: #63b3ed; 
+        }
+        .info-text {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .info-list {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .info-list li {
+            margin-bottom: 10px;
+        }
+        .info-img-wrapper img {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .flex-row-center {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        @media (min-width: 992px) {
+            .flex-row-reverse-md {
+                flex-direction: row-reverse;
+            }
+        }
+
+        .footer-external-links {
+            margin-top: 25px;
+            padding-left: 10px;
+            display: flex;
+            gap: 20px;
+            justify-content: flex-end;
+        }
+
+        .footer-external-links a {
+            color: #bbb;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .footer-external-links a:hover {
+            color: #63b3ed;
+        }
+
+        .footer-external-links i {
+            margin-right: 6px;
+        }
     </style>
 </head>
 
@@ -202,6 +305,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                             <h2>{% blocktrans %}{{ excavation_name }}{% endblocktrans %}</h2>
                             <p>{% trans first_slide_caption %}</p>
                         </div>
+                        <div class="image-attribution">
+                            <span>{% trans first_slide_attribution %}</span>
+                        </div>
                     </div>
                     <div class="slide-img-container">
                         <img src="{% static second_slide_image_url %}" alt="Slide 2"
@@ -209,6 +315,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                         <div class="slide-caption">
                             <h2>{% blocktrans %}{{ excavation_name }}{% endblocktrans %}</h2>
                             <p>{% trans second_slide_caption %}</p>
+                        </div>
+                        <div class="image-attribution">
+                            <span>{% trans second_slide_attribution %}</span>
                         </div>
                     </div>
                     <div class="slide-img-container">
@@ -218,12 +327,74 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                             <h2>{% blocktrans %}{{ excavation_name }}{% endblocktrans %}</h2>
                             <p>{% trans third_slide_caption %}</p>
                         </div>
+                        <div class="image-attribution">
+                            <span>{% trans third_slide_attribution %}</span>
+                        </div>
                     </div>
                 </div>
                 <!-- Slider - End -->
 
+                <!-- Down button -->
+                <a 
+                    href="#info-block-1" 
+                    class="down-button" 
+                    aria-label="{% trans 'Go to content' %}"
+                >
+                    <i class="fa fa-angle-down down-button-icon"></i>
+                </a>
+
             </section>
             <!-- End Intro Section -->
+            <!-- Info Block 1: JU Customization Promo -->
+            <section id="info-block-1" class="app-info-block info-section-dark">
+                <div class="container">
+                    <div class="row flex-row-center">
+                        <!-- Text Column -->
+                        <div class="col-md-6">
+                            <h2 class="info-title">{% trans "Arches for JU Excavations" %}</h2>
+                            <p class="info-text">
+                                {% blocktrans %}
+                                A specialized deployment built for modern archaeological teams. It provides a robust, out-of-the-box solution for fieldwork data management, designed to be deployed the moment your team arrives on site.
+                                {% endblocktrans %}
+                            </p>
+                            <ul class="info-list">
+                                <li><strong>{% trans "3D Data Integration:" %}</strong> {% trans "Advanced viewing and annotation of 3D models." %}</li>
+                                <li><strong>{% trans "High-Res Imagery:" %}</strong> {% trans "Seamless IIIF integration." %}</li>
+                                <li><strong>{% trans "Targeted Workflows:" %}</strong> {% trans "Most important workflows for archaeological data management." %}</li>
+                            </ul>
+                        </div>
+                        <!-- Image Column -->
+                        <div class="col-md-6 info-img-wrapper">
+                            <!-- Drop your first image here -->
+                            <img src="{% webpack_static 'img/landing/default/afjes-interface.png' %}" alt="JU Excavations Interface">
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- End Info Block 1 -->
+
+            <!-- Info Block 2: Credibility Section (Centered, No Image) -->
+            <section id="info-block-2" class="app-info-block info-section-light">
+                <div class="container">
+                    <div class="row">
+                        <!-- Centered Text Column -->
+                        <div class="col-md-8 col-md-offset-2 text-center">
+                            <h2 class="info-title">{% trans "Powered by a Global Standard" %}</h2>
+                            <p class="info-text">
+                                {% blocktrans %}
+                                At its core, this system is built on Arches an open-source platform originally developed by the Getty Conservation Institute and the World Monuments Fund. 
+                                {% endblocktrans %}
+                            </p>
+                            <p class="info-text">
+                                {% blocktrans %}
+                                While Arches serves as a broad tool for global cultural heritage, our JU deployment refines this powerful foundation specifically for the granular, day-to-day realities of active archaeological excavations.
+                                {% endblocktrans %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- End Info Block 2 -->
         </article>
     </main>
 
@@ -250,8 +421,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                 </div>
             </div>
 
+            <div class="footer-external-links">
+                <a href="https://mn.cenagis.edu.pl" target="_blank" aria-label="{% trans 'Visit MN LAB Platform Website' %}">
+                    <i class="fa fa-external-link" aria-hidden="true"></i> MN LAB Platform Website
+                </a>
+                <a href="https://github.com/Mare-Nostrum-Lab-UJ/arches-for-ju-excavations" target="_blank" aria-label="{% trans 'View on GitHub' %}">
+                    <i class="fa fa-github" aria-hidden="true"></i> GitHub
+                </a>
+            </div>
+
             <!-- Info Column -->
-            <div class="col-lg-8" style="margin-top: 70px;">
+            <div class="col-lg-8">
                 <h2 class="app-footer-heading">{% trans "Guides and Documentation" %}</h2>
 
                 <!-- Links -->
