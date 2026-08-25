@@ -2,6 +2,7 @@
 
 from collections import Counter
 from pathlib import Path
+import re
 from uuid import uuid4
 
 import requests
@@ -9,33 +10,35 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from openpyxl import load_workbook
 
-from arches.app.models.models import Concept, Resource, TileModel, Value
+from arches.app.models.models import Concept, Node, Resource, TileModel, Value
 from arches.app.models.tile import Tile
 from arches_for_excavation.management.commands.import_collection_excel import Command as CollectionImportCommand
 from arches_for_excavation.utils.pottery.common import clean_cell, localized_string, to_boolean
-from arches_for_excavation.utils.pottery.constants import (
-    AMPHORAE_CHRONOLOGY_NODEGROUP_ID,
-    AMPHORAE_CHRONOLOGY_NODE_ID,
-    AMPHORAE_CHRONOLOGY_UNCERTAIN_NODE_ID,
-    AMPHORAE_COMMENT_NODE_ID,
-    AMPHORAE_COUNT_NODE_ID,
-    AMPHORAE_DRAWN_NODE_ID,
-    AMPHORAE_FORM_NO_NODE_ID,
-    AMPHORAE_GRAPH_ID,
-    AMPHORAE_MORPHOLOGY_NODE_ID,
-    AMPHORAE_PHOTO_NODE_ID,
-    AMPHORAE_P_NO_NODE_ID,
-    AMPHORAE_PROVENANCE_NODE_ID,
-    AMPHORAE_PROVENANCE_UNCERTAIN_NODE_ID,
-    AMPHORAE_RELATED_COLLECTION_NODE_ID,
-    AMPHORAE_TYPE_NODE_ID,
-    AMPHORAE_TYPE_UNCERTAIN_NODE_ID,
-    AMPHORAE_VESSEL_PART_NODE_ID,
-)
+from arches_for_excavation.utils.pottery.constants import POTTERY_RECORD_TYPES
 
-
-POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
+POTTERY_COLLECTION_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
 COLLECTION_FORM_ID_NODE_ID = "25e31613-69ac-45ce-a6db-a15239de70a4"
+
+# Keep this older flat-file command aligned with the central five-model map.
+AMPHORAE_CONFIG = POTTERY_RECORD_TYPES["amphorae"]
+POTTERY_RECORD_GRAPH_ID = AMPHORAE_CONFIG["graph_id"]
+POTTERY_RECORD_RELATED_COLLECTION_NODE_ID = AMPHORAE_CONFIG["related_collection_node_id"]
+POTTERY_RECORD_FORM_NO_NODE_ID = AMPHORAE_CONFIG["fields"]["formNo"]
+POTTERY_RECORD_P_NO_NODE_ID = AMPHORAE_CONFIG["fields"]["pNo"]
+POTTERY_RECORD_COUNT_NODE_ID = AMPHORAE_CONFIG["fields"]["count"]
+POTTERY_RECORD_VESSEL_PART_NODE_ID = AMPHORAE_CONFIG["fields"]["vesselPart"]
+POTTERY_RECORD_TYPE_NODE_ID = AMPHORAE_CONFIG["fields"]["type"]
+POTTERY_RECORD_TYPE_UNCERTAIN_NODE_ID = AMPHORAE_CONFIG["fields"]["typeUncertain"]
+POTTERY_RECORD_MORPHOLOGY_NODE_ID = AMPHORAE_CONFIG["fields"]["morphology"]
+POTTERY_RECORD_CHRONOLOGY_NODEGROUP_ID = AMPHORAE_CONFIG["fields"]["chronology"]
+POTTERY_RECORD_CHRONOLOGY_NODE_ID = AMPHORAE_CONFIG["fields"]["chronology"]
+POTTERY_RECORD_CHRONOLOGY_UNCERTAIN_NODE_ID = AMPHORAE_CONFIG["fields"]["chronologyUncertain"]
+POTTERY_RECORD_PROVENANCE_NODE_ID = AMPHORAE_CONFIG["fields"]["provenance"]
+POTTERY_RECORD_PROVENANCE_UNCERTAIN_NODE_ID = AMPHORAE_CONFIG["fields"]["provenanceUncertain"]
+POTTERY_RECORD_DRAWN_NODE_ID = AMPHORAE_CONFIG["fields"]["drawn"]
+POTTERY_RECORD_PHOTO_NODE_ID = AMPHORAE_CONFIG["fields"]["photo"]
+POTTERY_RECORD_COMMENT_NODE_ID = AMPHORAE_CONFIG["fields"]["comment"]
+
 PAC_API_URL = "https://pac.cenagis.edu.pl/wiki/api.php"
 LABEL_VALUE_TYPES = ("prefLabel", "altLabel", "hiddenLabel")
 
@@ -57,10 +60,10 @@ REQUIRED_HEADERS = {
 }
 
 CONCEPT_FIELDS = {
-    "Vessel Part": AMPHORAE_VESSEL_PART_NODE_ID,
-    "Type": AMPHORAE_TYPE_NODE_ID,
-    "Morphology": AMPHORAE_MORPHOLOGY_NODE_ID,
-    "Provenance": AMPHORAE_PROVENANCE_NODE_ID,
+    "Vessel Part": POTTERY_RECORD_VESSEL_PART_NODE_ID,
+    "Type": POTTERY_RECORD_TYPE_NODE_ID,
+    "Morphology": POTTERY_RECORD_MORPHOLOGY_NODE_ID,
+    "Provenance": POTTERY_RECORD_PROVENANCE_NODE_ID,
 }
 
 
@@ -168,13 +171,40 @@ class Command(BaseCommand):
                 label = clean_cell(row.get(field))
                 if not label:
                     continue
-                cache_key = label.casefold()
-                if cache_key not in concept_cache:
-                    value_id = self._local_concept_value_id(label)
-                    if not value_id and sync_pac:
-                        value_id = self._sync_pac_value(label, apply=apply)
-                    concept_cache[cache_key] = value_id
-                value_id = concept_cache[cache_key]
+                if field == "Vessel Part" and "+" in label:
+                    vessel_part_ids = []
+                    for vessel_part in (
+                        clean_cell(value) for value in re.split(r"\s*\+\s*", label)
+                    ):
+                        if not vessel_part:
+                            continue
+                        value_id = self._concept_value_id(
+                            vessel_part,
+                            concept_cache,
+                            apply=apply,
+                            sync_pac=sync_pac,
+                        )
+                        if value_id:
+                            # Do not deduplicate: "body + body" means two Body tiles.
+                            vessel_part_ids.append(value_id)
+                        else:
+                            totals["unresolved_concepts"] += 1
+                            self.stderr.write(
+                                self.style.WARNING(
+                                    f"  row {row_number}: unresolved {field} "
+                                    f"component {vessel_part!r}"
+                                )
+                            )
+                    if vessel_part_ids:
+                        item["concepts"][field] = vessel_part_ids
+                    continue
+
+                value_id = self._concept_value_id(
+                    label,
+                    concept_cache,
+                    apply=apply,
+                    sync_pac=sync_pac,
+                )
                 if value_id:
                     item["concepts"][field] = value_id
                 else:
@@ -202,35 +232,40 @@ class Command(BaseCommand):
             if unknown_periods:
                 label = clean_cell(row.get("Period"))
                 value_id = ""
-                cache_key = f"chronology:{label.casefold()}"
-                if cache_key not in concept_cache:
-                    if sync_pac:
-                        value_id = self._sync_pac_value(label, apply=apply)
-                    concept_cache[cache_key] = value_id
-                value_id = concept_cache[cache_key]
+                # Preserve locally resolved parts of a range. Only try the full
+                # label as a fallback when none of it was understood.
+                if not period_ids:
+                    cache_key = f"chronology:{label.casefold()}"
+                    if cache_key not in concept_cache:
+                        if sync_pac:
+                            value_id = self._sync_pac_value(label, apply=apply)
+                        concept_cache[cache_key] = value_id
+                    value_id = concept_cache[cache_key]
                 if value_id:
-                    period_ids = [value_id]
+                    period_ids.append(value_id)
                 else:
-                    totals["unresolved_concepts"] += 1
-                    self.stderr.write(
-                        self.style.WARNING(
-                            f"  row {row_number}: unresolved Period {label!r}"
+                    totals["unresolved_concepts"] += len(unknown_periods)
+                    for unknown_period in unknown_periods:
+                        self.stderr.write(
+                            self.style.WARNING(
+                                f"  row {row_number}: unresolved Period tail "
+                                f"{unknown_period!r}; keeping recognized period(s)"
+                            )
                         )
-                    )
-            item["period_ids"] = period_ids
+            item["period_ids"] = list(dict.fromkeys(period_ids))
             prepared.append(item)
 
         return prepared, totals
 
     def _process_row(self, item, apply):
         legacyid = item["legacyid"]
-        if Resource.objects.filter(graph_id=AMPHORAE_GRAPH_ID, legacyid=legacyid).exists():
+        if Resource.objects.filter(graph_id=POTTERY_RECORD_GRAPH_ID, legacyid=legacyid).exists():
             self.stdout.write(f"  row {item['row_number']}: unchanged")
             return "unchanged"
 
         collection_ids = list(
             TileModel.objects.filter(
-                resourceinstance__graph_id=POTTERY_GRAPH_ID,
+                resourceinstance__graph_id=POTTERY_COLLECTION_GRAPH_ID,
                 data__contains={COLLECTION_FORM_ID_NODE_ID: item["form_id"]},
             )
             .values_list("resourceinstance_id", flat=True)
@@ -251,7 +286,7 @@ class Command(BaseCommand):
 
         if not apply:
             self.stdout.write(
-                f"  row {item['row_number']}: would create Amphorae for {item['form_id']}"
+                f"  row {item['row_number']}: would create Amphorae Pottery Record for {item['form_id']}"
             )
             return "would_create"
 
@@ -263,14 +298,14 @@ class Command(BaseCommand):
     def _create_resource(self, item, collection_resource_id):
         row = item["row"]
         resource = Resource.objects.create(
-            graph_id=AMPHORAE_GRAPH_ID,
+            graph_id=POTTERY_RECORD_GRAPH_ID,
             legacyid=item["legacyid"],
-            name=f"TEST Amphorae {item['form_id']} row {item['row_number']}",
+            name=f"Amphorae {item['form_id']} row {item['row_number']}",
         )
 
         self._save_node(
             resource,
-            AMPHORAE_RELATED_COLLECTION_NODE_ID,
+            POTTERY_RECORD_RELATED_COLLECTION_NODE_ID,
             [{
                 "resourceId": collection_resource_id,
                 "ontologyProperty": "",
@@ -278,62 +313,67 @@ class Command(BaseCommand):
                 "resourceXresourceId": str(uuid4()),
             }],
         )
-        self._save_node(resource, AMPHORAE_FORM_NO_NODE_ID, item["form_id"])
+        self._save_node(resource, POTTERY_RECORD_FORM_NO_NODE_ID, item["form_id"])
 
         p_number = clean_cell(row.get("P number"))
         if p_number:
-            self._save_node(resource, AMPHORAE_P_NO_NODE_ID, p_number)
+            self._save_node(resource, POTTERY_RECORD_P_NO_NODE_ID, p_number)
 
         quantity = self._number(row.get("Quantity"))
         if quantity is not None:
-            self._save_node(resource, AMPHORAE_COUNT_NODE_ID, quantity)
+            self._save_node(resource, POTTERY_RECORD_COUNT_NODE_ID, quantity)
 
-        if item["concepts"].get("Vessel Part"):
+        vessel_part_ids = item["concepts"].get("Vessel Part") or []
+        if not isinstance(vessel_part_ids, list):
+            vessel_part_ids = [vessel_part_ids]
+        if vessel_part_ids:
+            # Vessel Part is a concept-list: one tile can retain repeated values,
+            # so "body + body" is stored as [body_id, body_id].
             self._save_node(
                 resource,
-                AMPHORAE_VESSEL_PART_NODE_ID,
-                item["concepts"]["Vessel Part"],
+                POTTERY_RECORD_VESSEL_PART_NODE_ID,
+                vessel_part_ids,
             )
 
         type_data = {}
         if item["concepts"].get("Type"):
-            type_data[AMPHORAE_TYPE_NODE_ID] = item["concepts"]["Type"]
-        type_data[AMPHORAE_TYPE_UNCERTAIN_NODE_ID] = to_boolean(
+            type_data[POTTERY_RECORD_TYPE_NODE_ID] = [item["concepts"]["Type"]]
+        type_data[POTTERY_RECORD_TYPE_UNCERTAIN_NODE_ID] = to_boolean(
             row.get("Type Uncertainty")
         )
-        self._save_group(resource, AMPHORAE_TYPE_NODE_ID, type_data)
+        self._save_group(resource, POTTERY_RECORD_TYPE_NODE_ID, type_data)
 
         if item["concepts"].get("Morphology"):
             self._save_node(
                 resource,
-                AMPHORAE_MORPHOLOGY_NODE_ID,
-                item["concepts"]["Morphology"],
+                POTTERY_RECORD_MORPHOLOGY_NODE_ID,
+                [item["concepts"]["Morphology"]],
             )
 
         chronology_data = {
-            AMPHORAE_CHRONOLOGY_UNCERTAIN_NODE_ID: to_boolean(row.get("Uncertain")),
+            POTTERY_RECORD_CHRONOLOGY_UNCERTAIN_NODE_ID: to_boolean(row.get("Uncertain")),
         }
         if item["period_ids"]:
-            chronology_data[AMPHORAE_CHRONOLOGY_NODE_ID] = item["period_ids"]
-        self._save_group(resource, AMPHORAE_CHRONOLOGY_NODEGROUP_ID, chronology_data)
+            chronology_data[POTTERY_RECORD_CHRONOLOGY_NODE_ID] = item["period_ids"]
+        self._save_group(resource, POTTERY_RECORD_CHRONOLOGY_NODEGROUP_ID, chronology_data)
 
         provenance_data = {
-            AMPHORAE_PROVENANCE_UNCERTAIN_NODE_ID: to_boolean(
+            POTTERY_RECORD_PROVENANCE_UNCERTAIN_NODE_ID: to_boolean(
                 row.get("Provenance Uncertainity")
             ),
         }
         if item["concepts"].get("Provenance"):
-            provenance_data[AMPHORAE_PROVENANCE_NODE_ID] = item["concepts"]["Provenance"]
-        self._save_group(resource, AMPHORAE_PROVENANCE_NODE_ID, provenance_data)
+            provenance_data[POTTERY_RECORD_PROVENANCE_NODE_ID] = [item["concepts"]["Provenance"]]
+        self._save_group(resource, POTTERY_RECORD_PROVENANCE_NODE_ID, provenance_data)
 
-        self._save_node(resource, AMPHORAE_DRAWN_NODE_ID, to_boolean(row.get("Drawing")))
-        self._save_node(resource, AMPHORAE_PHOTO_NODE_ID, to_boolean(row.get("Photo")))
+        self._save_node(resource, POTTERY_RECORD_DRAWN_NODE_ID, to_boolean(row.get("Drawing")))
+        self._save_node(resource, POTTERY_RECORD_PHOTO_NODE_ID, to_boolean(row.get("Photo")))
 
         comment = clean_cell(row.get("Comment"))
         if comment:
-            self._save_node(resource, AMPHORAE_COMMENT_NODE_ID, localized_string(comment))
+            self._save_node(resource, POTTERY_RECORD_COMMENT_NODE_ID, localized_string(comment))
 
-        resource.name = f"TEST Amphorae {item['form_id']} row {item['row_number']}"
+        resource.name = f"Amphorae {item['form_id']} row {item['row_number']}"
         resource.save(update_fields=["name"])
         return resource
 
@@ -342,11 +382,20 @@ class Command(BaseCommand):
         Command._save_group(resource, node_id, {node_id: value})
 
     @staticmethod
-    def _save_group(resource, nodegroup_id, data):
-        tile = Tile.get_blank_tile_from_nodegroup_id(
-            nodegroup_id,
-            resourceid=str(resource.resourceinstanceid),
-        )
+    def _save_group(resource, node_or_nodegroup_id, data):
+        """Save all values from one card into one tile on the copied model."""
+        node = Node.objects.get(nodeid=node_or_nodegroup_id)
+        nodegroup_id = str(node.nodegroup_id)
+        tile = Tile.objects.filter(
+            resourceinstance_id=resource.resourceinstanceid,
+            nodegroup_id=nodegroup_id,
+        ).first()
+        if tile is None:
+            tile = Tile.get_blank_tile_from_nodegroup_id(
+                nodegroup_id,
+                resourceid=str(resource.resourceinstanceid),
+            )
+        tile.data = dict(tile.data or {})
         tile.data.update(data)
         tile.save()
         return tile
@@ -377,6 +426,15 @@ class Command(BaseCommand):
         ).order_by("language_id")
         value = preferred.filter(language_id="en").first() or preferred.first()
         return str(value.valueid) if value else ""
+
+    def _concept_value_id(self, label, cache, apply, sync_pac):
+        cache_key = f"concept:{clean_cell(label).casefold()}"
+        if cache_key not in cache:
+            value_id = self._local_concept_value_id(label)
+            if not value_id and sync_pac:
+                value_id = self._sync_pac_value(label, apply=apply)
+            cache[cache_key] = value_id
+        return cache[cache_key]
 
     def _sync_pac_value(self, label, apply):
         try:

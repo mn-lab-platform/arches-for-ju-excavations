@@ -14,7 +14,9 @@ define([
             const defaultRecordTypes = [
                 { value: 'amphorae', label: 'Amphorae' },
                 { value: 'storage-vessel', label: 'Storage Vessel' },
-                { value: 'table-ware', label: 'Table Ware' }
+                { value: 'table-ware', label: 'Table Ware' },
+                { value: 'plain-ware', label: 'Plain Ware' },
+                { value: 'lamp', label: 'Lamp' }
             ];
 
             self.recordTypes = ko.observableArray(ko.unwrap(params.recordTypes) || defaultRecordTypes);
@@ -42,11 +44,15 @@ define([
             self.missingDictionaryValues = ko.observableArray([]);
             self.invalidDictionaryNodes = ko.observableArray([]);
             self.importComplete = ko.observable(false);
+            self.templateDownloadInProgress = ko.observable(false);
             self.canPreview = ko.pureComputed(function() {
                 return !!self.selectedPotteryCollectionResourceId() && !!self.file();
             });
+            self.templateButtonLabel = ko.pureComputed(function() {
+                return "Download " + self.recordLabel() + " XLSX template";
+            });
             self.importButtonLabel = ko.pureComputed(function() {
-                return 'Preview ' + self.recordLabel() + ' Records';
+                return "Preview " + self.recordLabel() + " Records";
             });
             self.canCommit = ko.pureComputed(function() {
                 return self.previewRecords().length > 0 && self.currentMissingDictionaryValues().length === 0 && !self.importComplete();
@@ -105,6 +111,51 @@ define([
                 self.invalidDictionaryNodes([]);
                 self.importComplete(false);
             });
+
+            self.downloadTemplate = function() {
+                if (self.templateDownloadInProgress()) {
+                    return;
+                }
+
+                const recordType = self.recordType();
+                const filename = "pottery-record-" + recordType + "-template.xlsx";
+
+                self.templateDownloadInProgress(true);
+                self.errorMessage(null);
+                self.importMessage("Preparing XLSX template...");
+
+                fetch("/api/pottery/records/" + encodeURIComponent(recordType) + "/template", {
+                    credentials: "include"
+                })
+                    .then(function(response) {
+                        if (!response.ok) {
+                            return response.text().then(function(message) {
+                                throw new Error(message || ("HTTP " + response.status));
+                            });
+                        }
+
+                        return response.blob();
+                    })
+                    .then(function(blob) {
+                        const link = document.createElement("a");
+                        const objectUrl = window.URL.createObjectURL(blob);
+
+                        link.href = objectUrl;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(objectUrl);
+                        self.successMessage("XLSX template downloaded.");
+                    })
+                    .catch(function(error) {
+                        self.errorMessage("Could not download XLSX template: " + error.message);
+                    })
+                    .finally(function() {
+                        self.templateDownloadInProgress(false);
+                        self.importMessage(null);
+                    });
+            };
 
             self.onFileSelected = function(_, event) {
                 const file = event.target.files && event.target.files[0];
@@ -267,7 +318,13 @@ define([
             };
 
             self.isBooleanColumn = function(key) {
-                return key === 'drawn';
+                return [
+                    "drawn",
+                    "photo",
+                    "typeUncertain",
+                    "chronologyUncertain",
+                    "provenanceUncertain"
+                ].indexOf(key) !== -1;
             };
 
             self.getOptions = function(key) {
@@ -323,7 +380,7 @@ define([
                         });
                     } else if (key === '_missingDictionaryFields') {
                         editableRecord._missingDictionaryFields = ko.observableArray(record._missingDictionaryFields || []);
-                    } else if (key === 'drawn') {
+                    } else if (self.isBooleanColumn(key)) {
                         editableRecord[key] = ko.observable(toBoolean(record[key]));
                     } else if (key === '_cellErrors') {
                         editableRecord._cellErrors = record._cellErrors || {};      
