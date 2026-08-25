@@ -19,12 +19,7 @@ def get_optional_env_variable(var_name):
         return os.environ[var_name]
     except KeyError:
         return None
-
-
-PAC_WIKIDATA_ENDPOINT = (
-    get_optional_env_variable("PAC_WIKIDATA_ENDPOINT")
-    or "https://pac.cenagis.edu.pl/wiki/sparql"
-)
+        
 
 DATABASES = {
     "default": {
