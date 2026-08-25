@@ -8,7 +8,7 @@ def get_static_fallback(custom_path, default_path):
     return default_path
 
 def custom_context(request):
-    captions = getattr(settings, 'IMAGE_SLIDES_CAPTIONS', [])
+    captions = getattr(settings, 'LANDING_IMAGE_SLIDES_CONFIG', [])
     captions = captions + [''] * max(0, 3 - len(captions))
     
     return {
@@ -33,9 +33,14 @@ def custom_context(request):
         ),
         
         # --- LANDING PAGE CAPTIONS ---
-        'first_slide_caption': captions[0],
-        'second_slide_caption': captions[1],
-        'third_slide_caption': captions[2],
+        'first_slide_caption': captions[0].get('caption', ''),
+        'second_slide_caption': captions[1].get('caption', ''),
+        'third_slide_caption': captions[2].get('caption', ''),
+
+        # --- LANDING PAGE ATTRIBUTIONS ---
+        'first_slide_attribution': captions[0].get('image_attribution', ''),
+        'second_slide_attribution': captions[1].get('image_attribution', ''),
+        'third_slide_attribution': captions[2].get('image_attribution', ''),
         
         # --- MAILING IMAGES ---
         'email_header_image_url': get_static_fallback(
