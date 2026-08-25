@@ -16,7 +16,6 @@ define([
 
         self.graphIds = toArray(params.graphIds || params.graphids || params.graphId || params.graphid);
         self.searchPlaceholder = params.searchPlaceholder || 'Search resources...';
-
         self.multiple = params.multiple || false;
 
         self.searchText = ko.observable('').extend({ 
