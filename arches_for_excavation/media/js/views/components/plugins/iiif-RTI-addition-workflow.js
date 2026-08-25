@@ -32,11 +32,9 @@ define([
               uniqueInstanceName: 'resource-selection-instance',
               tilesManaged: 'none',
               parameters: {
-                graphIds: ['d6559924-9f52-11eb-96c4-020063fe0012', '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c'],
+                graphIds: ['ac939663-80ce-43df-967d-42def45ef333', 'aeeea75c-9251-45fe-9fa6-85e5153e9091', 'c09880b6-f404-4747-8038-a53938093437', '61b403ae-906c-4cba-ab64-8393c91561d1', '08c52b0f-c734-455b-aaef-e2f70ddae793', '124255a2-f11d-4a52-94f4-a06b791c4a60'],
                 placeholderText: 'Select resource',
                 searchPlaceholder: 'Search resources...',
-                enableSearch: true,
-                resultLimit: 50
               }
             }]
           }]
