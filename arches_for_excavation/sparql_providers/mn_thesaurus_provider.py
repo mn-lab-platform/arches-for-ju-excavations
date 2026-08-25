@@ -8,13 +8,13 @@ from SPARQLWrapper import JSON
 from arches.app.utils.data_management.sparql_providers.abstract_provider import Abstract_Provider
 from rdflib.namespace import DCTERMS
 
-class Wikidata_Provider(Abstract_Provider):
+class MNThesaurusProvider(Abstract_Provider):
     def __init__(self, **kwargs):
-        super(Wikidata_Provider, self).__init__(
-            "https://pac.cenagis.edu.pl/wiki/sparql", **kwargs
+        super(MNThesaurusProvider, self).__init__(
+            "https://thesaurus.mn.cenagis.edu.pl/sparql", **kwargs
         )
 
-        self.name = _("PAC Wikidata Service")
+        self.name = _("MN Lab Platform Thesaurus")
         self.setReturnFormat(JSON)
 
     def get_concepts(self, uris):
