@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from openpyxl import load_workbook
 
-from arches.app.models.models import Resource, TileModel, Value
+from arches.app.models.models import Node, Resource, TileModel, Value
 from arches.app.models.tile import Tile
 from arches_for_excavation.utils.pottery.common import clean_cell, localized_string, to_boolean
 from arches_for_excavation.utils.pottery.concept_lookup import (
@@ -24,7 +24,14 @@ from arches_for_excavation.utils.pottery.constants import POTTERY_DICTIONARY_CHR
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
 CONTEXT_GRAPH_ID = "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c"
 CONTEXT_NUMBER_NODE_ID = "cf7f2532-74f3-487f-9261-bf27825fe04c"
-IGNORED_CONTEXT_PREFIXES = ("UNKNOWN-", "PAP-")
+TRENCH_GRAPH_ID = "cc91f1ff-6ea8-422c-be14-b818660f66f8"
+CONTEXT_TRENCH_NODE_ID = "13e52ba6-b14d-41de-9a09-8bd1186edc10"
+TRENCH_NAME_NODE_ID = "a9aff43e-0e89-4ea6-bd3d-1b56a6d756db"
+
+# Both MAL and PAP source context identifiers end with the local Context
+# Number, for example ``MAL-TT-X-1029`` and ``PAP-T-II-2111``. PAP is a
+# valid excavation-area prefix, not a marker for missing data.
+IGNORED_CONTEXT_PREFIXES = ("UNKNOWN-",)
 
 # Root cards
 CONTEXT_NODEGROUP_ID = "622addb9-60c1-498c-ab40-bef9ded91f2f"
@@ -71,6 +78,14 @@ CATEGORY_TYPES = {
     "L": "Q924",
 }
 
+CHRONOLOGY_ABBREVIATIONS = {
+    "LCL": "Late Classical",
+    "LH": "Late Hellenistic",
+    "EH": "Early Hellenistic",
+    "MH": "Middle Hellenistic",
+    "ER": "Early Roman",
+}
+
 
 def cell_number(value):
     raw = clean_cell(value)
@@ -81,6 +96,21 @@ def cell_number(value):
     except ValueError:
         return None
     return int(number) if number.is_integer() else number
+
+
+def normalize_source_context(value):
+    """Normalize separators, including the compact ``PAP-TTX`` form.
+
+    Some source workbooks omit the separator between the ``T``/``TT`` trench
+    marker and its Roman numeral, e.g. ``PAP-TTX-951``. Expand that form so
+    it follows the canonical source syntax used by :meth:`_source_trench_name`.
+    """
+    context = re.sub(r"\s*[_-]\s*", "-", clean_cell(value).upper())
+    return re.sub(
+        r"^(PAP|MAL)-(TT|T)([IVXLCDM]+)-((?:C)?\d+)$",
+        r"\1-\2-\3-\4",
+        context,
+    )
 
 
 class SkipRow(Exception):
@@ -94,6 +124,11 @@ class Command(BaseCommand):
         parser.add_argument("--file", required=True, help="Path to the .xlsx file inside the Arches container.")
         parser.add_argument("--context-resource-id", help="Optional fixed (O) Context resource UUID for every workbook row.")
         parser.add_argument("--context-map", help="Optional JSON map from Excel Context values to (O) Context resource UUIDs.")
+        parser.add_argument(
+            "--create-missing-contexts",
+            action="store_true",
+            help="Create a minimal (O) Context linked to its full PAP/MAL Trench when it is missing.",
+        )
         parser.add_argument("--apply", action="store_true", help="Create resources. Without this flag the command only validates the workbook.")
         parser.add_argument("--sheet", help="Optional workbook sheet name. Defaults to the first sheet.")
 
@@ -101,6 +136,9 @@ class Command(BaseCommand):
         self.apply = options["apply"]
         self.context_resource_id = options.get("context_resource_id")
         self.context_map = self._load_context_map(options.get("context_map"))
+        self.create_missing_contexts = options["create_missing_contexts"]
+        self.created_contexts = {}
+        self.trench_resource_ids = None
         if self.context_resource_id and self.context_map:
             raise CommandError("Use either --context-resource-id or --context-map, not both.")
 
@@ -117,17 +155,20 @@ class Command(BaseCommand):
         totals = Counter()
         for row_number, row in rows:
             try:
-                report = self._validate_row(row_number, row)
-                totals.update(report["totals"])
                 if self.apply:
                     with transaction.atomic():
+                        report = self._validate_row(row_number, row)
                         resource_id = self._create_resource(row, report)
                     self.stdout.write(f"  row {row_number}: created {resource_id}")
                 else:
+                    report = self._validate_row(row_number, row)
                     self.stdout.write(
-                        f"  row {row_number}: would create one collection, "
+                        f"  row {row_number}: would create "
+                        f"{'one Context and ' if report['totals']['contexts_created'] else ''}"
+                        f"one collection, "
                         f"{report['totals']['fragments']} fragment(s)"
                     )
+                totals.update(report["totals"])
                 totals["rows_ok"] += 1
             except SkipRow as reason:
                 totals["rows_skipped"] += 1
@@ -142,6 +183,7 @@ class Command(BaseCommand):
             "rows_skipped",
             "rows_error",
             "collections",
+            "contexts_created",
             "fragments",
             "unknown_find_values",
             "unknown_chronology_values",
@@ -151,16 +193,26 @@ class Command(BaseCommand):
             self.stdout.write("Dry-run only. Run again with --apply after reviewing the result.")
 
     @staticmethod
-    def _read_rows(sheet):
-        headers = [clean_cell(value) for value in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
+    def _is_marked_red(cell):
+        """Return whether the source cell carries the pink 'remove' marker."""
+        color = cell.fill.fgColor
+        return color.type == "rgb" and (color.rgb or "").upper().endswith("FFB6C1")
+
+    @classmethod
+    def _read_rows(cls, sheet):
+        header_cells = next(sheet.iter_rows(min_row=1, max_row=1, values_only=False))
+        headers = [clean_cell(cell.value) for cell in header_cells]
         required = {"Form_ID", "Context"}
         missing = required - set(headers)
         if missing:
             raise CommandError(f"Missing required column(s): {', '.join(sorted(missing))}")
 
         rows = []
-        for row_number, values in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        context_index = headers.index("Context")
+        for row_number, cells in enumerate(sheet.iter_rows(min_row=2, values_only=False), start=2):
+            values = [cell.value for cell in cells]
             row = dict(zip(headers, values))
+            row["_skip_red_context"] = cls._is_marked_red(cells[context_index])
             if any(clean_cell(value) for value in values):
                 rows.append((row_number, row))
         return rows
@@ -180,15 +232,24 @@ class Command(BaseCommand):
         return {clean_cell(key): clean_cell(value) for key, value in mapping.items()}
 
     def _context_for_row(self, row):
-        excel_context = clean_cell(row.get("Context"))
+        raw_context = clean_cell(row.get("Context"))
+        excel_context = normalize_source_context(raw_context)
+        if row.get("_skip_red_context"):
+            raise SkipRow(f"Context {excel_context!r} is marked red")
         if excel_context.upper().startswith(IGNORED_CONTEXT_PREFIXES):
             raise SkipRow(f"Context {excel_context!r} is excluded")
 
-        resource_id = self.context_map.get(excel_context) if self.context_map else self.context_resource_id
+        resource_id = (
+            (self.context_map.get(raw_context) or self.context_map.get(excel_context))
+            if self.context_map else self.context_resource_id
+        )
         if resource_id:
             return self._get_context_resource(resource_id)
 
-        match = re.search(r"-C(\d+)$", excel_context, flags=re.IGNORECASE)
+        # Older imports used identifiers such as ``...-C1029``. The current
+        # ceramics sheets use ``...-1029`` instead. In both formats the
+        # terminal number is the (O) Context Number.
+        match = re.search(r"-(?:C)?(\d+)$", excel_context.replace("_", "-"), flags=re.IGNORECASE)
         if not match:
             raise SkipRow(f"cannot derive Context Number from {excel_context!r}")
 
@@ -201,13 +262,111 @@ class Command(BaseCommand):
             .values_list("resourceinstance_id", flat=True)
             .distinct()
         )
-        if not context_ids:
-            raise SkipRow(f"no local Context with Context Number {context_number}")
-        if len(context_ids) > 1:
+        trench_name = self._source_trench_name(excel_context)
+        matching_ids = self._context_ids_in_trench(context_ids, trench_name)
+        if len(matching_ids) == 1:
+            return Resource.objects.get(resourceinstanceid=matching_ids[0])
+        if len(matching_ids) > 1:
             raise CommandError(
-                f"more than one local Context has Context Number {context_number}"
+                f"more than one local Context {context_number} belongs to {trench_name}"
             )
-        return Resource.objects.get(resourceinstanceid=context_ids[0])
+        if not self.create_missing_contexts:
+            if context_ids:
+                raise SkipRow(f"no local Context {context_number} belongs to its Trench")
+            raise SkipRow(f"no local Context with Context Number {context_number}")
+        return self._create_missing_context(excel_context, context_number)
+
+    @staticmethod
+    def _source_trench_name(excel_context):
+        match = re.match(
+            r"^(PAP|MAL)-(TT|T)-([A-Z0-9]+)-(?:C)?\d+$",
+            excel_context.upper().replace("_", "-"),
+        )
+        if not match:
+            raise SkipRow(
+                f"cannot derive Trench from Context {excel_context!r}"
+            )
+        # PAP_TT_X and MAL_TT_X are distinct Trench resources. Do not
+        # collapse the excavation-area prefix: matching just TT_X could join
+        # a source row to a Context from the other area.
+        return f"{match.group(1)}_{match.group(2)}_{match.group(3)}"
+
+    def _trench_resources(self):
+        if self.trench_resource_ids is not None:
+            return self.trench_resource_ids
+        trenches = {}
+        tiles = (
+            TileModel.objects.filter(
+                resourceinstance__graph_id=TRENCH_GRAPH_ID,
+                data__has_key=TRENCH_NAME_NODE_ID,
+            )
+            .values_list("resourceinstance_id", "data")
+        )
+        for resource_id, data in tiles:
+            trench_name = clean_cell((data or {}).get(TRENCH_NAME_NODE_ID)).upper()
+            if not trench_name:
+                continue
+            if trench_name in trenches and trenches[trench_name] != str(resource_id):
+                raise CommandError(f"more than one local Trench named {trench_name!r}")
+            trenches[trench_name] = str(resource_id)
+        self.trench_resource_ids = trenches
+        return trenches
+
+    def _context_ids_in_trench(self, context_ids, trench_name):
+        trench_resource_id = self._trench_resources().get(trench_name)
+        if not trench_resource_id:
+            return []
+        matches = []
+        tiles = (
+            TileModel.objects.filter(
+                resourceinstance_id__in=context_ids,
+                data__has_key=CONTEXT_TRENCH_NODE_ID,
+            )
+            .values_list("resourceinstance_id", "data")
+        )
+        for resource_id, data in tiles:
+            relations = (data or {}).get(CONTEXT_TRENCH_NODE_ID) or []
+            if any(
+                isinstance(relation, dict)
+                and str(relation.get("resourceId")) == trench_resource_id
+                for relation in relations
+            ):
+                matches.append(resource_id)
+        return matches
+
+    def _create_missing_context(self, excel_context, context_number):
+        trench_name = self._source_trench_name(excel_context)
+        cache_key = (trench_name, context_number)
+        if cache_key in self.created_contexts:
+            context = self.created_contexts[cache_key]
+            context._created_by_pottery_import = False
+            return context
+        trench_resource_id = self._trench_resources().get(trench_name)
+        if not trench_resource_id:
+            raise SkipRow(f"no local Trench named {trench_name!r}")
+        if self.apply:
+            context = Resource.objects.create(graph_id=CONTEXT_GRAPH_ID)
+            number_node = Node.objects.get(nodeid=CONTEXT_NUMBER_NODE_ID)
+            trench_node = Node.objects.get(nodeid=CONTEXT_TRENCH_NODE_ID)
+            self._save_tile(
+                context, str(number_node.nodegroup_id),
+                {CONTEXT_NUMBER_NODE_ID: context_number},
+            )
+            self._save_tile(
+                context, str(trench_node.nodegroup_id),
+                {CONTEXT_TRENCH_NODE_ID: [{
+                    "resourceId": trench_resource_id,
+                    "ontologyProperty": "",
+                    "inverseOntologyProperty": "",
+                    "resourceXresourceId": str(uuid4()),
+                }]},
+            )
+        else:
+            context = Resource(graph_id=CONTEXT_GRAPH_ID)
+        context._created_by_pottery_import = True
+        self.created_contexts[cache_key] = context
+        return context
+
 
     @staticmethod
     def _get_context_resource(resource_id):
@@ -278,7 +437,7 @@ class Command(BaseCommand):
         """
         dictionary = get_dictionary_index(POTTERY_DICTIONARY_CHRONOLOGY)
         remaining = normalize_dictionary_label(label)
-        remaining = re.sub(r"\s*-\s*", " ", remaining)
+        remaining = re.sub(r"\s*[-–—]\s*", " ", remaining)
         remaining = re.sub(r"[()]", " ", remaining)
         remaining = re.sub(r"\s*/\s*", " / ", remaining)
         remaining = re.sub(r"\s+", " ", remaining).strip()
@@ -310,6 +469,45 @@ class Command(BaseCommand):
                 remaining = remaining[1:].strip()
 
         return resolved, ""
+    @staticmethod
+    def _century_suffix(century):
+        if 10 <= century % 100 <= 20:
+            return "th"
+        return {1: "st", 2: "nd", 3: "rd"}.get(century % 10, "th")
+
+    @staticmethod
+    def _expand_chronology_abbreviations(value):
+        return re.sub(
+            r"\b(LCL|LH|EH|MH|ER)\b",
+            lambda match: CHRONOLOGY_ABBREVIATIONS[match.group(1).upper()],
+            clean_cell(value),
+            flags=re.IGNORECASE,
+        )
+
+    @classmethod
+    def _century_range_labels(cls, label):
+        """Return every canonical century covered by a source century range."""
+        match = re.fullmatch(
+            r"\s*(\d+)(?:st|nd|rd|th)?\s*(?:c(?:entury)?\.?)?\s*[-–—]\s*"
+            r"(\d+)(?:st|nd|rd|th)?\s*(?:c(?:entury)?\.?)?\s*(AD|CE|BC|BCE)\s*",
+            clean_cell(label),
+            flags=re.IGNORECASE,
+        )
+        if not match:
+            return []
+        start, end = (int(value) for value in match.group(1, 2))
+        if start > end:
+            return []
+        # Only low-numbered source ranges denote centuries. Higher values
+        # in the amphora sheets are calendar years, even when an earlier
+        # conversion added ordinal or ``c.`` markers.
+        if max(start, end) > 10:
+            return []
+        era = {"AD": "CE", "CE": "CE", "BC": "BCE", "BCE": "BCE"}[match.group(3).upper()]
+        return [
+            f"{century}{cls._century_suffix(century)} c. {era}"
+            for century in range(start, end + 1)
+        ]
 
     @classmethod
     def _period_values(cls, raw_value, unknown_values):
@@ -320,7 +518,10 @@ class Command(BaseCommand):
         """
         resolved = []
         for label in (
-            clean_cell(value) for value in re.split(r"\|", clean_cell(raw_value))
+            clean_cell(value)
+            for value in re.split(
+                r"\s*(?:\||,)\s*", cls._expand_chronology_abbreviations(raw_value)
+            )
         ):
             label = clean_cell(label.replace("?", ""))
             if not label:
@@ -328,6 +529,16 @@ class Command(BaseCommand):
             value_id = cls._resolve_period_label(label)
             if value_id:
                 resolved.append(value_id)
+                continue
+
+            century_labels = cls._century_range_labels(label)
+            if century_labels:
+                for century_label in century_labels:
+                    value_id = cls._resolve_period_label(century_label)
+                    if value_id:
+                        resolved.append(value_id)
+                    else:
+                        unknown_values.append(century_label)
                 continue
 
             range_value_ids, unknown_tail = cls._range_period_values(label)
@@ -423,6 +634,7 @@ class Command(BaseCommand):
             "categories": categories,
             "totals": Counter(
                 collections=1,
+                contexts_created=int(getattr(context, "_created_by_pottery_import", False)),
                 fragments=len(categories),
                 unknown_find_values=len(unknown_values),
                 unknown_chronology_values=len(unknown_periods),
