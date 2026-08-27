@@ -73,16 +73,45 @@ def localized_string(value):
 
 def to_boolean(value):
     normalized = str(value or "").strip().lower()
-    return normalized in ["1", "yes", "y", "true", "x"]
+    return normalized in ["1", "yes", "y", "true", "x", "?"]
+
+def ensure_tile_parent(resource, tile, node, *, index=True):
+    """Attach a child-card tile to its resource parent-card tile."""
+    parent_nodegroup_id = node.nodegroup.parentnodegroup_id
+    if parent_nodegroup_id is None:
+        return tile
+
+    parent_tile = Tile.objects.filter(
+        resourceinstance_id=resource.resourceinstanceid,
+        nodegroup_id=parent_nodegroup_id,
+    ).first()
+    if parent_tile is None:
+        parent_tile = Tile.get_blank_tile_from_nodegroup_id(
+            str(parent_nodegroup_id),
+            resourceid=str(resource.resourceinstanceid),
+        )
+        parent_tile.save(index=index)
+
+    tile.parenttile = parent_tile
+    return tile
+
 
 def create_tile_for_node(resource, node_id, value):
+    """Add a field to its card tile, reusing that tile when fields share a card."""
     node = Node.objects.get(nodeid=node_id)
+    nodegroup_id = str(node.nodegroup_id)
+    tile = Tile.objects.filter(
+        resourceinstance_id=resource.resourceinstanceid,
+        nodegroup_id=nodegroup_id,
+    ).first()
+    if tile is None:
+        tile = Tile.get_blank_tile_from_nodegroup_id(
+            nodegroup_id,
+            resourceid=str(resource.resourceinstanceid),
+        )
 
-    tile = Tile.get_blank_tile_from_nodegroup_id(
-        str(node.nodegroup_id),
-        resourceid=str(resource.resourceinstanceid),
-    )
-
+    ensure_tile_parent(resource, tile, node)
+    tile.data = dict(tile.data or {})
     tile.data[node_id] = value
     tile.save()
 

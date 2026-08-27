@@ -25,7 +25,7 @@ define([
               uniqueInstanceName: 'pottery-collection-selector',
               tilesManaged: 'none',
               parameters: {
-                graphId: '55777e89-af36-44f5-b699-d7b90d08a1e8',
+                graphId: '32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe',
                 searchPlaceholder: 'Search for a Pottery Collection resource...'
               }
             }]
@@ -45,7 +45,10 @@ define([
                 recordTypes: [
                   { value: 'amphorae', label: 'Amphorae' },
                   { value: 'storage-vessel', label: 'Storage Vessel' },
-                  { value: 'table-ware', label: 'Table Ware' }
+                  { value: 'kitchen-ware', label: 'Kitchen Ware' },
+                  { value: 'table-ware', label: 'Table Ware' },
+                  { value: 'plain-ware', label: 'Plain Ware' },
+                  { value: 'lamp', label: 'Lamp' }
                 ]
               }
             }]

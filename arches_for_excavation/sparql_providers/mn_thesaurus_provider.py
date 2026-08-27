@@ -37,6 +37,7 @@ class MNThesaurusProvider(Abstract_Provider):
             query = """
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX schema: <http://schema.org/>
+                PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
                 SELECT ?value ?type WHERE {
                   {
@@ -45,11 +46,17 @@ class MNThesaurusProvider(Abstract_Provider):
                   }
                   UNION
                   {
+                    <%s> skos:altLabel ?value .
+                    BIND('altLabel' AS ?type)
+                  }
+                  UNION
+                  {
                     <%s> schema:description ?value .
                     BIND('scopeNote' AS ?type)
                   }
                   FILTER (lang(?value) in (%s))
                 }""" % (
+                uri,
                 uri,
                 uri,
                 ",".join(langs),
@@ -95,9 +102,14 @@ class MNThesaurusProvider(Abstract_Provider):
         query = """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX schema: <http://schema.org/>
+            PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
             SELECT ?Subject ?Term ?ScopeNote WHERE {
-                ?Subject rdfs:label ?Term .
+                {
+                    ?Subject rdfs:label ?Term .
+                } UNION {
+                    ?Subject skos:altLabel ?Term .
+                }
                 OPTIONAL { ?Subject schema:description ?ScopeNote . }
                 
                 FILTER(CONTAINS(LCASE(?Term), LCASE("%s")))

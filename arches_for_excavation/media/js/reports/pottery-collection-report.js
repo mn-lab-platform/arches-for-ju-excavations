@@ -42,7 +42,9 @@ export default ko.components.register('pottery-collection-report', {
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
-                    potteryType: 'Kitchen Ware'
+                    potteryType: 'Kitchen Ware',
+                    recordType: 'kitchen-ware',
+                    collectionResourceId: collectionResourceId
                 }
             }),
             ko.mapping.fromJS({
@@ -62,7 +64,9 @@ export default ko.components.register('pottery-collection-report', {
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
-                    potteryType: 'Plain Ware'
+                    potteryType: 'Plain Ware',
+                    recordType: 'plain-ware',
+                    collectionResourceId: collectionResourceId
                 }
             }),
             ko.mapping.fromJS({
@@ -82,7 +86,9 @@ export default ko.components.register('pottery-collection-report', {
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
-                    potteryType: 'Lamp'
+                    potteryType: 'Lamp',
+                    recordType: 'lamp',
+                    collectionResourceId: collectionResourceId
                 }
             })
         ];

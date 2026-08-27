@@ -14,7 +14,7 @@ OWL_OBJECT_PROPERTY = OWL.ObjectProperty
 
 
 def get_cidoc_ontology_dir():
-    return Path(settings.APP_ROOT) / "ontologies" / "cidoc_crm_new"
+    return Path("/opt/venv/lib/python3.13/site-packages/arches_for_excavation") / "pkg" / "ontologies" / "cidoc_crm"
 
 
 def get_ontology_config():

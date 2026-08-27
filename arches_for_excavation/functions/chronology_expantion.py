@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import re
+import time
+from functools import lru_cache
 
 import requests
 from arches.app.functions.base import BaseFunction
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 PAC_SPARQL_ENDPOINT = "https://pac.cenagis.edu.pl/wiki/sparql"
 REQUEST_TIMEOUT_SECONDS = 10
+MAX_PAC_RETRIES = 3
 
 
 # This record is installed with ``manage.py fn register``.  The node mapping
@@ -29,27 +32,12 @@ details = {
         "Reads selected PAC periods and fills the four chronology boundary "
         "nodes in the same tile."
     ),
+    # Per-graph mappings are discovered and stored by the
+    # configure_pottery_chronology command. Keeping this empty prevents a
+    # future re-registration from restoring UUIDs of an earlier copied model.
     "defaultconfig": {
-        "triggering_nodegroups": [
-            "c6e7b936-3a60-4b5e-a557-4b5f02c5a4cf",
-            "13c63c03-ffc3-455a-a1ce-23082b4111e8",
-        ],
-        "node_mappings": {
-            "c6e7b936-3a60-4b5e-a557-4b5f02c5a4cf": {
-                "period_node": "bdad4eee-bae5-4aaa-b2ae-4bf646f0abd5",
-                "earliest_date": "e7f52189-ccea-4bce-9744-9fb3b1fbbc9e",
-                "latest_start_date": "d9c31b43-00c2-4e3e-9fd1-53b3034b816e",
-                "earliest_end_date": "92c0e019-b754-4385-95af-e2765cbfcdf4",
-                "latest_date": "df592091-2a08-468a-b2b3-801bcc4bbeeb",
-            },
-            "13c63c03-ffc3-455a-a1ce-23082b4111e8": {
-                "period_node": "ab05ac4b-4fd8-4eb9-9549-9d4a2a86893c",
-                "earliest_date": "7cdc9d21-03ca-4721-a696-9c5410949a68",
-                "latest_start_date": "2d982bc1-1e21-49dd-b942-a068a4fa645f",
-                "earliest_end_date": "82c3a276-fd67-4ce0-b0f4-eda4026c679c",
-                "latest_date": "1e59afd0-42aa-421a-85fe-1e0b72da6ca7",
-            },
-        },
+        "triggering_nodegroups": [],
+        "node_mappings": {},
     },
     "classname": "PotteryChronologyExpansionFunction",
     # The function has no settings panel in the graph designer.
@@ -100,18 +88,27 @@ def _year_from_binding(binding, field_name):
     return parse_year(binding.get(field_name, {}).get("value"))
 
 
+@lru_cache(maxsize=256)
 def fetch_period_dates(period_id):
     """Fetch all chronology ranges declared by one PAC period identifier."""
     if not re.fullmatch(r"Q\d+", period_id or ""):
         raise ValueError(f"Invalid PAC period identifier: {period_id!r}")
 
-    response = requests.get(
-        PAC_SPARQL_ENDPOINT,
-        params={"query": _build_period_query(period_id)},
-        headers={"Accept": "application/sparql-results+json"},
-        timeout=REQUEST_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
+    for attempt in range(MAX_PAC_RETRIES):
+        response = requests.get(
+            PAC_SPARQL_ENDPOINT,
+            params={"query": _build_period_query(period_id)},
+            headers={"Accept": "application/sparql-results+json"},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        if response.status_code != 429 or attempt == MAX_PAC_RETRIES - 1:
+            response.raise_for_status()
+            break
+
+        retry_after = response.headers.get("Retry-After")
+        wait_seconds = min(int(retry_after), 10) if retry_after and retry_after.isdigit() else attempt + 1
+        logger.warning("PAC rate limit for %s; retrying in %s second(s)", period_id, wait_seconds)
+        time.sleep(wait_seconds)
 
     bindings = response.json().get("results", {}).get("bindings", [])
     return [
@@ -191,7 +188,8 @@ class PotteryChronologyExpansionFunction(BaseFunction):
         if mapping is None:
             return
 
-        if not self._period_changed(tile, mapping["period_node"]):
+        force_expansion = bool((context or {}).get("force_chronology_expansion"))
+        if not force_expansion and not self._period_changed(tile, mapping["period_node"]):
             return
 
         period_ids = self._selected_pac_period_ids(

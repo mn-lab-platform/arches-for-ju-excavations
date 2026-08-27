@@ -168,6 +168,7 @@ class PotteryRecordTemplateView(View):
         field_sources = [
             (field, source_keys[0])
             for field, source_keys in record_config["excel_fields"].items()
+            if field in record_config["fields"]
         ]
         template_sheet.append(["form_no", "p_no", "count", *(source for _, source in field_sources)])
         sample_values = ["13038-22", "P1", 1]

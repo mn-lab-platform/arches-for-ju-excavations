@@ -61,16 +61,23 @@
     </div>
 
     <div class="form-group">
-        <label>Record type</label>
-        <select
-            class="form-control"
-            data-bind="
-                options: recordTypes,
-                optionsText: 'label',
-                optionsValue: 'value',
-                value: recordType">
-        </select>
+        <label>Pottery type</label>
+        <div class="pottery-record-type-options" data-bind="foreach: recordTypes">
+            <label class="radio-inline pottery-record-type-option">
+                <input
+                    type="radio"
+                    data-bind="checked: $parent.recordType, checkedValue: value">
+                <span data-bind="text: label"></span>
+            </label>
+        </div>
     </div>
+
+    <button
+        class="btn btn-default"
+        data-bind="click: downloadTemplate, enable: !templateDownloadInProgress()">
+        <i class="fa fa-download"></i>
+        <span data-bind="text: templateButtonLabel"></span>
+    </button>
 
     <div class="pottery-record-upload-box">
         <label class="btn btn-default">
@@ -198,6 +205,16 @@
 <style>
 .pottery-record-import-step {
     padding: 20px;
+}
+
+.pottery-record-type-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+}
+
+.pottery-record-type-option {
+    margin: 0;
 }
 
 .pottery-record-upload-box {

@@ -351,6 +351,7 @@ def get_dictionary_options(dictionary):
 def validate_and_prepare_dictionary_records(record_config, records):
     dictionary_fields = record_config.get("dictionary_fields", {})
     aliases = record_config.get("dictionary_aliases", {})
+    multi_value_fields = set(record_config.get("dictionary_multi_value_fields", ()))
     dictionary_required = record_config.get("dictionary_required", True)
     missing_counter = Counter()
     prepared_records = []
@@ -360,17 +361,24 @@ def validate_and_prepare_dictionary_records(record_config, records):
 
         for field, dictionary in dictionary_fields.items():
             raw_value = clean_cell(record.get(field))
-
             if not raw_value:
                 continue
 
-            canonical_value = apply_dictionary_alias(field, raw_value, aliases)
-            value_id = resolve_dictionary_value(dictionary, canonical_value)
+            values = [raw_value]
+            if field in multi_value_fields and "|" in raw_value:
+                values = [clean_cell(value) for value in raw_value.split("|") if clean_cell(value)]
 
-            if value_id:
-                prepared_record[field] = value_id
-            elif dictionary_required:
-                missing_counter[(field, dictionary, canonical_value)] += 1
+            value_ids = []
+            for value in values:
+                canonical_value = apply_dictionary_alias(field, value, aliases)
+                value_id = resolve_dictionary_value(dictionary, canonical_value)
+                if value_id:
+                    value_ids.append(value_id)
+                elif dictionary_required:
+                    missing_counter[(field, dictionary, canonical_value)] += 1
+
+            if len(value_ids) == len(values):
+                prepared_record[field] = list(dict.fromkeys(value_ids)) if len(values) > 1 else value_ids[0]
 
         prepared_records.append(prepared_record)
 
@@ -391,17 +399,17 @@ def validate_and_prepare_dictionary_records(record_config, records):
 def get_node_datatype(node_id):
     return Node.objects.get(nodeid=node_id).datatype
 
-
 def format_concept_tile_value(node_id, value_id):
-    value_id = clean_cell(value_id)
+    if isinstance(value_id, (list, tuple)):
+        value_ids = [clean_cell(value) for value in value_id if clean_cell(value)]
+    else:
+        value_ids = [clean_cell(value_id)] if clean_cell(value_id) else []
 
-    if not value_id:
+    if not value_ids:
         return ""
-
     if get_node_datatype(node_id) == "concept-list":
-        return [value_id]
-
-    return value_id
+        return list(dict.fromkeys(value_ids))
+    return value_ids[0]
 
 
 def get_dictionary_node_ids(record_config):

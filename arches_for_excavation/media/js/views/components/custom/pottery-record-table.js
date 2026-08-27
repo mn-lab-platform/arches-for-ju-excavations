@@ -1,7 +1,6 @@
 import ko from 'knockout';
 import template from 'templates/views/components/custom/pottery-record-table.htm';
 import { getCookie } from 'services/service-utils';
-
 function unwrap(value) {
     return ko.unwrap(value);
 }
@@ -13,7 +12,6 @@ function getActiveTabParam(params, key) {
 
     return unwrap(value);
 }
-
 export default ko.components.register('pottery-record-table', {
     viewModel: function(params) {
         const self = this;

@@ -14,6 +14,7 @@ define([
             const defaultRecordTypes = [
                 { value: 'amphorae', label: 'Amphorae' },
                 { value: 'storage-vessel', label: 'Storage Vessel' },
+                { value: 'kitchen-ware', label: 'Kitchen Ware' },
                 { value: 'table-ware', label: 'Table Ware' },
                 { value: 'plain-ware', label: 'Plain Ware' },
                 { value: 'lamp', label: 'Lamp' }

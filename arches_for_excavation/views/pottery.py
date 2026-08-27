@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.views import View
 from openpyxl import load_workbook
 
-from arches.app.models.models import Node, Resource
+from arches.app.models.models import Node, Resource, Value
 from arches.app.models.tile import Tile
 from arches_for_excavation.utils.pottery.concept_lookup import resolve_dictionary_value
 from arches_for_excavation.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
@@ -27,23 +27,36 @@ CATEGORY_CHRONOLOGY_NODEGROUP_ID = "13c63c03-ffc3-455a-a1ce-23082b4111e8"
 CATEGORY_PERIOD_NODE_ID = "ab05ac4b-4fd8-4eb9-9549-9d4a2a86893c"
 CONTAINS_SPECIAL_FINDS_NODE_ID = "f0930ca8-a24f-458c-a27e-463601ca574a"
 DIAGNOSTIC_NODE_ID = "99affc33-fc6e-4fee-9ac4-e2d4f13087cc"
-FIELD_REMAINS_DICTIONARY_ID = "d00fe4ba-c5a2-307d-91d2-537ca8276392"
+FINDS_DICTIONARY_ID = "401ad5c8-4a6d-40fc-a9cd-61e1d953f13e"
 FIELD_REMAINS_LABEL_MAP = {
-    "b_presence": "bone (B)",
-    "b_objects_presence": "brick (Br)",
-    "c_presence": "pottery (P)",
-    "g_presence": "glass (G)",
-    "m_presence": "metal (M)",
-    "pp_presence": "pipe (Pp)",
-    "pl_presence": "plaster (Pl)",
-    "sp_presence": "[depreciated] other",
-    "sh_presence": "shell (Sh)",
-    "s_presence": "stone (S)",
-    "tr_presence": "terracotta (Tr)",
-    "t_presence": "tile (T)",
-    "v_presence": "varia (V)",
+    "b_presence": "Bones",
+    "b_objects_presence": "Bricks",
+    "c_presence": "Pottery",
+    "g_presence": "Glass",
+    "m_presence": "Metals",
+    "pp_presence": "Pipes",
+    "pl_presence": "Plasters",
+    "sp_presence": "Other",
+    "sh_presence": "Shells",
+    "s_presence": "Stones",
+    "tr_presence": "Terracotta",
+    "t_presence": "Tiles",
+    "v_presence": "Varia",
 }
 
+
+# The Pottery Collection graph uses the PAC category concepts configured on
+# its Pottery Type node. These are the stable PAC IDs for the category
+# columns in the simplified collection workbook.
+POTTERY_TYPE_PAC_IDS = {
+    "Amphorae": "Q969",
+    "Table Ware": "Q937",
+    "Kitchen Ware": "Q970",
+    "Plain Ware": "Q938",
+    "Storage Vessel": "Q971",
+    "Lamp": "Q924",
+}
+PAC_ENTITY_URL = "https://pac.cenagis.edu.pl/entity/"
 
 def normalize_header(header):
     normalized = re.sub(r"[\s\-/]+", "_", str(header or "").replace("\x00", "").strip().lower())
@@ -68,7 +81,7 @@ def clean_workbook_cell(value):
 def parse_pottery_workbook(uploaded_file):
     workbook = load_workbook(uploaded_file, read_only=True, data_only=True)
 
-    for sheet in workbook.worksheets:
+    for sheet in workbook.worksheets[:1]:
         rows = list(sheet.iter_rows(values_only=True))
         header_index = None
 
@@ -101,6 +114,9 @@ def parse_pottery_workbook(uploaded_file):
 
             if len(preview_rows) < 5:
                 preview_rows.append(cleaned_values)
+
+            # A collection workflow is deliberately limited to one source row.
+            break
 
         if headers:
             return {
@@ -158,6 +174,25 @@ class PotteryImportWorkbookPreviewView(View):
 
 
 class PotteryImportPreviewView(View):
+    @staticmethod
+    def _resolve_pottery_type(pottery_type):
+        """Resolve the fixed category labels used by collection workbooks."""
+        pottery_type_value = resolve_dictionary_value("Pottery Type", pottery_type)
+        if pottery_type_value:
+            return pottery_type_value
+
+        pac_id = POTTERY_TYPE_PAC_IDS.get(pottery_type)
+        if not pac_id:
+            return ""
+
+        values = Value.objects.filter(
+            concept__legacyoid=f"{PAC_ENTITY_URL}{pac_id}",
+            valuetype_id="prefLabel",
+        ).order_by("language_id")
+        english_value = values.filter(language_id="en").first()
+        value = english_value or values.first()
+        return str(value.valueid) if value else ""
+
     def _find_existing_pottery_collection(self, context_resource_id):
         tiles = Tile.objects.filter(
             nodegroup_id=CONTEXT_NODE_ID,
@@ -186,6 +221,26 @@ class PotteryImportPreviewView(View):
         tile.save()
         return tile
 
+    @staticmethod
+    def _merge_collection_context_values(pottery_resource, archaeological_remains, special_finds):
+        """Add resolved finds to a collection that has no pottery fragments."""
+        context_tile = Tile.objects.filter(
+            resourceinstance_id=pottery_resource.resourceinstanceid,
+            nodegroup_id=CONTEXT_NODE_ID,
+        ).first()
+        if context_tile is None:
+            return
+
+        context_tile.data = dict(context_tile.data or {})
+        for node_id, values in (
+            (ARCHAEOLOGICAL_REMAINS_NODE_ID, archaeological_remains),
+            (SPECIAL_FINDS_NODE_ID, special_finds),
+        ):
+            if values:
+                existing_values = list(context_tile.data.get(node_id) or [])
+                context_tile.data[node_id] = list(dict.fromkeys([*existing_values, *values]))
+        context_tile.save()
+
     @classmethod
     def _create_root_tile_for_node(cls, resource, node_id, value):
         """Creates a root tile using the nodegroup defined by the active graph."""
@@ -203,7 +258,7 @@ class PotteryImportPreviewView(View):
         for source_key, concept_label in FIELD_REMAINS_LABEL_MAP.items():
             flag_key = source_key if suffix == "_presence" else source_key.replace("_presence", suffix)
             concept_value_id = resolve_dictionary_value(
-                FIELD_REMAINS_DICTIONARY_ID,
+                FINDS_DICTIONARY_ID,
                 concept_label,
             )
             if flags.get(flag_key) and concept_value_id and concept_value_id not in value_ids:
@@ -226,10 +281,14 @@ class PotteryImportPreviewView(View):
 
     def _create_fragment(self, pottery_resource, item, missing_concepts):
         pottery_type = item.get("type", "")
-        pottery_type_value = resolve_dictionary_value("Pottery Type", pottery_type)
+        pottery_type_value = self._resolve_pottery_type(pottery_type)
 
         if not pottery_type_value:
-            missing_concepts.append({"field": "potteryType", "value": pottery_type})
+            missing_concepts.append({
+                "field": "potteryType",
+                "value": pottery_type,
+                "potteryType": pottery_type,
+            })
             return False
 
         fragment_data = {
@@ -393,31 +452,34 @@ class PotteryImportPreviewView(View):
                     status=400,
                 )
 
-            if pottery_resource is not None:
-                return JsonResponse(
-                    {
-                        "status": "error",
-                        "message": "A Pottery Collection already exists for this Context. It was not changed.",
-                        "potteryCollectionResourceId": str(pottery_resource.resourceinstanceid),
-                    },
-                    status=409,
+            is_new_collection = pottery_resource is None
+            should_create_fragments = is_new_collection
+            if not is_new_collection:
+                # Re-importing never duplicates fragment cards, but it does
+                # merge the source-level Archaeological Remains and Special Finds.
+                should_create_fragments = not Tile.objects.filter(
+                    resourceinstance_id=pottery_resource.resourceinstanceid,
+                    nodegroup_id=POTTERY_FRAGMENTS_NODEGROUP_ID,
+                ).exists()
+                self._merge_collection_context_values(
+                    pottery_resource, archaeological_remains, special_finds
                 )
+            else:
+                pottery_resource = Resource.objects.create(graph_id=POTTERY_GRAPH_ID)
+                context_data = {CONTEXT_NODE_ID: related_context_value}
+                if archaeological_remains:
+                    context_data[ARCHAEOLOGICAL_REMAINS_NODE_ID] = archaeological_remains
+                if special_finds:
+                    context_data[SPECIAL_FINDS_NODE_ID] = special_finds
+                self._create_tile(pottery_resource, CONTEXT_NODE_ID, context_data)
 
-            pottery_resource = Resource.objects.create(graph_id=POTTERY_GRAPH_ID)
-            context_data = {CONTEXT_NODE_ID: related_context_value}
-            if archaeological_remains:
-                context_data[ARCHAEOLOGICAL_REMAINS_NODE_ID] = archaeological_remains
-            if special_finds:
-                context_data[SPECIAL_FINDS_NODE_ID] = special_finds
-            self._create_tile(pottery_resource, CONTEXT_NODE_ID, context_data)
-
-            if form_ids:
+            if is_new_collection and form_ids:
                 self._create_root_tile_for_node(
                     pottery_resource,
                     RESOURCE_FORM_ID_NODE_ID,
                     next(iter(form_ids)),
                 )
-            if last_shred_nos:
+            if is_new_collection and last_shred_nos:
                 self._create_root_tile_for_node(
                     pottery_resource,
                     LAST_SHRED_NO_NODE_ID,
@@ -426,14 +488,14 @@ class PotteryImportPreviewView(View):
 
             missing_concepts = []
             created_fragments = 0
-            for row in pottery_rows:
+            for row in (pottery_rows if should_create_fragments else []):
                 for item in row.get("pottery", []):
                     if self._create_fragment(pottery_resource, item, missing_concepts):
                         created_fragments += 1
 
         return JsonResponse({
             "status": "success",
-            "message": "Created Pottery Collection resource.",
+            "message": "Created Pottery Collection resource." if is_new_collection else "Updated Pottery Collection source fields.",
             "potteryCollectionResourceId": str(pottery_resource.resourceinstanceid),
             "contextResourceId": context_resource_id,
             "contextNumber": context_number,
@@ -445,6 +507,6 @@ class PotteryImportPreviewView(View):
             "archaeologicalRemains": archaeological_remains,
             "specialFinds": special_finds,
             "missingConcepts": missing_concepts,
-            "created": True,
-            "updated": False,
+            "created": is_new_collection,
+            "updated": not is_new_collection,
         })
