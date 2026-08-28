@@ -1,8 +1,16 @@
+<style>
+    .cesium-widget, .cesium-widget canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+</style>
+
 <div class="viewer-wrapper" data-bind="template: { afterRender: onCesiumViewerRendered }">
     <!-- ko foreach: { data: viewerIds, as: 'viewerId', afterRender: $parent.onCesiumViewerRendered } -->
     <h2 data-bind="text: $parent.modelLabels().length > 1 ? ($index() + 1) + '. ' + $parent.modelLabels()[$index()] : $parent.modelLabels()[$index()]"></h2>
     <div class="cesium-viewer-container">
-        <div data-bind="attr: { id: viewerId }" style="height: 600px; width: 100%;">
+        <div data-bind="attr: { id: viewerId }">
             <div class="toolsContainer"></div>
         </div>
     </div>
