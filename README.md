@@ -45,7 +45,7 @@ The system replaces standard data entry with guided, step-by-step workflows acce
 ---
 
 ## User Guide & Documentation
-For detailed, step-by-step instructions on utilizing the custom workflows (such as the GNSS/Total Station Data Import), please visit our official documentation: **[Mare Nostrum LAB Platform User Guide](https://mn-lab-platform.github.io)**
+For detailed, step-by-step instructions on utilizing the custom workflows (such as the GNSS/Total Station Data Import), please visit our official documentation: **[Mare Nostrum LAB Platform User Guide](https://mn-lab-platform.github.io/arches-for-ju-excavations/about/)**
 
 ---
 
