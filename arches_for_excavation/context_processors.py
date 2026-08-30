@@ -40,15 +40,5 @@ def custom_context(request):
         # --- LANDING PAGE ATTRIBUTIONS ---
         'first_slide_attribution': captions[0].get('image_attribution', ''),
         'second_slide_attribution': captions[1].get('image_attribution', ''),
-        'third_slide_attribution': captions[2].get('image_attribution', ''),
-        
-        # --- MAILING IMAGES ---
-        'email_header_image_url': get_static_fallback(
-            'img/email/custom/email_header.png', 
-            'img/email/default/email_header.png'
-        ),
-        'email_footer_image_url': get_static_fallback(
-            'img/email/custom/email_footer.png', 
-            'img/email/default/email_footer.png'
-        ),
+        'third_slide_attribution': captions[2].get('image_attribution', '')
     }
