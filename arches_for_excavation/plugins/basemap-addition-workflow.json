@@ -1,5 +1,5 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k8",
+  "pluginid": "299d7d8f-bf50-4162-8ffd-9b9789cafed2",
   "name": "Basemap Addition",
   "icon": "fa fa-map",
   "component": "views/components/plugins/basemap-addition-workflow",

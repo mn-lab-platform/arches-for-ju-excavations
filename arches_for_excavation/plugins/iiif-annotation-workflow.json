@@ -1,5 +1,5 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-wilk",
+  "pluginid": "f5bad586-b7c5-44a5-9781-072557c2e4c5",
   "name": "IIIF annotation workflow",
   "icon": "fa fa-asterisk",
   "component": "views/components/plugins/iiif-annotation-workflow",

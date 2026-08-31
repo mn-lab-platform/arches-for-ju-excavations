@@ -1,5 +1,5 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k8",
+  "pluginid": "04f76d7f-b399-4efd-a1fe-981397a8813b",
   "name": "Workflow Launcher",
   "icon": "fa fa-play",
   "component": "views/components/plugins/init-workflow",

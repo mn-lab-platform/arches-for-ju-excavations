@@ -1,5 +1,5 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2k89",
+  "pluginid": "6cf9f4ff-b9f4-4268-95d9-a3b883bbfeca",
   "name": "GNSS/Total Station Data Import Workflow",
   "icon": "fa fa-digg",
   "component": "views/components/plugins/context-footprint-addition-workflow",

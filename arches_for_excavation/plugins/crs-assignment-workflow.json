@@ -1,6 +1,6 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-000-1324124124124",
-  "name": "crs-assignment-workflow",
+  "pluginid": "86aea2a5-4298-46d6-ae1d-fd7d84d2ad35",
+  "name": "CRS Assignment Workflow",
   "icon": "fa fa-arrow-right",
   "component": "views/components/plugins/crs-assignment-workflow",
   "componentname": "crs-assignment-workflow",

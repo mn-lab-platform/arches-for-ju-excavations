@@ -1,5 +1,5 @@
 {
-  "pluginid": "d5f0b4b7-07a9-4c5b-9c9b-b51e4828d2sad",
+  "pluginid": "492615d2-865f-496f-8ab1-257842794a32",
   "name": "IIIF resource append",
   "icon": "fa fa-picture-o",
   "component": "views/components/plugins/iiif-append-workflow",
