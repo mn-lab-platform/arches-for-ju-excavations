@@ -139,6 +139,14 @@ class MultiCardPrimaryDescriptorsFunction(PrimaryDescriptorsFunction):
 
     def _get_first_display_value(self, resource, source, context):
         if isinstance(source, dict):
+            relation_node_id = source.get("relation_node_id")
+            if relation_node_id:
+                return self._get_related_display_value(
+                    resource,
+                    relation_node_id,
+                    source.get("target_node_ids", []),
+                    context,
+                )
             node_ids = source.get("node_ids", source.get("nodes", []))
             filters = source.get("filters", [])
         else:
@@ -155,6 +163,39 @@ class MultiCardPrimaryDescriptorsFunction(PrimaryDescriptorsFunction):
             )
             if value:
                 return value
+        return ""
+
+    def _get_related_display_value(
+        self,
+        resource,
+        relation_node_id,
+        target_node_ids,
+        context,
+    ):
+        """Follow a resource-instance relation and read a node on its target."""
+        relation_node = self._get_node(relation_node_id)
+        if relation_node is None:
+            return ""
+
+        for tile in self._get_tiles_for_node(resource, relation_node, context):
+            relations = self._get_tile_data(tile).get(str(relation_node.nodeid), [])
+            if not isinstance(relations, list):
+                relations = [relations]
+            for relation in relations:
+                if not isinstance(relation, dict) or not relation.get("resourceId"):
+                    continue
+                related_resource = models.ResourceInstance.objects.filter(
+                    resourceinstanceid=relation["resourceId"],
+                ).first()
+                if related_resource is None:
+                    continue
+                value = self._get_first_display_value(
+                    related_resource,
+                    target_node_ids,
+                    context,
+                )
+                if value:
+                    return value
         return ""
 
     def _render_multicard_template(self, resource, descriptor_config, context):
