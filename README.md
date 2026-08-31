@@ -62,7 +62,7 @@ For a complete, deployment-ready environment (including PostgreSQL/PostGIS, Elas
 ### Advanced: Manual Installation (Developers)
 The manual path is feasible for developers but is not documented or tested as an alternative to the Docker stack. It requires standing up supporting services manually (e.g., TiTiler). 
 
-If you are integrating this package into a custom Arches environment, please ensure you execute the following commands to register the custom extensions and load the required ontologies and resource models:
+If you are integrating this package into a custom Arches environment, please ensure you execute the following commands to register the custom extensions, load the required ontologies, contepts and resource models as well as assign plugin viewing permissions to `Plugin Access` group:
 
 ```bash
 ./register_extensions.sh
@@ -70,4 +70,8 @@ If you are integrating this package into a custom Arches environment, please ens
 
 ```bash
 python manage.py packages -o load_package -a arches_for_excavation -y
+```
+
+```bash
+docker exec -it arches python manage.py assign_plugin_permissions
 ```
