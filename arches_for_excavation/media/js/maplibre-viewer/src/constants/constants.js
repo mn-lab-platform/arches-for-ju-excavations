@@ -1,6 +1,6 @@
 import arches from 'arches';
 
-export const HATCH_FILL_SOURCE_PATHS = [
+const HATCH_FILL_SOURCE_PATHS = [
     arches.urls.media + 'img/maplibre-viewer/hatch-fill-icons/hatch-fill-0.png',
     arches.urls.media + 'img/maplibre-viewer/hatch-fill-icons/hatch-fill-1.png'
 ];

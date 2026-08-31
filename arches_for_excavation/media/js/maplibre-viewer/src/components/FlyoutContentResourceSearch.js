@@ -3,7 +3,6 @@ import { getAllResourcesFromFilterString } from '../api/archesService';
 import { extractGeommetryFeaturesFromArchesResourceInfo } from '../core/utils/utils';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
-import { LAYER_TYPES } from '../constants/constants';
 import constants from '../constants/constants';
 
 export class FlyoutContentResourceSearch {
