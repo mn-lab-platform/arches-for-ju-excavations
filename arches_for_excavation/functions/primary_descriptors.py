@@ -9,6 +9,7 @@ from arches.app.models import models
 
 details = {
     "name": "Multi-card Resource Descriptors",
+    "functionid": "a40cb2ac-7a0a-4d3f-a843-92cfdb6cd4de",
     "type": "primarydescriptors",
     "description": (
         "Generates a resource name using nodes located in different cards."
