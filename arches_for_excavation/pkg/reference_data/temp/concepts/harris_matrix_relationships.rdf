@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q786">
+    <dcterms:title xml:lang="en">Harris matrix relationships</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q826"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q829"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q826">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">physical relationships</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q837"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q841"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q842"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q829">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">stratigraphic relationships</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q852"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q855"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q858"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q837">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">above</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q826"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q841">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">below</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q826"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q842">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">same level</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q826"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q852">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">earlier</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q829"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q855">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">later</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q829"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q858">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q786"/>
+    <skos:prefLabel xml:lang="en">same chronology</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q829"/>
+  </skos:Concept>
+
+</rdf:RDF>

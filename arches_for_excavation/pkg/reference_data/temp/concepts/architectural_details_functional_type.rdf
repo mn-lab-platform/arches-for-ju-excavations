@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2066">
+    <dcterms:title xml:lang="en">architectural details - functional type</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2166"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2168"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2166">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2066"/>
+    <skos:prefLabel xml:lang="en">Structural component</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2168">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2066"/>
+    <skos:prefLabel xml:lang="en">ornament</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+</rdf:RDF>

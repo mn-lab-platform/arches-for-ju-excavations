@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067">
+    <dcterms:title xml:lang="en">architectural details - state of preservation</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2231"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2233"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2221"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2204"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2215"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2230"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2188"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2231">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">Complete Element</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2233">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">Fragment</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2221">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">bad</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2204">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">good</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2215">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">mediocre</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2230">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">very bad</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2188">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2067"/>
+    <skos:prefLabel xml:lang="en">very good</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+</rdf:RDF>

@@ -1,0 +1,1037 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q449">
+    <dcterms:title xml:lang="en">pottery types - amphorae</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q538"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q539"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q540"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q541"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q542"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q543"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q544"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q545"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q546"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q547"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q548"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q549"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q550"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q551"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q552"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q553"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q554"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q555"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q556"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q557"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q558"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q559"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q560"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q561"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q562"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q563"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2258"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q564"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q565"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2259"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q459"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q460"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q461"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q462"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q463"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q566"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q567"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q568"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q569"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q570"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q571"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q572"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q573"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q574"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1414"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q575"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q576"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q577"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q579"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q580"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q581"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q582"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q583"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q586"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q584"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q585"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q587"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q588"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q589"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q590"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q591"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q592"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q593"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2261"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q594"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q595"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q596"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q597"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q598"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q599"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q600"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q601"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q602"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q603"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q604"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q605"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q606"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q607"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q608"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q609"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q610"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q611"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2262"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q612"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2263"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2267"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q613"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q614"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q615"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q617"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q618"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q619"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q620"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q621"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q622"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q616"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q623"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q624"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q625"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q626"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q627"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q519"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q520"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q521"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q522"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q628"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2276"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q630"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q629"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2278"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q631"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q632"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q633"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q634"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q635"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q636"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q637"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q638"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q639"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q640"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q641"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q642"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q643"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q645"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q646"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q647"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2298"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q649"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q650"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q651"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q652"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q653"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q654"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q655"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2279"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2277">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Knidian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2267"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q538">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AE1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q539">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AE2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q540">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AE3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q541">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AE4</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q542">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AE5/6</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q543">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Africana 3A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q544">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Africana 3B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q545">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Africana 3C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q546">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Africana Grande</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q547">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Africana Piccolo</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q548">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AfricanaGr 2A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q549">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AfricanaGr 2B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q550">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AfricanaGr 2C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q551">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">AfricanaGr 2D</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q552">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Agora F65-66</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q553">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Agora G199</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q554">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Agora K109</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q555">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Agora M334</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2275"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q556">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Agora M54</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q557">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Akko carrot</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q558">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Almagro 50</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q559">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Almagro 51A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q560">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Almagro 51B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q561">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Almagro 51C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q562">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Almagro 54</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q563">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Amrit</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2258">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Aswan</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q564">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Ayla-Axum</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q565">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Baggy-shaped</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2259">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Basket-Handle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q459">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beirut 1</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q460">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beirut 2</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q461">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beirut 3</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q462">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beirut 4</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q463">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beirut 8</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q566">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beltra 72</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q567">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beltran 2A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q568">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Beltran 2B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q569">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Benghazi 11B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q570">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Brindisi</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q571">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Campanian alm-sh.</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q572">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Carrot</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q573">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Carrot-shaped</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q574">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Chian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1414">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Cretoise</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q575">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Cretoise 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q576">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Cretoise 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q577">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Cretoise 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q579">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Cypriot</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q580">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 14</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q581">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 1A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q582">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 1B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q583">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 1C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q586">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 2-4</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q584">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 20</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q585">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 24</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q587">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 6A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q588">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 6B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q589">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 8</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q590">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Dressel 9</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q591">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Egloff 172</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q592">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Ephesus 6</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q593">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Ephesus 7</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2261">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q594">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q595">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 10</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q596">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 11</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q597">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 12</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q598">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 13</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q599">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 14</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q600">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 15</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q601">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 16</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q602">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q603">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q604">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 4</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q605">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 5</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q606">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 6</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q607">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 7</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q608">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 8</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q609">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Gauloise 9</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q610">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Greco-Italic</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q611">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Haltern 70</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2262">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Heraclea Pontica</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q612">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Kapitan 2</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Kapitän 2</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2263">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Kapitän 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2267">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Knidian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2277"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q613">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Koan</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q614">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Kouriote</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2268"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2272"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2295"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q615">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Kuzmanov 9</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q617">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q618">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2273"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q619">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2274"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q620">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 4</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q621">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 5/6</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q622">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 7</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q616">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Lamboglia 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q623">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Lusitania 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q624">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Lusitania 9</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q625">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Mau 35</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q626">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Nikandros gr.</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2297"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q627">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pamphylian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q519">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Paphos</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q520">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Paphos A</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q521">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Paphos B</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q522">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Paphos grooved rim</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q628">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pompeian 5</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2299"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2276">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Agora M319</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q630">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Koan</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q629">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Punic-Tubular</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2278">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Ra&apos;s al-Bassit</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q631">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Ramon 25</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q632">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Ramon 41</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q633">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Rhodian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2296"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q634">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Samian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q635">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Samos cistern type</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q636">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Shelov S 4C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q637">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Sidi Jdidi 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q638">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Sidi Jdidi 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q639">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Sinopa</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q640">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Sinopa 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q641">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Sinopa 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q642">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Sinopa 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q643">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Spatheion 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q645">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Spatheion 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q646">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Spatheion 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q647">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Thasian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2298">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Torpedo-Shaped</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q649">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Tripolitania 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q650">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Tripolitania 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q651">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Tripolitania 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q652">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Tubular Amphorae</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q653">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Van der Werff 1</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q654">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Van der Werff 2</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q655">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Van der Werff 3</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2279">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Zeest 75</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2275">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Agora M334</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q555"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2268">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Kouriote 1C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q614"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2272">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Kouriote 2A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q614"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2295">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Kouriote</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q614"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2273">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 2B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q618"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2274">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">LRA 3.1A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q619"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2297">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Nikandros</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q626"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2299">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Pompeian 5</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q628"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2296">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q449"/>
+    <skos:prefLabel xml:lang="en">Pseudo-Rhodian</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q633"/>
+  </skos:Concept>
+
+</rdf:RDF>

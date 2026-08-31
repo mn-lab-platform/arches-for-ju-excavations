@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q451">
+    <dcterms:title xml:lang="en">pottery - vessel part</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q471"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q472"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q474"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q475"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q477"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1882"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2043"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q974"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q975"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q976"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q977"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q978"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q979"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q980"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q981"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2045"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q982"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q983"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1498"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2044"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q984"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q985"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q986"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1487"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2060"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1034">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">handle with stamp</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1018"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q471">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">almost complete</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Al. compl.</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q472">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">attachment</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q474">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">base missing</skos:prefLabel>
+    <skos:altLabel xml:lang="en">B miss.</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q475">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">body</skos:prefLabel>
+    <skos:altLabel xml:lang="en">wall</skos:altLabel>
+    <skos:altLabel xml:lang="en">B</skos:altLabel>
+    <skos:altLabel xml:lang="en">W</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q477">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">body missing</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1882">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">body-handle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2043">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">body-nozzle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-06</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q974">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">bottom missing</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Bot. miss.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q975">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">complete</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Compl.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q976">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">complete profile</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RtB</skos:altLabel>
+    <skos:altLabel xml:lang="en">rim-to-base</skos:altLabel>
+    <skos:altLabel xml:lang="en">rim to base</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q977">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">foot missing</skos:prefLabel>
+    <skos:altLabel xml:lang="en">F miss.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q978">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">handle missing</skos:prefLabel>
+    <skos:altLabel xml:lang="en">H miss.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q979">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">knob</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q988">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">lower part</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Low. Part</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q473"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q476"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q990"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q991"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q992"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q993"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q994"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q995"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q996"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q980">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">neck missing</skos:prefLabel>
+    <skos:altLabel xml:lang="en">N miss.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q981">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">nozzle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2045">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim and bottom</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-06</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q982">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim missing</skos:prefLabel>
+    <skos:altLabel xml:lang="en">R miss.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q983">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">side lug</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1498">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">spout</skos:prefLabel>
+    <skos:altLabel xml:lang="en">S</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2044">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">stand</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-06</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q984">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">strainer</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Str</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q985">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">unknown</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q987">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">upper part</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Up. Part</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1017"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1018"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1019"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1020"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1021"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1022"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2048"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1023"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1024"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1030"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1025"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1026"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1027"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1028"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1029"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1031"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1033"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1032"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2053"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q986">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">volute</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q989"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1487">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">wall</skos:prefLabel>
+    <skos:altLabel xml:lang="en">W</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2060">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">wall-nozzle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-19</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q989">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">horse-head volute</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q986"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1017">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">discus</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1018">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">handle</skos:prefLabel>
+    <skos:altLabel xml:lang="en">H</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1034"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1019">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">handle-neck-shoulder</skos:prefLabel>
+    <skos:altLabel xml:lang="en">HNSh</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1020">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">handle-shield</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1021">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">neck</skos:prefLabel>
+    <skos:altLabel xml:lang="en">N</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1022">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">neck sherd</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2048">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">neck-handle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-06</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1023">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">neck-shoulder</skos:prefLabel>
+    <skos:altLabel xml:lang="en">NSh</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1024">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim</skos:prefLabel>
+    <skos:altLabel xml:lang="en">R</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1030">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim sherd</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1025">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim-handle</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RH</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1026">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim-neck</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RN</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1027">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim-neck-handle</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RNH</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1028">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim-neck-shoulder</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RNSh</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1029">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">rim-wall</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1031">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">shoulder</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Sh</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1033">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">shoulder sherd</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1032">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">shoulder-handle</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ShH</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2053">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">wall-handle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-07</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q987"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q473">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">base</skos:prefLabel>
+    <skos:altLabel xml:lang="en">B</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q476">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">base sherd</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q990">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">bottom</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Bot.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q991">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">foot</skos:prefLabel>
+    <skos:altLabel xml:lang="en">F</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q992">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">foot sherd</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q993">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">resting surface</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q994">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">shoulder-to-base</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q995">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">underside</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q996">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q451"/>
+    <skos:prefLabel xml:lang="en">wall-base</skos:prefLabel>
+    <skos:altLabel xml:lang="en">WB</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q988"/>
+  </skos:Concept>
+
+</rdf:RDF>

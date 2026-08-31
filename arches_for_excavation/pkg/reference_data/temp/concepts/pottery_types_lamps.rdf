@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415">
+    <dcterms:title xml:lang="en">pottery types - lamps</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1416"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1417"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1418"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1419"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1420"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1421"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1422"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1423"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1424"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1425"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1426"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1427"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1428"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1429"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1430"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1431"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1432"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1434"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1433"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1435"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1436"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1437"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1438"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1439"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1440"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1441"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1442"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1443"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1444"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1445"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1446"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1447"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1448"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1449"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1450"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1451"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1452"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1453"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1454"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1455"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1456"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1416">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Discus</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1417">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 25</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 25</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1418">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 27</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 27</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1419">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 28B</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 28B</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1420">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 40A</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 40A</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1421">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 45A</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 45A</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1422">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 47B</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 47B</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1423">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Howland 49A</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Howl 49A</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1424">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Loeschcke I</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Lo I</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1425">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Loeschcke IV</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Lo IV</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1426">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Loeschcke VIII</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Lo VIII</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1427">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Saucer = open</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1428">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Tube</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1429">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 1</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 1</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1430">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 10</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 10</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1431">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 10a</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 10a</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1432">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 11</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 11</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1434">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 11 or 14</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 11 or 14</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1433">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 11 var.</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 11 var.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1435">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 12</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 12</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1436">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 13</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 13</skos:altLabel>
+    <skos:definition xml:lang="en">Type: Vessberg 13 = Loeschcke VIII = Broneer XXV = Waagé 44</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1437">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 13 var.</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 13 var.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1438">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 14</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 14</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1439">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 15</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 15</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1440">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 16</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 16</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1441">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 16 var.</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 16 var.</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1442">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 17</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 17</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1443">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 18a</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 18a</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1444">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 18b</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 18b</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1445">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 19</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 19</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1446">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 2</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 2</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1447">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 20</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 20</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1448">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 3</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 3</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1449">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 4</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 4</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1450">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 5</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 5</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1451">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 6</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 6</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1452">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 7</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 7</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1453">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 8</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 8</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1454">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Vessberg 9</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Vess 9</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1455">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Volute</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1456">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1415"/>
+    <skos:prefLabel xml:lang="en">Watch-shaped</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-30</skos:definition>
+  </skos:Concept>
+
+</rdf:RDF>

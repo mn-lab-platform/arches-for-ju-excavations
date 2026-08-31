@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q452">
+    <dcterms:title xml:lang="en">pottery - sub-category</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q998"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q999"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1001"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1002"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q483"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1003"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q478"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1004"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1005"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1006"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1007"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q997"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1008"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1010"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1011"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2036"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1012"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2040"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1013"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1015"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1545"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1016"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1546"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1035">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Attic Black Gloss</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Attic BG</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1036">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Black-figure</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1037">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Egyptian Black Gloss</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1038">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Red-figure</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2041">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">West Slope Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-06</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1039">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Campana A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1002"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1040">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Campana B</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1002"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1041">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Campana C</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1002"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1547">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Ware A</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1003"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1042">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Lead-Glazed Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LGW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1005"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1043">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Medieval Glazed</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1005"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1054"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1044">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Relief Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1010"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1045">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Banded Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1011"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1046">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Polychrome</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1011"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2037">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">White Painted Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1011"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1047">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">African Red Slip Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ARSW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1048">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Classical Red Slip Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1049">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Early Roman Red Slip Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ER RS</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1050">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Hellenistic Red Slip Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">H RS</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1051">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Late Roman D</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LRD</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1052">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Phocaen Red Slip Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LRC</skos:altLabel>
+    <skos:altLabel xml:lang="en">PhRSW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1053">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Pompeian Red Slip Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1054">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Sgraffito Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1043"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q998">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Barbotine Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q999">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Bichrome Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1000">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Black Gloss Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">BG</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1035"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1036"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1037"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1038"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2041"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1001">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Black-on-Red</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1002">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Campana</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1039"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1040"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1041"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q483">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Candarli Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Çandarli Ware</skos:altLabel>
+    <skos:altLabel xml:lang="en">Çandarli</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1003">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Colour-Coated Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">CCW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1547"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q478">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q479"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q480"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q481"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q482"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1004">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Egyptian Red Slip Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1005">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Glazed</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1042"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1043"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1006">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Gnathia Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Gnathia</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1007">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Grey Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">GW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q997">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Italian Terra Sigillata</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ITS</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1009"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1008">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Light-Coloured Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LCW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1010">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Mould-made</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1044"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1011">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Painted Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Painted</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1045"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1046"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2037"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2036">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Plain Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">PW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1012">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Red Gloss Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1014">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Red Slip Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">RS</skos:altLabel>
+    <skos:altLabel xml:lang="en">Red Slip</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1047"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1048"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1049"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1050"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1051"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1052"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1053"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2040">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Red Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-06</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1013">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Red-On-White Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1015">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Semi-Fine Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">S-FW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1545">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Terra Sigillata</skos:prefLabel>
+    <skos:altLabel xml:lang="en">TS</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1016">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Thin-walled Ware</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ThW</skos:altLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1546">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Unknown</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q479">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata A</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESA</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q478"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q484"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q480">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata B</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESB</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q478"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q485"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q481">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata C</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESC</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q478"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q486"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q482">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata D</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESD</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q478"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q487"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q484">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata A black</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESA black</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q479"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q485">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata B black</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESB black</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q480"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q486">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata C black</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESC black</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q481"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q487">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Eastern Sigillata D black</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ESD black</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q482"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1009">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q452"/>
+    <skos:prefLabel xml:lang="en">Arretine Ware</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-13</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q997"/>
+  </skos:Concept>
+
+</rdf:RDF>

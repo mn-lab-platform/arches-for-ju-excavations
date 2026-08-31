@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q454">
+    <dcterms:title xml:lang="en">chronology</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q491"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q492"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2029"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2030"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2031"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2032"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2033"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2034"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2035"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2265"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2264"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2266"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1405"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1393"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1397"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1396"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1401"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1408"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1409"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1402"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q2028"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1395">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Late Classical</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LCl</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1393"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1399">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Early Hellenistic</skos:prefLabel>
+    <skos:altLabel xml:lang="en">EH</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1397"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1398">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Late Hellenistic</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LH</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1397"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1400">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Middle Hellenistic</skos:prefLabel>
+    <skos:altLabel xml:lang="en">MH</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1397"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q494">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Early Roman</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ER</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1402"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q496"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q497"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q498"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1404">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Late Roman</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LR</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1402"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1403">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Middle Roman</skos:prefLabel>
+    <skos:altLabel xml:lang="en">MR</skos:altLabel>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1402"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1406">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Early Byzantine</skos:prefLabel>
+    <skos:altLabel xml:lang="en">EByz</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1405"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1407">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Late Byzantine</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LByz.</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1405"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q491">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">1st c. BCE</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q492">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">1st c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2029">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">2nd c. BCE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2030">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">2nd c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2031">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">3rd c. BCE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2032">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">3rd c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2033">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">4th c. BCE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2034">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">4th c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2035">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">5th c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2265">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">6th c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2264">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">7th c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2266">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">8th c. CE</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-20</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1405">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Byzantine</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Byz.</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1406"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1407"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1393">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Classical</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Cl</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1395"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1397">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Hellenistic</skos:prefLabel>
+    <skos:altLabel xml:lang="en">H</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1399"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1398"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1400"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1396">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Late Classical / Early Hellenistic</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Transitional</skos:altLabel>
+    <skos:altLabel xml:lang="en">LCl/EH</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1401">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Late Hellenistic / Early Roman</skos:prefLabel>
+    <skos:altLabel xml:lang="en">LH/ER</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1408">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Medieval</skos:prefLabel>
+    <skos:altLabel xml:lang="en">MED</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1409">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Ottoman</skos:prefLabel>
+    <skos:altLabel xml:lang="en">O</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q1402">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Roman</skos:prefLabel>
+    <skos:altLabel xml:lang="en">R</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q494"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1404"/>
+    <skos:narrower rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q1403"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q2028">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Unknown</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-08-05 [chronology]</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q496">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Early Roman I</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Julian-Claudian dynasty</skos:altLabel>
+    <skos:altLabel xml:lang="en">ER I</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q494"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q497">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Early Roman II</skos:prefLabel>
+    <skos:altLabel xml:lang="en">Flavian dynasty</skos:altLabel>
+    <skos:altLabel xml:lang="en">ER II</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q494"/>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q498">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q454"/>
+    <skos:prefLabel xml:lang="en">Early Roman III</skos:prefLabel>
+    <skos:altLabel xml:lang="en">ER III</skos:altLabel>
+    <skos:altLabel xml:lang="en">Antonine dynasty</skos:altLabel>
+    <skos:definition xml:lang="en">[description added automatically]</skos:definition>
+    <skos:broader rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q494"/>
+  </skos:Concept>
+
+</rdf:RDF>

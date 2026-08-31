@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q456">
+    <dcterms:title xml:lang="en">pottery - state of preservation</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q506"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q505"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q507"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q508"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q509"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q510"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q511"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q512"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q513"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q506">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">blurred</skos:prefLabel>
+    <skos:definition xml:lang="en">having a softened, unclear, or indistinct surface, often due to mold wear or poor stamping</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q505">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">burnt</skos:prefLabel>
+    <skos:definition xml:lang="en">altered or damaged by exposure to high temperatures or direct fire</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q507">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">eroded</skos:prefLabel>
+    <skos:definition xml:lang="en">surface worn away gradually by chemical or physical environmental factors</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q508">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">fire blackened</skos:prefLabel>
+    <skos:definition xml:lang="en">surface discolored or coated with soot from intentional use or accidental fire</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q509">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">intentional breakage</skos:prefLabel>
+    <skos:definition xml:lang="en">fragmented deliberately in antiquity, often for ritual, functional, or disposal reasons</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q510">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">intentional perforation</skos:prefLabel>
+    <skos:definition xml:lang="en">hole drilled or pierced deliberately through the artifact in antiquity</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q511">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">mended</skos:prefLabel>
+    <skos:definition xml:lang="en">repaired or put back together, either in antiquity or during conservation</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q512">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">reused</skos:prefLabel>
+    <skos:definition xml:lang="en">utilitarian alteration or secondary use of an artifact for a purpose different from the original</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q513">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q456"/>
+    <skos:prefLabel xml:lang="en">worn</skos:prefLabel>
+    <skos:definition xml:lang="en">surface showing clear signs of attrition, friction, or degradation from prolonged handling or use</skos:definition>
+  </skos:Concept>
+
+</rdf:RDF>

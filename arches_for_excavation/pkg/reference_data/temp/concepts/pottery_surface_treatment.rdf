@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <skos:ConceptScheme rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q457">
+    <dcterms:title xml:lang="en">pottery - surface treatment</dcterms:title>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q514"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q515"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q516"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q886"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q887"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q888"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q889"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q890"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q891"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q909"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q893"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q894"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q896"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q897"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q898"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q899"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q900"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q901"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q902"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q903"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q904"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q905"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q906"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q907"/>
+    <skos:hasTopConcept rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q908"/>
+  </skos:ConceptScheme>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q514">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">barbotine</skos:prefLabel>
+    <skos:definition xml:lang="en">decorative technique using piped or trailed fluid clay slip to create raised patterns</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q515">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">clay splashing</skos:prefLabel>
+    <skos:definition xml:lang="en">decorative effect achieved by intentionally splashing or mottling fluid clay onto the vessel</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q516">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">decorated</skos:prefLabel>
+    <skos:definition xml:lang="en">general term indicating that the surface has been embellished with any ornamental technique</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q886">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">dipinto</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q887">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">glazed</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q888">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">imprint</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q889">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">incised</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q890">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">inscribed</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q891">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">mark</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q909">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">moulded</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported by hand (duplicate) 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q893">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">painted</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q894">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">resined</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q896">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">rope imprint</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q897">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">roulette</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q898">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">scratched</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q899">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">sgraffito</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q900">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">signature</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q901">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">slipped</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q902">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">stamp on body</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q903">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">stamp on handle</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q904">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">stamp on neck</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q905">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">stamp on shoulders</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q906">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">stamped</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q907">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">varnished</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+  <skos:Concept rdf:about="https://thesaurus.mn.cenagis.edu.pl/entity/Q908">
+    <skos:inScheme rdf:resource="https://thesaurus.mn.cenagis.edu.pl/entity/Q457"/>
+    <skos:prefLabel xml:lang="en">washed</skos:prefLabel>
+    <skos:definition xml:lang="en">record imported automatically 2026-07-03</skos:definition>
+  </skos:Concept>
+
+</rdf:RDF>
