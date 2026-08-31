@@ -6,6 +6,8 @@ import logging
 import re
 import time
 from functools import lru_cache
+import time
+from functools import lru_cache
 
 import requests
 from arches.app.functions.base import BaseFunction
@@ -16,8 +18,12 @@ from arches.app.utils.date_utils import ExtendedDateFormat
 logger = logging.getLogger(__name__)
 
 
-PAC_SPARQL_ENDPOINT = "https://pac.cenagis.edu.pl/wiki/sparql"
+PAC_SPARQL_ENDPOINT = "https://thesaurus.mn.cenagis.edu.pl/sparql"
 REQUEST_TIMEOUT_SECONDS = 10
+REQUEST_ATTEMPTS = 4
+MIN_REQUEST_INTERVAL_SECONDS = 0.5
+MAX_RETRY_DELAY_SECONDS = 10
+_last_request_at = 0.0
 MAX_PAC_RETRIES = 3
 
 
@@ -71,8 +77,8 @@ def extract_pac_qid(legacyoid):
 
 def _build_period_query(period_id):
     return f"""
-PREFIX wd: <https://pac.cenagis.edu.pl/entity/>
-PREFIX wdt: <https://pac.cenagis.edu.pl/prop/direct/>
+PREFIX wd: <https://thesaurus.mn.cenagis.edu.pl/entity/>
+PREFIX wdt: <https://thesaurus.mn.cenagis.edu.pl/prop/direct/>
 
 SELECT ?period ?earliest ?latestStart ?earliestEnd ?latest WHERE {{
   VALUES ?period {{ wd:{period_id} }}
@@ -88,27 +94,56 @@ def _year_from_binding(binding, field_name):
     return parse_year(binding.get(field_name, {}).get("value"))
 
 
+def _retry_delay(response, attempt):
+    retry_after = response.headers.get("Retry-After", "").strip()
+    if retry_after.isdigit():
+        return min(max(int(retry_after), 1), MAX_RETRY_DELAY_SECONDS)
+    return min(2 ** attempt, MAX_RETRY_DELAY_SECONDS)
+
+
+def _get_sparql_response(query):
+    """Query PAC gently and retry requests rejected by rate limiting."""
+    global _last_request_at
+
+    for attempt in range(REQUEST_ATTEMPTS):
+        elapsed = time.monotonic() - _last_request_at
+        if elapsed < MIN_REQUEST_INTERVAL_SECONDS:
+            time.sleep(MIN_REQUEST_INTERVAL_SECONDS - elapsed)
+
+        response = requests.get(
+            PAC_SPARQL_ENDPOINT,
+            params={"query": query},
+            headers={
+                "Accept": "application/sparql-results+json",
+                "User-Agent": "arches-for-excavation chronology-expansion/1.0",
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        _last_request_at = time.monotonic()
+        if response.status_code != 429:
+            response.raise_for_status()
+            return response
+
+        if attempt + 1 < REQUEST_ATTEMPTS:
+            delay = _retry_delay(response, attempt)
+            logger.warning(
+                "PAC SPARQL rate limit; retrying in %s second(s) (%s/%s)",
+                delay,
+                attempt + 1,
+                REQUEST_ATTEMPTS,
+            )
+            time.sleep(delay)
+
+    response.raise_for_status()
+
+
 @lru_cache(maxsize=256)
 def fetch_period_dates(period_id):
     """Fetch all chronology ranges declared by one PAC period identifier."""
     if not re.fullmatch(r"Q\d+", period_id or ""):
         raise ValueError(f"Invalid PAC period identifier: {period_id!r}")
 
-    for attempt in range(MAX_PAC_RETRIES):
-        response = requests.get(
-            PAC_SPARQL_ENDPOINT,
-            params={"query": _build_period_query(period_id)},
-            headers={"Accept": "application/sparql-results+json"},
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
-        if response.status_code != 429 or attempt == MAX_PAC_RETRIES - 1:
-            response.raise_for_status()
-            break
-
-        retry_after = response.headers.get("Retry-After")
-        wait_seconds = min(int(retry_after), 10) if retry_after and retry_after.isdigit() else attempt + 1
-        logger.warning("PAC rate limit for %s; retrying in %s second(s)", period_id, wait_seconds)
-        time.sleep(wait_seconds)
+    response = _get_sparql_response(_build_period_query(period_id))
 
     bindings = response.json().get("results", {}).get("bindings", [])
     return [
@@ -188,8 +223,12 @@ class PotteryChronologyExpansionFunction(BaseFunction):
         if mapping is None:
             return
 
-        force_expansion = bool((context or {}).get("force_chronology_expansion"))
-        if not force_expansion and not self._period_changed(tile, mapping["period_node"]):
+        force_expansion = bool(
+            (context or {}).get("force_chronology_expansion")
+        )
+        if not force_expansion and not self._period_changed(
+            tile, mapping["period_node"]
+        ):
             return
 
         period_ids = self._selected_pac_period_ids(
