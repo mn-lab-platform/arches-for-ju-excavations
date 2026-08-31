@@ -7,16 +7,16 @@ export class BasemapControl {
     constructor(options) {
         const defaultBasemap = {
             source_info: {
-                name: 'carto-voyager',
-                tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
+                name: 'osm-standard',
+                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                 tileSize: 256,
                 bounds: null,
                 type: 'raster'
             },
             layer_info: {
                 name: 'Default Basemap',
-                id: 'carto-voyager-layer',
-                source: 'carto-voyager',
+                id: 'osm-standard-layer',
+                source: 'osm-standard',
                 sortorder: -1,
                 icon: 'fa fa-home'
             }

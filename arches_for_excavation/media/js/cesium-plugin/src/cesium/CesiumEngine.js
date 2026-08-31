@@ -93,7 +93,7 @@ export class CesiumEngine {
                     icon: 'fa fa-home'
                 },
                 source_info: {
-                    tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png']
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png']
                 }
             }
         ];
