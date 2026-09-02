@@ -7,11 +7,13 @@ export function createLeafletDemPickerController(opts = {}) {
   const getMap = typeof opts.getMap === 'function' ? opts.getMap : () => null;
   const getLeaflet = typeof opts.getLeaflet === 'function' ? opts.getLeaflet : () => null;
   const getManifest = typeof opts.getManifest === 'function' ? opts.getManifest : () => null;
-  const getImageGroup = typeof opts.getImageGroup === 'function' ? opts.getImageGroup : () => 'ortho';
   const parseTransformFromCanvas = typeof opts.parseTransformFromCanvas === 'function' ? opts.parseTransformFromCanvas : null;
   const pickDemCanvasFromManifest = typeof opts.pickDemCanvasFromManifest === 'function' ? opts.pickDemCanvasFromManifest : null;
   const affineForward = typeof opts.affineForward === 'function' ? opts.affineForward : null;
   const affineInverse = typeof opts.affineInverse === 'function' ? opts.affineInverse : null;
+  const getCanvasDims = typeof opts.getCanvasDims === 'function'
+    ? opts.getCanvasDims
+    : (canvas) => ({ w: Number(canvas?.width || 0), h: Number(canvas?.height || 0) });
   const endpoint = opts.endpoint || '/api/iiif/dem/pixel-value';
 
   if (!state) throw new Error('createLeafletDemPickerController requires opts.state');
@@ -31,13 +33,13 @@ export function createLeafletDemPickerController(opts = {}) {
     marker = null;
   }
 
-  function setMarker(x, y) {
+  function setMarker(viewX, viewY) {
     const map = getMap();
     const L = getLeaflet();
     if (!map || !L) return;
 
     if (marker) removeLayerSafe(map, marker);
-    marker = L.circleMarker([-y, x], {
+    marker = L.circleMarker([-viewY, viewX], {
         pane : 'iiif-tools-markers',
         radius: 6,
         color: 'rgb(87, 155, 215)',
@@ -47,19 +49,46 @@ export function createLeafletDemPickerController(opts = {}) {
     }).addTo(map);
   }
 
-  function resolveDemPixel(info, baseTransform, manifest) {
+  function imageCoords(info) {
+    const viewX = Number.isFinite(Number(info?.viewX)) ? Number(info.viewX) : Number(info?.x);
+    const viewY = Number.isFinite(Number(info?.viewY)) ? Number(info.viewY) : Number(info?.y);
+    const scale = 2 ** Number(info?.nativeMaxZoom ?? info?.s ?? 0);
+    return {
+      x: Number.isFinite(Number(info?.imageX)) ? Number(info.imageX) : viewX * scale,
+      y: Number.isFinite(Number(info?.imageY)) ? Number(info.imageY) : viewY * scale
+    };
+  }
+
+  function toPixelIndex(value, size) {
+    const rounded = Math.round(Number(value));
+    if (!Number.isFinite(rounded)) return null;
+    return Number.isFinite(Number(size)) && Number(size) > 0
+      ? Math.max(0, Math.min(Number(size) - 1, rounded))
+      : rounded;
+  }
+
+  function sameCanvas(a, b) {
+    const aId = a?.id || a?.['@id'];
+    const bId = b?.id || b?.['@id'];
+    return !!aId && aId === bId;
+  }
+
+  function resolveDemPixel(info, baseCanvas, baseTransform, manifest) {
     const demCanvas = pickDemCanvasFromManifest(manifest);
     if (!demCanvas) {
       state.elevationError('Brak canvas DEM.');
       return null;
     }
 
-    if (getImageGroup() === 'dem') {
-      const s = Number.isFinite(info?.s) ? info.s : 0;
+    const sourceCanvas = baseCanvas || info?.canvas || null;
+    const source = imageCoords(info);
+    const demDims = getCanvasDims(demCanvas);
+
+    if (sameCanvas(sourceCanvas, demCanvas)) {
       return {
         demCanvas,
-        x: Math.round(Number(info.x) * (2 ** s)),
-        y: Math.round(Number(info.y) * (2 ** s))
+        x: toPixelIndex(source.x, demDims.w),
+        y: toPixelIndex(source.y, demDims.h)
       };
     }
 
@@ -74,7 +103,7 @@ export function createLeafletDemPickerController(opts = {}) {
       return null;
     }
 
-    const local = affineForward(baseTransform, info.x, info.y, info.s || 0);
+    const local = affineForward(baseTransform, source.x, source.y);
     if (!Array.isArray(local) || local.length !== 2) {
       state.elevationError('Nie można przeliczyć współrzędnych do lokalnego CRS.');
       return null;
@@ -88,8 +117,8 @@ export function createLeafletDemPickerController(opts = {}) {
 
     return {
       demCanvas,
-      x: Math.round(inv[0]),
-      y: Math.round(inv[1])
+      x: toPixelIndex(inv[0], demDims.w),
+      y: toPixelIndex(inv[1], demDims.h)
     };
   }
 
@@ -111,9 +140,9 @@ export function createLeafletDemPickerController(opts = {}) {
     const manifest = getManifest();
     if (!manifest || !info) return;
 
-    setMarker(info.x, info.y);
+    setMarker(info.viewX ?? info.x, info.viewY ?? info.y);
 
-    const resolved = resolveDemPixel(info, baseTransform, manifest);
+    const resolved = resolveDemPixel(info, _baseCanvas, baseTransform, manifest);
     if (!resolved) return;
 
     await fetchValue(resolved.x, resolved.y, manifest);

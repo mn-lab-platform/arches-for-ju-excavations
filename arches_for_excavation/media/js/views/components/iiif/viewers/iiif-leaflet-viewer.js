@@ -13,6 +13,7 @@ import {
 
 import { createLeafletViewManager } from '../features/leaflet-view-manager';
 import { ensureLeafletIiif, getIiifLayerMaxZoom } from '../lib/leaflet-iiif-loader';
+import { createLeafletClickCoordinates } from '../lib/leaflet-click-coordinates';
 
 const LOG = '[iiif-leaflet-viewer]';
 const DEBUG_FLAG = 'iiif.leaflet.debug';
@@ -323,14 +324,6 @@ export function createLeafletViewer(opts = {}) {
         const nativeMaxZoom = api.getCanvasNativeMaxZoom(baseId) ?? 0;
         const displayMaxZoom = api.getDisplayMaxZoom() ?? nativeMaxZoom;
 
-        console.log(
-          LOG,
-          'IIIF nativeMaxZoom:',
-          nativeMaxZoom,
-          'displayMaxZoom:',
-          displayMaxZoom
-        );
-
         const w = Number(rec.w || 0);
         const h = Number(rec.h || 0);
 
@@ -339,27 +332,18 @@ export function createLeafletViewer(opts = {}) {
         const p = api._map.options.crs.latLngToPoint(e.latlng, 0);
         if (!p) return;
 
-        const xc = Math.max(0, Math.min(w - 1, Math.round(p.x)));
-        const yc = Math.max(0, Math.min(h - 1, Math.round(p.y)));
-
-        onMapClick?.({
-          /**
-           * Zachowujemy stare `s` jako nativeMaxZoom.
-           * Nie podstawiamy tutaj displayMaxZoom, bo DEM/pomiary
-           * mogą używać `s` jako skali do pikseli.
-           */
-          s: nativeMaxZoom,
+        onMapClick?.(createLeafletClickCoordinates({
+          viewX: p.x,
+          viewY: p.y,
           nativeMaxZoom,
           displayMaxZoom,
-
-          x: xc,
-          y: yc,
           width: w,
           height: h,
           baseCanvasId: baseId,
           canvas: rec.canvas,
+          latlng: e.latlng,
           originalEvent: e.originalEvent
-        });
+        }));
       });
 
       api.ready(true);

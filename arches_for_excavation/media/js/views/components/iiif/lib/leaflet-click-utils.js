@@ -8,15 +8,20 @@ export function formatLeafletClickReadout(info, transform, affineForward) {
   if (!info) return '';
 
   const scaleLevel = Number.isFinite(Number(info.s)) ? Number(info.s) : 0;
-  const fullX = Number(info.x) * (2 ** scaleLevel);
-  const fullY = Number(info.y) * (2 ** scaleLevel);
-  const pixelPart = `Pixel: ${fullX}, ${fullY} / ${info.width}x${info.height}`;
+  const hasFullResolutionCoords =
+    Number.isFinite(Number(info.imageX)) && Number.isFinite(Number(info.imageY));
+  const fullX = hasFullResolutionCoords ? Number(info.imageX) : Number(info.x) * (2 ** scaleLevel);
+  const fullY = hasFullResolutionCoords ? Number(info.imageY) : Number(info.y) * (2 ** scaleLevel);
+  const formatPixel = (value) => Number(value).toFixed(3).replace(/\.000$/, '');
+  const pixelPart = `Pixel: ${formatPixel(fullX)}, ${formatPixel(fullY)} / ${info.width}x${info.height}`;
 
   if (!transform || typeof affineForward !== 'function') {
     return pixelPart;
   }
 
-  const projected = affineForward(transform, info.x, info.y, scaleLevel);
+  const projected = hasFullResolutionCoords
+    ? affineForward(transform, fullX, fullY)
+    : affineForward(transform, info.x, info.y, scaleLevel);
   if (!Array.isArray(projected) || projected.length !== 2) {
     return pixelPart;
   }
@@ -25,12 +30,12 @@ export function formatLeafletClickReadout(info, transform, affineForward) {
 }
 
 export function parsePixelCoordsFromReadout(readout) {
-  const match = String(readout || '').match(/Pixel:\s*(\d+),\s*(\d+)/);
+  const match = String(readout || '').match(/Pixel:\s*([-\d.]+),\s*([-\d.]+)/);
   if (!match) return null;
 
   return {
-    x: parseInt(match[1], 10),
-    y: parseInt(match[2], 10)
+    x: parseFloat(match[1]),
+    y: parseFloat(match[2])
   };
 }
 

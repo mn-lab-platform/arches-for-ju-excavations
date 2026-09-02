@@ -17,6 +17,7 @@ export function createLeafletImageState(opts = {}) {
   state.leafletLayers = ko.observableArray([]);
 
   state.clickedCoords = ko.observable('');
+  state.lastLeafletClick = ko.observable(null);
 
   state.activeImageTool = ko.observable('none');
 

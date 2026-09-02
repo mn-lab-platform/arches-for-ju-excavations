@@ -14,13 +14,11 @@ import { createLeafletImageState } from './state/leaflet-image-state';
 import { createLeafletMeasureController } from './features/leaflet-measure-controller';
 import { createLeafletDemPickerController } from './features/leaflet-dem-picker-controller';
 import { createLeafletAnnotationController } from './features/leaflet-annotation-controller';
-import { manifestHasAnyGeoref, mdValue, parseTransformFromCanvas, pickDemCanvasFromManifest } from './lib/iiif-manifest-utils';
+import { canvasDims, manifestHasAnyGeoref, mdValue, parseTransformFromCanvas, pickDemCanvasFromManifest } from './lib/iiif-manifest-utils';
 import { fetchDemPixelValue } from './lib/dem-pixel-api';
 import {
   findCanvasById,
-  formatLeafletClickReadout,
-  parseMapCoordsFromReadout,
-  parsePixelCoordsFromReadout
+  formatLeafletClickReadout
 } from './lib/leaflet-click-utils';
 
 import {affineForward, affineInverse, clamp} from './lib/affine-utils';
@@ -232,38 +230,46 @@ ko.components.register('iiif-map-viewer', {
         }
       }
 
-      function resolveDemMeasurementTarget(manifest, readout) {
+      function resolveDemMeasurementTarget(manifest, click) {
         if (!manifest) return { error: 'Brak manifestu.' };
+        if (!click) return { error: 'Brak współrzędnych kliknięcia.' };
 
-        if (self.imageGroup() === 'dem') {
-          const pixelCoords = parsePixelCoordsFromReadout(readout);
-          if (!pixelCoords) {
-            return { error: 'Nie mozna odczytac wspolrzednych piksela.' };
-          }
-          return pixelCoords;
-        }
-
-        const mapCoords = parseMapCoordsFromReadout(readout);
-        if (!mapCoords) {
-          return { error: 'Nie mozna odczytac wspolrzednych mapy.' };
-        }
-
+        const sourceCanvas = click.canvas || findCanvasById(manifest, click.baseCanvasId);
         const demCanvas = pickDemCanvasFromManifest(manifest);
-        if (!demCanvas) {
-          return { error: 'Brak canvas DEM.' };
+        if (!demCanvas) return { error: 'Brak canvas DEM.' };
+
+        const imageX = Number(click.imageX);
+        const imageY = Number(click.imageY);
+        if (!Number.isFinite(imageX) || !Number.isFinite(imageY)) {
+          return { error: 'Nie można odczytać pełnych współrzędnych piksela.' };
         }
 
-        const transform = parseTransformFromCanvas(demCanvas);
-        if (!transform) {
-          return { error: 'Brak transformacji DEM.' };
+        const { w, h } = canvasDims(demCanvas);
+        const toPixelIndex = (value, size) => Math.max(0, Math.min(Number(size) - 1, Math.round(value)));
+
+        const sourceId = sourceCanvas?.id || sourceCanvas?.['@id'];
+        const demId = demCanvas?.id || demCanvas?.['@id'];
+        if (sourceId && sourceId === demId) {
+          return { x: toPixelIndex(imageX, w), y: toPixelIndex(imageY, h) };
         }
 
-        const projected = affineInverse(transform, mapCoords.x, mapCoords.y);
+        const sourceTransform = parseTransformFromCanvas(sourceCanvas);
+        const demTransform = parseTransformFromCanvas(demCanvas);
+        if (!sourceTransform || !demTransform) {
+          return { error: 'Brak transformacji do przeliczenia na DEM.' };
+        }
+
+        const local = affineForward(sourceTransform, imageX, imageY);
+        if (!Array.isArray(local) || local.length !== 2) {
+          return { error: 'Nie można przeliczyć do lokalnego CRS.' };
+        }
+
+        const projected = affineInverse(demTransform, local[0], local[1]);
         if (!Array.isArray(projected) || projected.length !== 2) {
-          return { error: 'Nie mozna przeliczyc wspolrzednych DEM.' };
+          return { error: 'Nie można przeliczyć współrzędnych DEM.' };
         }
 
-        return { x: projected[0], y: projected[1] };
+        return { x: toPixelIndex(projected[0], w), y: toPixelIndex(projected[1], h) };
       }
 
       function ensureLeafletBaseSync() {
@@ -305,11 +311,11 @@ ko.components.register('iiif-map-viewer', {
         getMap: () => (leafletViewer && leafletViewer._map) ? leafletViewer._map : null,
         getLeaflet: () => (leafletViewer && leafletViewer._L) ? leafletViewer._L : window.L,
         getManifest: () => getCurrentManifest(),
-        getImageGroup: () => self.imageGroup(),
         parseTransformFromCanvas,
         pickDemCanvasFromManifest,
         affineForward,
-        affineInverse
+        affineInverse,
+        getCanvasDims: canvasDims
       });
 
       const leafletAnnotation = createLeafletAnnotationController({
@@ -344,6 +350,7 @@ ko.components.register('iiif-map-viewer', {
         onMapClick: (info) => {
           const manifest = getCurrentManifest();
           const { canvas, transform } = getLeafletBaseContext(manifest);
+          self.lastLeafletClick(info);
           self.clickedCoords(formatLeafletClickReadout(info, transform, affineForward));
 
           // ---- Annotation mode: collect polygon vertices ----
@@ -619,9 +626,9 @@ ko.components.register('iiif-map-viewer', {
       // Read DEM value from the last clicked point in the image view.
       self.measureDemPixel = async () => {
         const manifest = getCurrentManifest();
-        const coords = self.clickedCoords();
-        const target = coords ? resolveDemMeasurementTarget(manifest, coords) : null;
-        if (!coords) {
+        const click = self.lastLeafletClick();
+        const target = click ? resolveDemMeasurementTarget(manifest, click) : null;
+        if (!click) {
           self.elevationError('Najpierw kliknij na mapie, aby pobrac wspolrzedne.');
           return;
         }

@@ -40,14 +40,14 @@ export function createLeafletMeasureController(opts = {}) {
     if (!map || !L || !Array.isArray(pts) || !pts.length) return;
 
     pts.forEach((pt, idx) => {
-      if (!Number.isFinite(pt?.x) || !Number.isFinite(pt?.y)) {
+      if (!Number.isFinite(pt?.viewX) || !Number.isFinite(pt?.viewY)) {
         console.warn(LOG, 'Invalid marker coords:', pt);
         return;
       }
 
       try {
         const markerColor = idx === 0 ? 'rgb(101, 150, 222)' : 'rgb(67, 137, 201)';
-        const marker = L.circleMarker([-pt.y, pt.x], {
+        const marker = L.circleMarker([-pt.viewY, pt.viewX], {
           pane : 'iiif-tools-markers',
           radius: 6,
           color: markerColor,
@@ -61,9 +61,9 @@ export function createLeafletMeasureController(opts = {}) {
       }
     });
 
-    if (pts.length === 2 && Number.isFinite(pts[0]?.x) && Number.isFinite(pts[0]?.y) && Number.isFinite(pts[1]?.x) && Number.isFinite(pts[1]?.y)) {
+    if (pts.length === 2 && Number.isFinite(pts[0]?.viewX) && Number.isFinite(pts[0]?.viewY) && Number.isFinite(pts[1]?.viewX) && Number.isFinite(pts[1]?.viewY)) {
       try {
-        line = L.polyline([[-pts[0].y, pts[0].x], [-pts[1].y, pts[1].x]], {
+        line = L.polyline([[-pts[0].viewY, pts[0].viewX], [-pts[1].viewY, pts[1].viewX]], {
           pane : 'iiif-tools-line',
           color: 'rgb(87, 155, 215)',
           weight: 3
@@ -98,18 +98,27 @@ export function createLeafletMeasureController(opts = {}) {
     const current = Array.isArray(state.leafletMeasurePoints()) ? state.leafletMeasurePoints() : [];
     const base = current.length >= 2 ? [] : current.slice();
 
-    let X = Number(info.x);
-    let Y = Number(info.y);
+    const viewX = Number.isFinite(Number(info.viewX)) ? Number(info.viewX) : Number(info.x);
+    const viewY = Number.isFinite(Number(info.viewY)) ? Number(info.viewY) : Number(info.y);
+    const imageX = Number.isFinite(Number(info.imageX))
+      ? Number(info.imageX)
+      : viewX * (2 ** Number(info.s || 0));
+    const imageY = Number.isFinite(Number(info.imageY))
+      ? Number(info.imageY)
+      : viewY * (2 ** Number(info.s || 0));
+
+    let X = viewX;
+    let Y = viewY;
 
     if (tr && affineForward) {
-      const projected = affineForward(tr, info.x, info.y, info.s);
+      const projected = affineForward(tr, imageX, imageY);
       if (Array.isArray(projected) && projected.length === 2 && Number.isFinite(projected[0]) && Number.isFinite(projected[1])) {
         X = projected[0];
         Y = projected[1];
       }
     }
 
-    const next = [...base, { x: Number(info.x), y: Number(info.y), X, Y }];
+    const next = [...base, { viewX, viewY, imageX, imageY, X, Y }];
     state.leafletMeasurePoints(next);
 
     if (next.length === 2) {
