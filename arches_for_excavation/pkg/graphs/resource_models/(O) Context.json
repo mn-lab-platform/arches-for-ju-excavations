@@ -32,6 +32,33 @@
                 },
                 {
                     "active": true,
+                    "cardid": "1cc6c456-93ea-4252-914b-014bb867ef67",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": null,
+                    "description": "{\"en\": \"\"}",
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": ""
+                    },
+                    "helptitle": {
+                        "en": ""
+                    },
+                    "instructions": {
+                        "en": ""
+                    },
+                    "name": {
+                        "en": "Footprint  - measurement "
+                    },
+                    "nodegroup_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "sortorder": null,
+                    "source_identifier_id": null,
+                    "visible": true
+                },
+                {
+                    "active": true,
                     "cardid": "29a532bb-1512-4b13-aae1-5ac0da64cc4f",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
@@ -962,31 +989,6 @@
                     "widget_id": "10000000-0000-0000-0000-000000000008"
                 },
                 {
-                    "card_id": "bb4f6986-0731-4d01-9026-7a81a8da00bb",
-                    "config": {
-                        "defaultValue": "",
-                        "i18n_properties": [
-                            "placeholder"
-                        ],
-                        "label": "Footprint  - measurement ",
-                        "maxLength": null,
-                        "placeholder": {
-                            "en": "Enter text"
-                        },
-                        "uneditable": false,
-                        "width": "100%"
-                    },
-                    "id": "c6a26ac7-e238-40aa-a2e7-17e618528a7f",
-                    "label": {
-                        "en": "Footprint  - measurement "
-                    },
-                    "node_id": "3ee82180-d587-45e5-94c7-c5c5a096b2cc",
-                    "sortorder": 1,
-                    "source_identifier_id": null,
-                    "visible": true,
-                    "widget_id": "46ef064b-2611-4708-9f52-60136bd8a65b"
-                },
-                {
                     "card_id": "f53e8862-5082-4a0c-afab-5567dec92f58",
                     "config": {
                         "defaultValue": "",
@@ -1217,16 +1219,6 @@
                 },
                 {
                     "description": null,
-                    "domainnode_id": "3ee82180-d587-45e5-94c7-c5c5a096b2cc",
-                    "edgeid": "1af54593-ff5d-4f5a-9aac-69db74200eff",
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
-                    "rangenode_id": "a9b48ce5-7590-4972-8f09-38c16294592d",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
                     "domainnode_id": "d45fc0db-a519-45be-911f-fe1e71153ed9",
                     "edgeid": "1be3f441-1213-4da0-9830-e73c7b0b5baf",
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
@@ -1243,16 +1235,6 @@
                     "name": null,
                     "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P67i_is_referred_to_by",
                     "rangenode_id": "220ee2cf-7b17-4762-a022-cf55e4b544c5",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
-                    "domainnode_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae",
-                    "edgeid": "2b8940c9-0b47-47e2-8eab-dc2f71e43c96",
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P189i_is_approximated_by",
-                    "rangenode_id": "3ee82180-d587-45e5-94c7-c5c5a096b2cc",
                     "source_identifier_id": null
                 },
                 {
@@ -1327,12 +1309,32 @@
                 },
                 {
                     "description": null,
+                    "domainnode_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "edgeid": "485673ee-9019-47f9-8fc9-f0bfc18613b5",
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
+                    "rangenode_id": "659ce2b7-bee6-48f0-8cbb-21949b69bf37",
+                    "source_identifier_id": null
+                },
+                {
+                    "description": null,
                     "domainnode_id": "220ee2cf-7b17-4762-a022-cf55e4b544c5",
                     "edgeid": "49a54dd3-b79f-4987-aad4-af239d0cd960",
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "name": null,
                     "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
                     "rangenode_id": "78a922b9-a29d-43b2-873a-3ee332087726",
+                    "source_identifier_id": null
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "edgeid": "4da6997f-8d91-4d9a-b276-ecd2ecf55ba2",
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "rangenode_id": "771ad351-f735-4de5-baab-2d726c033d85",
                     "source_identifier_id": null
                 },
                 {
@@ -1367,12 +1369,12 @@
                 },
                 {
                     "description": null,
-                    "domainnode_id": "3ee82180-d587-45e5-94c7-c5c5a096b2cc",
-                    "edgeid": "7a016f2f-1da6-4746-9a18-fd128b8b48b7",
+                    "domainnode_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "edgeid": "71c1f4dd-9f03-4876-b3cb-ca6f055aa6b1",
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
-                    "rangenode_id": "ed204134-58dd-4d10-beea-becfeb7b285a",
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
+                    "rangenode_id": "dc38a61e-47d9-49e5-8956-a864fb87a830",
                     "source_identifier_id": null
                 },
                 {
@@ -1433,6 +1435,16 @@
                     "name": null,
                     "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
                     "rangenode_id": "941f5a4e-50e1-4a96-aad8-25afc8d1d5af",
+                    "source_identifier_id": null
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae",
+                    "edgeid": "96f6b41a-59e3-492a-9ad6-9cebc016d816",
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P121_overlaps_with",
+                    "rangenode_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
                     "source_identifier_id": null
                 },
                 {
@@ -1543,16 +1555,6 @@
                     "name": null,
                     "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P82a_begin_of_the_begin",
                     "rangenode_id": "da2e5007-0e55-4fbd-9a65-c773441af4b9",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
-                    "domainnode_id": "3ee82180-d587-45e5-94c7-c5c5a096b2cc",
-                    "edgeid": "bd6fc160-edd6-4a85-9ea3-2be5be2ce1e8",
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
-                    "rangenode_id": "0fc80919-a200-4cfd-981b-27c901a4f5df",
                     "source_identifier_id": null
                 },
                 {
@@ -1701,15 +1703,53 @@
                     "config": {
                         "descriptor_types": {
                             "description": {
-                                "nodegroup_id": "",
-                                "string_template": ""
+                                "source_nodes": {
+                                    "Character": [
+                                        "0dfd4256-dde5-4a67-96dd-14fe4a631f33"
+                                    ],
+                                    "Statement": {
+                                        "filters": [
+                                            {
+                                                "node_id": "78a922b9-a29d-43b2-873a-3ee332087726",
+                                                "value": "description"
+                                            }
+                                        ],
+                                        "node_ids": [
+                                            "a199c151-d3c2-4c14-9265-48bae4298f3f"
+                                        ]
+                                    }
+                                },
+                                "string_template": "<Character>, <Statement>"
                             },
                             "map_popup": {
-                                "nodegroup_id": "",
-                                "string_template": ""
+                                "source_nodes": {
+                                    "Character": [
+                                        "0dfd4256-dde5-4a67-96dd-14fe4a631f33"
+                                    ],
+                                    "Statement": {
+                                        "filters": [
+                                            {
+                                                "node_id": "78a922b9-a29d-43b2-873a-3ee332087726",
+                                                "value": "description"
+                                            }
+                                        ],
+                                        "node_ids": [
+                                            "a199c151-d3c2-4c14-9265-48bae4298f3f"
+                                        ]
+                                    }
+                                },
+                                "string_template": "<Character>, <Statement>"
                             },
                             "name": {
-                                "string_template": ""
+                                "source_nodes": {
+                                    "Context Number": [
+                                        "cf7f2532-74f3-487f-9261-bf27825fe04c"
+                                    ],
+                                    "Trench": [
+                                        "13e52ba6-b14d-41de-9a09-8bd1186edc10"
+                                    ]
+                                },
+                                "string_template": "<Trench>_<Context Number>"
                             }
                         },
                         "triggering_nodegroups": []
@@ -1803,6 +1843,13 @@
                 },
                 {
                     "cardinality": "1",
+                    "grouping_node_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "legacygroupid": null,
+                    "nodegroupid": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "parentnodegroup_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae"
+                },
+                {
+                    "cardinality": "1",
                     "grouping_node_id": "cf7f2532-74f3-487f-9261-bf27825fe04c",
                     "legacygroupid": null,
                     "nodegroupid": "cf7f2532-74f3-487f-9261-bf27825fe04c",
@@ -1843,7 +1890,7 @@
                     "config": {},
                     "datatype": "string",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -1864,11 +1911,11 @@
                 {
                     "alias": "character_of_the_layer",
                     "config": {
-                        "rdmCollection": "39f7a54b-6495-4b77-be6a-c93ab64f34fb"
+                        "rdmCollection": "4ea92885-e5f3-4934-bb53-c9313b30e1c4"
                     },
                     "datatype": "concept-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -1910,34 +1957,11 @@
                     "sourcebranchpublication_id": null
                 },
                 {
-                    "alias": "measurement_txt_",
-                    "config": {},
-                    "datatype": "non-localized-string",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Measurement (txt)",
-                    "nodegroup_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae",
-                    "nodeid": "0fc80919-a200-4cfd-981b-27c901a4f5df",
-                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E41_Appellation",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
                     "alias": "_",
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -1962,7 +1986,7 @@
                             {
                                 "graphid": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
                                 "inverseRelationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
-                                "name": "Onto_Trench",
+                                "name": "(O) Trench",
                                 "relationshipCollection": "00000000-0000-0000-0000-000000000005",
                                 "relationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
                                 "useOntologyRelationship": false
@@ -1974,7 +1998,7 @@
                     },
                     "datatype": "resource-instance",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2001,7 +2025,7 @@
                     },
                     "datatype": "resource-instance-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2045,11 +2069,11 @@
                 {
                     "alias": "archaeological_remains",
                     "config": {
-                        "rdmCollection": null
+                        "rdmCollection": "69e92c46-262e-493a-a793-ab1da26f5647"
                     },
                     "datatype": "concept-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2076,7 +2100,7 @@
                     },
                     "datatype": "resource-instance-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2103,7 +2127,7 @@
                     },
                     "datatype": "resource-instance-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2147,11 +2171,11 @@
                 {
                     "alias": "density_of_the_soil",
                     "config": {
-                        "rdmCollection": "c88ea0c1-debb-490e-baf9-fd9f8b8fd2a0"
+                        "rdmCollection": "01f2fbdb-22fb-4884-a914-1ef7b9151844"
                     },
                     "datatype": "concept-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2172,11 +2196,11 @@
                 {
                     "alias": "munsell_number",
                     "config": {
-                        "rdmCollection": "a100eb8f-5197-4468-bd7a-318a6f7cb07c"
+                        "rdmCollection": "6a5afca5-0646-4675-b295-8ff9465f79bb"
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2195,34 +2219,11 @@
                     "sourcebranchpublication_id": null
                 },
                 {
-                    "alias": "footprint_measurement_",
-                    "config": {},
-                    "datatype": "non-localized-string",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Footprint  - measurement ",
-                    "nodegroup_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae",
-                    "nodeid": "3ee82180-d587-45e5-94c7-c5c5a096b2cc",
-                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP6_Declarative_Place",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P189i_is_approximated_by",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
                     "alias": "portion_in__n1",
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2245,7 +2246,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2287,6 +2288,42 @@
                     "sourcebranchpublication_id": null
                 },
                 {
+                    "alias": "crs",
+                    "config": {
+                        "graphs": [
+                            {
+                                "graphid": "855343ec-9d7c-4947-970c-e80b6cfacc4f",
+                                "inverseRelationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
+                                "name": "(O) Coordinate System",
+                                "relationshipCollection": "00000000-0000-0000-0000-000000000005",
+                                "relationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
+                                "useOntologyRelationship": false
+                            }
+                        ],
+                        "searchDsl": "",
+                        "searchString": ""
+                    },
+                    "datatype": "resource-instance",
+                    "description": null,
+                    "exportable": true,
+                    "fieldname": null,
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "CRS",
+                    "nodegroup_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "nodeid": "659ce2b7-bee6-48f0-8cbb-21949b69bf37",
+                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP4_Spatial_Coordinate_Reference_System",
+                    "parentproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
                     "alias": "new_resource_model",
                     "config": {},
                     "datatype": "semantic",
@@ -2314,7 +2351,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2333,13 +2370,36 @@
                     "sourcebranchpublication_id": null
                 },
                 {
+                    "alias": "measurement_txt_",
+                    "config": {},
+                    "datatype": "non-localized-string",
+                    "description": null,
+                    "exportable": true,
+                    "fieldname": null,
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Measurement (txt)",
+                    "nodegroup_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "nodeid": "771ad351-f735-4de5-baab-2d726c033d85",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E41_Appellation",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
                     "alias": "statement_type",
                     "config": {
-                        "rdmCollection": "e5613884-81fb-4dbf-b2c3-7701e3532f14"
+                        "rdmCollection": "23764059-4183-4d47-8eea-557b616b11a2"
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2362,7 +2422,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2387,7 +2447,7 @@
                     },
                     "datatype": "date",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2408,11 +2468,11 @@
                 {
                     "alias": "type",
                     "config": {
-                        "rdmCollection": "74404c9c-f766-41c1-9701-19c8017b2e93"
+                        "rdmCollection": "267a9ce7-8dd0-4f6c-83fc-ce01d6d9c0d1"
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2433,11 +2493,11 @@
                 {
                     "alias": "type_n2",
                     "config": {
-                        "rdmCollection": null
+                        "rdmCollection": "866dff8a-b08b-47ac-bd9f-1ef19e9576a8"
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2458,11 +2518,11 @@
                 {
                     "alias": "type_n3",
                     "config": {
-                        "rdmCollection": null
+                        "rdmCollection": "866dff8a-b08b-47ac-bd9f-1ef19e9576a8"
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2508,7 +2568,7 @@
                     "config": {},
                     "datatype": "string",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2577,7 +2637,7 @@
                     "config": {},
                     "datatype": "string",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2598,11 +2658,11 @@
                 {
                     "alias": "color_of_the_soil",
                     "config": {
-                        "rdmCollection": "489dfecd-81d9-46f8-b0d1-318693ebb8a6"
+                        "rdmCollection": "fc2aa17e-c54c-4527-9da9-adaf662cbe1d"
                     },
                     "datatype": "concept-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2621,36 +2681,13 @@
                     "sourcebranchpublication_id": null
                 },
                 {
-                    "alias": "measurments_geojson_",
-                    "config": {},
-                    "datatype": "non-localized-string",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Measurments (geojson)",
-                    "nodegroup_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae",
-                    "nodeid": "a9b48ce5-7590-4972-8f09-38c16294592d",
-                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmdig/D9_Data_Object",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
                     "alias": "procedures_techniques_used_",
                     "config": {
-                        "rdmCollection": null
+                        "rdmCollection": "f69c1d8a-aeed-4043-9994-5bfb2bd05e7e"
                     },
                     "datatype": "concept-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2669,13 +2706,36 @@
                     "sourcebranchpublication_id": null
                 },
                 {
+                    "alias": "footprint_measurement_",
+                    "config": {},
+                    "datatype": "semantic",
+                    "description": "{\"en\": \"\"}",
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Footprint  - measurement ",
+                    "nodegroup_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "nodeid": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP6_Declarative_Place",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P121_overlaps_with",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
                     "alias": "end",
                     "config": {
                         "dateFormat": "YYYY-MM-DD"
                     },
                     "datatype": "date",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2698,7 +2758,7 @@
                     "config": {},
                     "datatype": "string",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2721,7 +2781,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2838,7 +2898,7 @@
                     },
                     "datatype": "date",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2857,6 +2917,29 @@
                     "sourcebranchpublication_id": null
                 },
                 {
+                    "alias": "measurments_geojson_",
+                    "config": {},
+                    "datatype": "non-localized-string",
+                    "description": null,
+                    "exportable": true,
+                    "fieldname": null,
+                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Measurments (geojson)",
+                    "nodegroup_id": "b66a8c3c-bdca-4ca9-b86f-4028bbfa9210",
+                    "nodeid": "dc38a61e-47d9-49e5-8956-a864fb87a830",
+                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmdig/D9_Data_Object",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
                     "alias": "footprint_map_display",
                     "config": {
                         "addToMap": false,
@@ -2865,11 +2948,11 @@
                         "clusterDistance": 20,
                         "clusterMaxZoom": 5,
                         "clusterMinPoints": 3,
-                        "fillColor": "rgba(130, 130, 130, 0.5)",
+                        "fillColor": "rgba(130,130,130,0.1)",
                         "haloRadius": 4,
                         "haloWeight": 4,
                         "layerActivated": true,
-                        "layerIcon": "",
+                        "layerIcon": "fa fa-digg",
                         "layerLegend": "",
                         "layerName": "",
                         "lineColor": "rgba(130, 130, 130, 0.7)",
@@ -2884,7 +2967,7 @@
                     },
                     "datatype": "geojson-feature-collection",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2905,11 +2988,11 @@
                 {
                     "alias": "original_language",
                     "config": {
-                        "rdmCollection": "401ad5c8-4a6d-40fc-a9cd-61e1d953f13e"
+                        "rdmCollection": "613535c0-2328-4829-8ea9-a661420b83e3"
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2930,11 +3013,11 @@
                 {
                     "alias": "grain_size_type",
                     "config": {
-                        "rdmCollection": "58527e16-20ff-469e-9c4c-e4aac771b42e"
+                        "rdmCollection": "8a5e99e0-a003-4b5c-bc62-cff9d5dc4fd7"
                     },
                     "datatype": "concept-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2957,7 +3040,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -2976,38 +3059,6 @@
                     "sourcebranchpublication_id": null
                 },
                 {
-                    "alias": "crs",
-                    "config": {
-                        "graphs": [
-                            {
-                                "graphid": "855343ec-9d7c-4947-970c-e80b6cfacc4f",
-                                "name": "(O) Coordinate System"
-                            }
-                        ],
-                        "searchDsl": "",
-                        "searchString": ""
-                    },
-                    "datatype": "resource-instance",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "CRS",
-                    "nodegroup_id": "62ce85a9-150c-4485-8a7b-39f5c75b26ae",
-                    "nodeid": "ed204134-58dd-4d10-beea-becfeb7b285a",
-                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP4_Spatial_Coordinate_Reference_System",
-                    "parentproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
                     "alias": "files",
                     "config": {
                         "activateMax": false,
@@ -3017,7 +3068,7 @@
                     },
                     "datatype": "file-list",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -3040,7 +3091,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -3074,7 +3125,7 @@
                     },
                     "datatype": "boolean",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -3097,7 +3148,7 @@
                     "config": {},
                     "datatype": "number",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -3125,14 +3176,14 @@
                             "trueLabel",
                             "falseLabel"
                         ],
-                        "rdmCollection": null,
+                        "rdmCollection": "866dff8a-b08b-47ac-bd9f-1ef19e9576a8",
                         "trueLabel": {
                             "en": "Yes"
                         }
                     },
                     "datatype": "concept",
                     "description": null,
-                    "exportable": false,
+                    "exportable": true,
                     "fieldname": null,
                     "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                     "hascustomalias": false,
@@ -3156,8 +3207,8 @@
                 "graph_id": "2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c",
                 "most_recent_edit_id": null,
                 "notes": null,
-                "publicationid": "4712a7ce-84a2-41ee-9a66-df431bef8f5d",
-                "published_time": "2026-07-14T10:25:15.748"
+                "publicationid": "30046cbb-09fe-4c2b-b6d4-87bbdeff793c",
+                "published_time": "2026-08-26T13:52:42.154"
             },
             "relatable_resource_model_ids": [],
             "resource_2_resource_constraints": [],
@@ -3259,6 +3310,6 @@
         "db": "PostgreSQL 14.5 (Debian 14.5-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit",
         "git hash": "fatal: not a git repository (or any of the parent directories): .git",
         "os": "Linux",
-        "os version": "6.8.0-136-generic"
+        "os version": "6.8.0-138-generic"
     }
 }

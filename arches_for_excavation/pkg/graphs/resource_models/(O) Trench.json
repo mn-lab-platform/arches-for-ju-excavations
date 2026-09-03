@@ -32,6 +32,33 @@
                 },
                 {
                     "active": true,
+                    "cardid": "9dda4d9e-967e-453c-a28e-b951cf94cea4",
+                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
+                    "config": null,
+                    "constraints": [],
+                    "cssclass": null,
+                    "description": "{\"en\": \"\"}",
+                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
+                    "helpenabled": false,
+                    "helptext": {
+                        "en": ""
+                    },
+                    "helptitle": {
+                        "en": ""
+                    },
+                    "instructions": {
+                        "en": ""
+                    },
+                    "name": {
+                        "en": "Footprint  - measurement "
+                    },
+                    "nodegroup_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "sortorder": null,
+                    "source_identifier_id": null,
+                    "visible": true
+                },
+                {
+                    "active": true,
                     "cardid": "dd985f05-d261-4524-ad84-360d3e51fa8d",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
@@ -86,31 +113,6 @@
                 }
             ],
             "cards_x_nodes_x_widgets": [
-                {
-                    "card_id": "f5b54926-c4fa-4e6c-b78f-cf566b27f222",
-                    "config": {
-                        "defaultValue": "",
-                        "i18n_properties": [
-                            "placeholder"
-                        ],
-                        "label": "Footprint  - measurement ",
-                        "maxLength": null,
-                        "placeholder": {
-                            "en": "Enter text"
-                        },
-                        "uneditable": false,
-                        "width": "100%"
-                    },
-                    "id": "2319dfdb-8cbf-4917-a982-e45a48734096",
-                    "label": {
-                        "en": "Footprint  - measurement "
-                    },
-                    "node_id": "89e2e11e-4397-4438-926d-a76416198430",
-                    "sortorder": 1,
-                    "source_identifier_id": null,
-                    "visible": true,
-                    "widget_id": "46ef064b-2611-4708-9f52-60136bd8a65b"
-                },
                 {
                     "card_id": "947911f6-4d67-4587-86b0-02fccf17b382",
                     "config": {
@@ -341,7 +343,40 @@
                 }
             ],
             "color": null,
-            "config": {},
+            "config": {
+                "basemap": "streets",
+                "bearing": 0,
+                "centerX": -122.3979693,
+                "centerY": 37.79,
+                "featureColor": "#FF0000",
+                "featureEditingDisabled": true,
+                "featureLineWidth": 1,
+                "featurePointSize": 3,
+                "geocodePlaceholder": "Search",
+                "geocodeProvider": "10000000-0000-0000-0000-010000000000",
+                "geocoderVisible": true,
+                "geometryTypes": [
+                    {
+                        "id": "Point",
+                        "text": "Point"
+                    },
+                    {
+                        "id": "Line",
+                        "text": "Line"
+                    },
+                    {
+                        "id": "Polygon",
+                        "text": "Polygon"
+                    }
+                ],
+                "mapControlsHidden": false,
+                "maxZoom": 20,
+                "minZoom": 0,
+                "overlayConfigs": [],
+                "overlayOpacity": 0,
+                "pitch": 0,
+                "zoom": 10
+            },
             "deploymentdate": null,
             "deploymentfile": null,
             "description": {
@@ -350,32 +385,12 @@
             "edges": [
                 {
                     "description": null,
-                    "domainnode_id": "89e2e11e-4397-4438-926d-a76416198430",
-                    "edgeid": "041c5fec-5a54-4ffc-8168-ef1eebfd335d",
-                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
-                    "rangenode_id": "ca3ca0ce-78df-4594-991c-47c3720cb1fd",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
                     "domainnode_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44",
                     "edgeid": "08744fd9-c64c-473a-a9ba-e553639f4d0f",
                     "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
                     "name": null,
                     "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
                     "rangenode_id": "ecd3d094-57fb-4dd0-80fe-bc17fc4ca7e7",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
-                    "domainnode_id": "89e2e11e-4397-4438-926d-a76416198430",
-                    "edgeid": "10071d16-0c68-4129-885d-270294aa5235",
-                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
-                    "rangenode_id": "4e8b23a0-c9d5-426f-a6bc-d3ed85d7a31e",
                     "source_identifier_id": null
                 },
                 {
@@ -390,12 +405,12 @@
                 },
                 {
                     "description": null,
-                    "domainnode_id": "89e2e11e-4397-4438-926d-a76416198430",
-                    "edgeid": "21d6916c-b5a1-43b4-81a9-86cd8d1cae6f",
+                    "domainnode_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "edgeid": "26b7d574-054f-47f8-b60d-35c9d1c0b992",
                     "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
                     "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
-                    "rangenode_id": "39c128ad-df05-4395-8ccf-cf052ac90908",
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
+                    "rangenode_id": "dbf3e29b-669d-4db7-8d3a-26aa0a257813",
                     "source_identifier_id": null
                 },
                 {
@@ -411,11 +426,21 @@
                 {
                     "description": null,
                     "domainnode_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44",
-                    "edgeid": "65c42b3b-c19f-4a02-9be8-7b205c96ed57",
+                    "edgeid": "4889fc90-a149-4dad-aef4-7d97a0d0b648",
                     "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
                     "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P189i_is_approximated_by",
-                    "rangenode_id": "89e2e11e-4397-4438-926d-a76416198430",
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P121_overlaps_with",
+                    "rangenode_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "source_identifier_id": null
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "edgeid": "6f4fdd8a-c0fd-4fc3-b38a-d690d5ac0f49",
+                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "rangenode_id": "d30b4a32-7632-4147-a6e7-b1b7ad42b85c",
                     "source_identifier_id": null
                 },
                 {
@@ -436,6 +461,16 @@
                     "name": null,
                     "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P14_carried_out_by",
                     "rangenode_id": "75f73dcc-2f07-4e77-9de0-ff9c49b2bd0f",
+                    "source_identifier_id": null
+                },
+                {
+                    "description": null,
+                    "domainnode_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "edgeid": "99516fee-d810-4fad-86e4-961f926b7c79",
+                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
+                    "name": null,
+                    "ontologyproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
+                    "rangenode_id": "bdaad0d7-fa36-4920-b506-bd06c2c58891",
                     "source_identifier_id": null
                 },
                 {
@@ -495,11 +530,11 @@
                         "descriptor_types": {
                             "description": {
                                 "nodegroup_id": "3e1d0733-f5c0-4870-a064-b18e325d4560",
-                                "string_template": "<Date>, <Author>, <Original Language>, <Statement Type>, <Creation>, <Description>, <Statement>"
+                                "string_template": "<Statement>"
                             },
                             "map_popup": {
-                                "nodegroup_id": "",
-                                "string_template": ""
+                                "nodegroup_id": "3e1d0733-f5c0-4870-a064-b18e325d4560",
+                                "string_template": " <Description>"
                             },
                             "name": {
                                 "nodegroup_id": "a9aff43e-0e89-4ea6-bd3d-1b56a6d756db",
@@ -545,6 +580,13 @@
                     "legacygroupid": null,
                     "nodegroupid": "a9aff43e-0e89-4ea6-bd3d-1b56a6d756db",
                     "parentnodegroup_id": null
+                },
+                {
+                    "cardinality": "1",
+                    "grouping_node_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "legacygroupid": null,
+                    "nodegroupid": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "parentnodegroup_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44"
                 }
             ],
             "nodes": [
@@ -618,29 +660,6 @@
                     "sourcebranchpublication_id": null
                 },
                 {
-                    "alias": "measurement_txt_",
-                    "config": {},
-                    "datatype": "non-localized-string",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Measurement (txt)",
-                    "nodegroup_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44",
-                    "nodeid": "39c128ad-df05-4395-8ccf-cf052ac90908",
-                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E41_Appellation",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
                     "alias": "description",
                     "config": {},
                     "datatype": "semantic",
@@ -660,42 +679,6 @@
                     "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E33_Linguistic_Object",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P129i_is_subject_of",
                     "sortorder": 1,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
-                    "alias": "crs",
-                    "config": {
-                        "graphs": [
-                            {
-                                "graphid": "855343ec-9d7c-4947-970c-e80b6cfacc4f",
-                                "inverseRelationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
-                                "name": "(O) Coordinate System",
-                                "relationshipCollection": "00000000-0000-0000-0000-000000000005",
-                                "relationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
-                                "useOntologyRelationship": false
-                            }
-                        ],
-                        "searchDsl": "",
-                        "searchString": ""
-                    },
-                    "datatype": "resource-instance",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "CRS",
-                    "nodegroup_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44",
-                    "nodeid": "4e8b23a0-c9d5-426f-a6bc-d3ed85d7a31e",
-                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP4_Spatial_Coordinate_Reference_System",
-                    "parentproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
-                    "sortorder": 0,
                     "source_identifier_id": null,
                     "sourcebranchpublication_id": null
                 },
@@ -743,29 +726,6 @@
                     "nodeid": "75f73dcc-2f07-4e77-9de0-ff9c49b2bd0f",
                     "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E21_Person",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P14_carried_out_by",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
-                    "alias": "footprint_measurement_",
-                    "config": {},
-                    "datatype": "non-localized-string",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
-                    "hascustomalias": false,
-                    "is_collector": false,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Footprint  - measurement ",
-                    "nodegroup_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44",
-                    "nodeid": "89e2e11e-4397-4438-926d-a76416198430",
-                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP6_Declarative_Place",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P189i_is_approximated_by",
                     "sortorder": 0,
                     "source_identifier_id": null,
                     "sourcebranchpublication_id": null
@@ -819,7 +779,7 @@
                 {
                     "alias": "original_language",
                     "config": {
-                        "rdmCollection": "6be27e0c-3c59-4762-987a-6a2ba3f3c85b"
+                        "rdmCollection": "613535c0-2328-4829-8ea9-a661420b83e3"
                     },
                     "datatype": "concept",
                     "description": null,
@@ -842,6 +802,88 @@
                     "sourcebranchpublication_id": null
                 },
                 {
+                    "alias": "footprint_measurement_",
+                    "config": {},
+                    "datatype": "semantic",
+                    "description": "{\"en\": \"\"}",
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
+                    "hascustomalias": false,
+                    "is_collector": true,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Footprint  - measurement ",
+                    "nodegroup_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "nodeid": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP6_Declarative_Place",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P121_overlaps_with",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
+                    "alias": "crs",
+                    "config": {
+                        "graphs": [
+                            {
+                                "graphid": "855343ec-9d7c-4947-970c-e80b6cfacc4f",
+                                "inverseRelationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
+                                "name": "(O) Coordinate System",
+                                "relationshipCollection": "00000000-0000-0000-0000-000000000005",
+                                "relationshipConcept": "ac41d9be-79db-4256-b368-2f4559cfbe55",
+                                "useOntologyRelationship": false
+                            }
+                        ],
+                        "searchDsl": "",
+                        "searchString": ""
+                    },
+                    "datatype": "resource-instance",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "CRS",
+                    "nodegroup_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "nodeid": "bdaad0d7-fa36-4920-b506-bd06c2c58891",
+                    "ontologyclass": "http://www.cidoc-crm.org/extensions/crmgeo/SP4_Spatial_Coordinate_Reference_System",
+                    "parentproperty": "http://www.cidoc-crm.org/extensions/crmgeo/Q9_place_is_expressed_in_terms_of",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
+                    "alias": "measurement_txt_",
+                    "config": {},
+                    "datatype": "non-localized-string",
+                    "description": null,
+                    "exportable": false,
+                    "fieldname": null,
+                    "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
+                    "hascustomalias": false,
+                    "is_collector": false,
+                    "is_immutable": false,
+                    "isrequired": false,
+                    "issearchable": true,
+                    "istopnode": false,
+                    "name": "Measurement (txt)",
+                    "nodegroup_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "nodeid": "d30b4a32-7632-4147-a6e7-b1b7ad42b85c",
+                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E41_Appellation",
+                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
+                    "sortorder": 0,
+                    "source_identifier_id": null,
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
+                },
+                {
                     "alias": "measurments_geojson_",
                     "config": {},
                     "datatype": "non-localized-string",
@@ -856,18 +898,18 @@
                     "issearchable": true,
                     "istopnode": false,
                     "name": "Measurments (geojson)",
-                    "nodegroup_id": "13f0cf86-0f4f-4d8c-96dc-3daa5a58af44",
-                    "nodeid": "ca3ca0ce-78df-4594-991c-47c3720cb1fd",
+                    "nodegroup_id": "b7b3f2e1-1872-488a-971a-81d0cf9fb2f8",
+                    "nodeid": "dbf3e29b-669d-4db7-8d3a-26aa0a257813",
                     "ontologyclass": "http://www.cidoc-crm.org/extensions/crmdig/D9_Data_Object",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P70i_is_documented_in",
                     "sortorder": 0,
                     "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
+                    "sourcebranchpublication_id": "dc3375c9-de3b-4d28-a565-df70daa012f6"
                 },
                 {
                     "alias": "statement_type",
                     "config": {
-                        "rdmCollection": "32009915-f880-4ff4-b736-7a8dea1e3b46"
+                        "rdmCollection": "23764059-4183-4d47-8eea-557b616b11a2"
                     },
                     "datatype": "concept",
                     "description": null,
@@ -892,25 +934,25 @@
                 {
                     "alias": "footprint_map_display",
                     "config": {
-                        "addToMap": false,
+                        "addToMap": true,
                         "advancedStyle": "",
                         "advancedStyling": false,
                         "clusterDistance": 20,
                         "clusterMaxZoom": 5,
                         "clusterMinPoints": 3,
-                        "fillColor": "rgba(130, 130, 130, 0.5)",
+                        "fillColor": "rgba(178,37,231,0.2)",
                         "haloRadius": 4,
                         "haloWeight": 4,
                         "layerActivated": true,
-                        "layerIcon": "",
+                        "layerIcon": "fa fa-crop",
                         "layerLegend": "",
                         "layerName": "",
                         "lineColor": "rgba(130, 130, 130, 0.7)",
                         "lineHaloColor": "rgba(200, 200, 200, 0.5)",
-                        "outlineColor": "rgba(200, 200, 200, 0.7)",
+                        "outlineColor": "rgba(178,37,231,0.8)",
                         "outlineWeight": 2,
-                        "pointColor": "rgba(130, 130, 130, 0.7)",
-                        "pointHaloColor": "rgba(200, 200, 200, 0.5)",
+                        "pointColor": "rgba(178,37,231,1)",
+                        "pointHaloColor": "rgba(178,37,231,0.27)",
                         "radius": 2,
                         "simplification": 0.3,
                         "weight": 2
@@ -941,8 +983,8 @@
                 "graph_id": "cc91f1ff-6ea8-422c-be14-b818660f66f8",
                 "most_recent_edit_id": null,
                 "notes": null,
-                "publicationid": "79dead55-b55f-4c89-bbe0-96be9d99aec8",
-                "published_time": "2026-07-14T06:42:27.422"
+                "publicationid": "2e0d0ab9-2201-4a7e-b1ae-e63e15896851",
+                "published_time": "2026-08-25T10:25:01.958"
             },
             "relatable_resource_model_ids": [],
             "resource_2_resource_constraints": [],
@@ -1035,7 +1077,7 @@
             "subtitle": {
                 "en": "Trench (CIDOC CRM 7.1 ontology)"
             },
-            "template_id": "50000000-0000-0000-0000-000000000001",
+            "template_id": "50000000-0000-0000-0000-000000000002",
             "user_permissions": {},
             "version": ""
         }
@@ -1044,6 +1086,6 @@
         "db": "PostgreSQL 14.5 (Debian 14.5-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit",
         "git hash": "fatal: not a git repository (or any of the parent directories): .git",
         "os": "Linux",
-        "os version": "6.8.0-136-generic"
+        "os version": "6.8.0-138-generic"
     }
 }

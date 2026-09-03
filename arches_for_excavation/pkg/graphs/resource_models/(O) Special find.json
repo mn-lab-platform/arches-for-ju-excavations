@@ -32,33 +32,6 @@
                 },
                 {
                     "active": true,
-                    "cardid": "7740dcb9-4ed3-4d54-87ac-a1562bf182a1",
-                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
-                    "config": null,
-                    "constraints": [],
-                    "cssclass": null,
-                    "description": null,
-                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
-                    "helpenabled": false,
-                    "helptext": {
-                        "en": ""
-                    },
-                    "helptitle": {
-                        "en": ""
-                    },
-                    "instructions": {
-                        "en": ""
-                    },
-                    "name": {
-                        "en": "Inventory No"
-                    },
-                    "nodegroup_id": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "visible": true
-                },
-                {
-                    "active": true,
                     "cardid": "b4542a5d-a265-440f-8db7-008d8958b1f7",
                     "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
                     "config": null,
@@ -81,33 +54,6 @@
                     },
                     "nodegroup_id": "ebbcb9f7-e515-4a01-a6f3-610bad9dd13f",
                     "sortorder": 1,
-                    "source_identifier_id": null,
-                    "visible": true
-                },
-                {
-                    "active": true,
-                    "cardid": "bf0b9167-c5d4-471c-94b5-5f235b798ec7",
-                    "component_id": "f05e4d3a-53c1-11e8-b0ea-784f435179ea",
-                    "config": null,
-                    "constraints": [],
-                    "cssclass": null,
-                    "description": null,
-                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
-                    "helpenabled": false,
-                    "helptext": {
-                        "en": ""
-                    },
-                    "helptitle": {
-                        "en": ""
-                    },
-                    "instructions": {
-                        "en": ""
-                    },
-                    "name": {
-                        "en": "Inventory node missing"
-                    },
-                    "nodegroup_id": "556d7450-33a4-4e9f-82fe-3ecff9c44d44",
-                    "sortorder": null,
                     "source_identifier_id": null,
                     "visible": true
                 },
@@ -222,43 +168,6 @@
                     "widget_id": "10000000-0000-0000-0000-000000000015"
                 },
                 {
-                    "card_id": "7740dcb9-4ed3-4d54-87ac-a1562bf182a1",
-                    "config": {
-                        "defaultValue": "",
-                        "format": "",
-                        "i18n_properties": [
-                            "placeholder",
-                            "prefix",
-                            "suffix"
-                        ],
-                        "label": "Inventory No",
-                        "max": "",
-                        "min": "",
-                        "placeholder": {
-                            "en": "Enter number"
-                        },
-                        "precision": "",
-                        "prefix": {
-                            "en": ""
-                        },
-                        "step": "",
-                        "suffix": {
-                            "en": ""
-                        },
-                        "uneditable": false,
-                        "width": "100%"
-                    },
-                    "id": "9fa91ea0-c48e-4acc-92b9-34bcf3b0d9ec",
-                    "label": {
-                        "en": "Inventory No"
-                    },
-                    "node_id": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "visible": true,
-                    "widget_id": "10000000-0000-0000-0000-000000000008"
-                },
-                {
                     "card_id": "73e4b504-0cb1-46ff-b25d-ca3dcd56c21c",
                     "config": {
                         "defaultValue": "",
@@ -365,7 +274,11 @@
                 }
             ],
             "color": null,
-            "config": {},
+            "config": {
+                "nodes": [
+                    "7f40eea5-f297-4695-b0ae-a0f451c5e5a3"
+                ]
+            },
             "deploymentdate": null,
             "deploymentfile": null,
             "description": {
@@ -484,16 +397,6 @@
                 },
                 {
                     "description": null,
-                    "domainnode_id": "27e2f329-8088-4165-8131-b80775d87752",
-                    "edgeid": "88be8244-1274-4643-94cc-5e1f2209704e",
-                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
-                    "rangenode_id": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
                     "domainnode_id": "99dab25d-d1ee-4336-bb11-bd73d3fd400c",
                     "edgeid": "9e3542f7-6bad-4a77-a8c5-456aa9b7bee5",
                     "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
@@ -584,16 +487,6 @@
                 },
                 {
                     "description": null,
-                    "domainnode_id": "27e2f329-8088-4165-8131-b80775d87752",
-                    "edgeid": "f4c87ec3-0df5-4457-ab5e-eb71af2c24f2",
-                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
-                    "name": null,
-                    "ontologyproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
-                    "rangenode_id": "556d7450-33a4-4e9f-82fe-3ecff9c44d44",
-                    "source_identifier_id": null
-                },
-                {
-                    "description": null,
                     "domainnode_id": "6db271b8-e6c4-47d0-83a9-3dae69ba206a",
                     "edgeid": "fa6951fe-d8fe-474b-88bf-345f87b08062",
                     "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
@@ -603,7 +496,44 @@
                     "source_identifier_id": null
                 }
             ],
-            "functions_x_graphs": [],
+            "functions_x_graphs": [
+                {
+                    "config": {
+                        "descriptor_types": {
+                            "description": {
+                                "source_nodes": {
+                                    "Context ID": [
+                                        "ebbcb9f7-e515-4a01-a6f3-610bad9dd13f"
+                                    ],
+                                    "Order Number": [
+                                        "ebd149f1-9a1c-4e84-837e-cc1495cb22a9"
+                                    ]
+                                },
+                                "string_template": "<Order Number> from <Context ID>"
+                            },
+                            "map_popup": {
+                                "nodegroup_id": "",
+                                "string_template": ""
+                            },
+                            "name": {
+                                "source_nodes": {
+                                    "Prefix": [
+                                        "9ae5d420-ec6d-492c-a5ad-5dad4c64c20c"
+                                    ],
+                                    "Special Find No": [
+                                        "31244e3e-389e-4fc0-b397-6ef2c5983b00"
+                                    ]
+                                },
+                                "string_template": "<Prefix> <Special Find No>"
+                            }
+                        },
+                        "triggering_nodegroups": []
+                    },
+                    "function_id": "a40cb2ac-7a0a-4d3f-a843-92cfdb6cd4de",
+                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
+                    "id": "f5dc116e-4441-4ed3-acb5-e47bdbc4e8f1"
+                }
+            ],
             "graphid": "ac939663-80ce-43df-967d-42def45ef333",
             "group_permissions": {},
             "has_unpublished_changes": true,
@@ -617,13 +547,6 @@
             },
             "nodegroups": [
                 {
-                    "cardinality": "1",
-                    "grouping_node_id": "556d7450-33a4-4e9f-82fe-3ecff9c44d44",
-                    "legacygroupid": null,
-                    "nodegroupid": "556d7450-33a4-4e9f-82fe-3ecff9c44d44",
-                    "parentnodegroup_id": null
-                },
-                {
                     "cardinality": "n",
                     "grouping_node_id": "6db271b8-e6c4-47d0-83a9-3dae69ba206a",
                     "legacygroupid": null,
@@ -635,13 +558,6 @@
                     "grouping_node_id": "99dab25d-d1ee-4336-bb11-bd73d3fd400c",
                     "legacygroupid": null,
                     "nodegroupid": "99dab25d-d1ee-4336-bb11-bd73d3fd400c",
-                    "parentnodegroup_id": null
-                },
-                {
-                    "cardinality": "1",
-                    "grouping_node_id": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
-                    "legacygroupid": null,
-                    "nodegroupid": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
                     "parentnodegroup_id": null
                 },
                 {
@@ -666,7 +582,7 @@
                     "hascustomalias": false,
                     "is_collector": false,
                     "is_immutable": false,
-                    "isrequired": true,
+                    "isrequired": false,
                     "issearchable": true,
                     "istopnode": false,
                     "name": "Date of finding",
@@ -704,7 +620,7 @@
                 {
                     "alias": "category",
                     "config": {
-                        "rdmCollection": null
+                        "rdmCollection": "69e92c46-262e-493a-a793-ab1da26f5647"
                     },
                     "datatype": "concept",
                     "description": null,
@@ -796,29 +712,6 @@
                     "nodeid": "3c165842-e09d-411a-ace0-8b6a283e277a",
                     "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E53_Place",
                     "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
-                    "alias": "inventory_node_missing",
-                    "config": {},
-                    "datatype": "semantic",
-                    "description": null,
-                    "exportable": false,
-                    "fieldname": null,
-                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
-                    "hascustomalias": false,
-                    "is_collector": true,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Inventory node missing",
-                    "nodegroup_id": "556d7450-33a4-4e9f-82fe-3ecff9c44d44",
-                    "nodeid": "556d7450-33a4-4e9f-82fe-3ecff9c44d44",
-                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E55_Type",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P2_has_type",
                     "sortorder": 0,
                     "source_identifier_id": null,
                     "sourcebranchpublication_id": null
@@ -974,17 +867,24 @@
                         },
                         "options": [
                             {
-                                "id": "1798e6c3-f238-4cab-bb88-fec88842bf7f",
+                                "id": "03731ec8-adce-40cb-ae93-61e093a4228d",
                                 "selected": false,
                                 "text": {
-                                    "en": "Z"
+                                    "en": "MZ"
+                                }
+                            },
+                            {
+                                "id": "33133987-590e-411e-bada-31de21f16952",
+                                "selected": false,
+                                "text": {
+                                    "en": "TZ"
                                 }
                             },
                             {
                                 "id": "b7cab87e-0476-482f-8574-5b38dfad4e8a",
                                 "selected": false,
                                 "text": {
-                                    "en": "T"
+                                    "en": "Z"
                                 }
                             }
                         ]
@@ -1092,7 +992,7 @@
                         "clusterMaxZoom": 5,
                         "clusterMinPoints": 3,
                         "fillColor": "rgba(130, 130, 130, 0.5)",
-                        "haloRadius": 4,
+                        "haloRadius": 2,
                         "haloWeight": 4,
                         "layerActivated": true,
                         "layerIcon": "",
@@ -1102,9 +1002,9 @@
                         "lineHaloColor": "rgba(200, 200, 200, 0.5)",
                         "outlineColor": "rgba(200, 200, 200, 0.7)",
                         "outlineWeight": 2,
-                        "pointColor": "rgba(130, 130, 130, 0.7)",
-                        "pointHaloColor": "rgba(200, 200, 200, 0.5)",
-                        "radius": 2,
+                        "pointColor": "rgba(178,37,231,1)",
+                        "pointHaloColor": "rgba(178,37,231,0.46)",
+                        "radius": 4,
                         "simplification": 0.3,
                         "weight": 2
                     },
@@ -1129,32 +1029,9 @@
                     "sourcebranchpublication_id": null
                 },
                 {
-                    "alias": "inventory_no",
-                    "config": {},
-                    "datatype": "number",
-                    "description": null,
-                    "exportable": true,
-                    "fieldname": null,
-                    "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
-                    "hascustomalias": false,
-                    "is_collector": true,
-                    "is_immutable": false,
-                    "isrequired": false,
-                    "issearchable": true,
-                    "istopnode": false,
-                    "name": "Inventory No",
-                    "nodegroup_id": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
-                    "nodeid": "bbec68da-f6b3-4402-863b-45d589d4c3d7",
-                    "ontologyclass": "http://www.cidoc-crm.org/cidoc-crm/E42_Identifier",
-                    "parentproperty": "http://www.cidoc-crm.org/cidoc-crm/P1_is_identified_by",
-                    "sortorder": 0,
-                    "source_identifier_id": null,
-                    "sourcebranchpublication_id": null
-                },
-                {
                     "alias": "type",
                     "config": {
-                        "rdmCollection": "74404c9c-f766-41c1-9701-19c8017b2e93"
+                        "rdmCollection": "267a9ce7-8dd0-4f6c-83fc-ce01d6d9c0d1"
                     },
                     "datatype": "concept",
                     "description": null,
@@ -1260,7 +1137,7 @@
                     "hascustomalias": false,
                     "is_collector": false,
                     "is_immutable": false,
-                    "isrequired": true,
+                    "isrequired": false,
                     "issearchable": true,
                     "istopnode": false,
                     "name": "Order Number",
@@ -1278,8 +1155,8 @@
                 "graph_id": "ac939663-80ce-43df-967d-42def45ef333",
                 "most_recent_edit_id": null,
                 "notes": null,
-                "publicationid": "d1600fd9-9a91-474d-87ac-4ec0039138f6",
-                "published_time": "2026-06-13T09:25:45.234"
+                "publicationid": "cf7fe06b-13e6-4bf3-a0a1-879355d16815",
+                "published_time": "2026-08-25T14:44:54.898"
             },
             "relatable_resource_model_ids": [],
             "resource_2_resource_constraints": [],
@@ -1372,7 +1249,7 @@
             "subtitle": {
                 "en": "Special find  (CIDOC CRM 7.1 ontology)"
             },
-            "template_id": "50000000-0000-0000-0000-000000000001",
+            "template_id": "50000000-0000-0000-0000-000000000003",
             "user_permissions": {},
             "version": ""
         }
@@ -1381,6 +1258,6 @@
         "db": "PostgreSQL 14.5 (Debian 14.5-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit",
         "git hash": "fatal: not a git repository (or any of the parent directories): .git",
         "os": "Linux",
-        "os version": "6.8.0-136-generic"
+        "os version": "6.8.0-138-generic"
     }
 }
