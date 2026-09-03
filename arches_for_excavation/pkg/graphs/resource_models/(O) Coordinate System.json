@@ -788,7 +788,30 @@
                     "source_identifier_id": null
                 }
             ],
-            "functions_x_graphs": [],
+            "functions_x_graphs": [
+                {
+                    "config": {
+                        "descriptor_types": {
+                            "description": {
+                                "nodegroup_id": "3fbbf557-d6da-4a3f-9ee7-74ac51b34471",
+                                "string_template": "<Description>"
+                            },
+                            "map_popup": {
+                                "nodegroup_id": "",
+                                "string_template": ""
+                            },
+                            "name": {
+                                "nodegroup_id": "9c0f5c73-f6bd-4fd4-8f14-ea4182771ea5",
+                                "string_template": "<Name>"
+                            }
+                        },
+                        "triggering_nodegroups": []
+                    },
+                    "function_id": "60000000-0000-0000-0000-000000000001",
+                    "graph_id": "855343ec-9d7c-4947-970c-e80b6cfacc4f",
+                    "id": "cf836c17-3e41-40fa-91f9-8a38896d4fa1"
+                }
+            ],
             "graphid": "855343ec-9d7c-4947-970c-e80b6cfacc4f",
             "group_permissions": {},
             "has_unpublished_changes": true,
@@ -972,7 +995,7 @@
                 {
                     "alias": "original_language",
                     "config": {
-                        "rdmCollection": "6be27e0c-3c59-4762-987a-6a2ba3f3c85b"
+                        "rdmCollection": "613535c0-2328-4829-8ea9-a661420b83e3"
                     },
                     "datatype": "concept",
                     "description": null,
@@ -1066,7 +1089,7 @@
                 {
                     "alias": "statement_type",
                     "config": {
-                        "rdmCollection": "32009915-f880-4ff4-b736-7a8dea1e3b46"
+                        "rdmCollection": "23764059-4183-4d47-8eea-557b616b11a2"
                     },
                     "datatype": "concept",
                     "description": null,
@@ -1433,6 +1456,6 @@
         "db": "PostgreSQL 14.5 (Debian 14.5-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit",
         "git hash": "fatal: not a git repository (or any of the parent directories): .git",
         "os": "Linux",
-        "os version": "6.8.0-136-generic"
+        "os version": "6.8.0-138-generic"
     }
 }
