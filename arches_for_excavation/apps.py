@@ -6,5 +6,5 @@ class ArchesForExcavationConfig(AppConfig):
     is_arches_application = True
 
     def ready(self):
-        """Register project-level Django signal handlers."""
-        from . import signals  # noqa: F401
+        from .signals import geometries_refresh
+        from .signals import maplayers
