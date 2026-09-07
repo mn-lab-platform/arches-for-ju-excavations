@@ -8,6 +8,8 @@ define([
         const self = this;
         self.value = params.value;
         self.mode = params.mode;
+        self.graphId = params.graphId;
+        self.resourceId = params.resourceId;
     }
 
     return ko.components.register('crs-twoface-step', {

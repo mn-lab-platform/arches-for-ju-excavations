@@ -119,6 +119,36 @@
     pointer-events: none;
 }
 
+.selected-resource-banner {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1.1rem;
+    border-left: 4px solid #4a90e2;
+    background: #f4f8fc;
+}
+
+.selected-resource-heading {
+    flex: 0 0 auto;
+    margin: 0;
+    color: #5f6b78;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.selected-resource-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #1f2933;
+}
+
+.selected-resource-type {
+    margin: 0;
+    color: #5f6b78;
+    font-size: 0.95em;
+}
+
 @media (max-width: 700px) {
     .content-wrapper {
         flex-direction: column;
@@ -138,13 +168,29 @@
         padding-left: 0;
         gap: 2rem;
     }
-
+    .selected-resource-banner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
 }
 
 </style>
 <div class="context-coordinates-wrapper">
+    <div class="selected-resource-banner"
+        data-bind="visible: resourceDisplayName">
+        <div class="selected-resource-heading">Adding coordinates to:</div>
+        <div class="selected-resource-name"
+            data-bind="text: resourceDisplayName"></div>
+        <div class="selected-resource-type">
+            (<span data-bind="text: resourceTypeLabel"></span>)
+        </div>
+    </div>
     <div data-bind="visible: errorMessage" class="alert alert-danger">
         <span data-bind="text: errorMessage"></span>
+    </div>
+    <div data-bind="visible: infoMessage" class="alert alert-info">
+        <span data-bind="text: infoMessage"></span>
     </div>
     <div data-bind="visible: successMessage" class="alert alert-success">
         <span data-bind="text: successMessage"></span>

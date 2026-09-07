@@ -2,38 +2,86 @@ define([
     'knockout',
     'arches',
     'templates/views/components/workflows/context-footprint-addition/coordinates-addition-step.htm',
-], function(ko, arches, template) {
+    'services/resource-service'
+], function(ko, arches, template, resourceServiceModule) {
     return ko.components.register('coordinates-addition-step', {
         viewModel: function(params) {
             const self = this;
+            const resourceService = resourceServiceModule.default || resourceServiceModule;
 
             if (typeof params.value !== 'function') {
                 params.value = ko.observable('');
             }
-            self.value = params.value;
-            self.mode = params.mode;
 
+            self.value = params.value;
             self.form = params.form || null;
 
+            self.graphId = params.graphId;
+            self.resourceId = params.resourceId;
+
+            self.resourceDisplayName = ko.observable('');
+            self.resourceTypeLabel = ko.observable(''); 
             self.coordinatesText = ko.observable('');
             self.coordinatesHtml = ko.observable('');
             self.coordinatesValid = ko.observable(false);
             self.successMessage = ko.observable('');
+            self.infoMessage = ko.observable('');
             self.errorMessage = ko.observable('');
             self.errorLines = ko.observableArray([]);
             self.editorElement = null;
             self.delimiter = ko.observable(' ');
             self.ignoreLastLine = ko.observable(false);
 
-            let debounceTimeout = null;
+            const resourceTypeLabels = {
+                '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c': 'Context',
+                'cc91f1ff-6ea8-422c-be14-b818660f66f8': 'Trench',
+                'ac939663-80ce-43df-967d-42def45ef333': 'Special Find'
+            };
+
+            if (self.resourceId) {
+                resourceService.getOne(self.resourceId)
+                    .then(function(resource) {
+                        self.resourceDisplayName(
+                            resource.displayname || self.resourceId
+                        );
+                        self.resourceTypeLabel(
+                            resourceTypeLabels[self.graphId] || 'Unknown resource type'
+                        );
+                    })
+                    .catch(function(error) {
+                        console.error('Error fetching resource:', error);
+                        self.resourceDisplayName(self.resourceId);
+                        self.resourceTypeLabel(
+                            resourceTypeLabels[self.graphId] || 'Unknown resource type'
+                        );
+                    });
+            }
             
             self.detectDelimiter = function(text) {
-                return text.includes('\t') ? '\t' : ' ';
+                if (!text) return ' ';
+                
+                const firstLine = (text.split('\n').find(l => l.trim().length > 0) || '').trim();
+                
+                const gaps = firstLine.match(/\s+/g);
+                
+                if (!gaps || gaps.length === 0) return ' ';
+                
+                const firstGap = gaps[0];
+                const isConsistent = gaps.every(gap => gap === firstGap);
+                
+                if (!isConsistent) {
+                    return null;
+                }
+                
+                return firstGap;
             };
+            
+            let debounceTimeout = null;
 
             self.handleCoordinatesInput = function(data, event) {
                 self.editorElement = event.target;
-                const text = event.target.innerText;
+                const text = event.target.innerText.replace(/\u00A0/g, ' ');
+                
                 self.delimiter(self.detectDelimiter(text));
                 self.coordinatesText(text);
                 
@@ -85,6 +133,7 @@ define([
                 }).join('\n');
 
                 self.coordinatesHtml(htmlLines);
+                self.coordinatesHtml.valueHasMutated();
 
                 if (cursorIndex >= 0) {
                     setTimeout(() => {
@@ -113,12 +162,28 @@ define([
                     self.updateDisplay();
                     self.coordinatesValid(false);
                     self.successMessage('');
-                    self.errorMessage('Please enter coordinates to proceed.');
+                    self.errorMessage('');
+                    self.infoMessage('Enter coordinates as: ID X Y Z');
                     self.value(null);
                     return false;
                 }
+                
                 const allLines = text.split('\n');
-                const coordinateLineRegex = /^([a-zA-Z0-9_.-]+)\s+(-?\d+[.,]?\d+)\s+(-?\d+[.,]?\d+)\s+(-?\d+[.,]?\d+)$/;
+                const delimiter = self.delimiter();
+
+                if (!delimiter) {
+                    self.errorLines(allLines.map((_, index) => index));
+                    self.updateDisplay();
+                    self.coordinatesValid(false);
+                    self.successMessage('');
+                    self.infoMessage('');
+                    self.errorMessage('Inconsistent spacing detected in the first line. Please use the exact same separator between all values.');
+                    self.value(null);
+                    return false;
+                }
+
+                const regexString = `^([a-zA-Z0-9_.-]+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)$`;
+                const coordinateLineRegex = new RegExp(regexString);
 
                 const errorLineIndices = [];
                 let allValid = true;
@@ -127,8 +192,10 @@ define([
                     if (self.ignoreLastLine() && index === allLines.length - 1) {
                         return;
                     }
+
                     const trimmedLine = line.trim();
                     if (trimmedLine.length === 0) return;
+
                     const match = trimmedLine.match(coordinateLineRegex);
                     if (!match) {
                         allValid = false;
@@ -142,6 +209,7 @@ define([
                 if (allValid) {
                     self.coordinatesValid(true);
                     self.errorMessage('');
+                    self.infoMessage('');
                     self.successMessage('Coordinates are valid you may proceed further.');
                     
                     self.value({
@@ -151,6 +219,7 @@ define([
                 } else {
                     self.coordinatesValid(false);
                     self.successMessage('');
+                    self.infoMessage('');
                     self.errorMessage('Some lines contain invalid format. Please correct them to proceed.');
                     self.value(null);
                 }

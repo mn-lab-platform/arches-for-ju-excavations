@@ -8,6 +8,8 @@ define([
         self.value = params.value;
         self.prevStepValue = params.prevStepValue || null;
         self.mode = typeof self.prevStepValue === 'object' ? 'map' : 'input';
+        self.graphId = params.graphId;
+        self.resourceId = params.resourceId;
     }
 
     return ko.components.register('coord-twoface-step', {
