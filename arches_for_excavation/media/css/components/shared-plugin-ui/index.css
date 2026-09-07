@@ -155,7 +155,7 @@
   color: var(--panel-border-soft);
 }
 
-.layer-list {
+.map-plugin-layer-list {
   flex: 1;
 
   overflow-y: auto;

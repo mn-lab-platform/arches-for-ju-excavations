@@ -79,7 +79,7 @@ export class LayerMenuView {
         this.controlPanel.appendChild(loadBtn);
 
         this.layerList = document.createElement('div');
-        this.layerList.className = 'layer-list';
+        this.layerList.className = 'map-plugin-layer-list';
 
         this.content.appendChild(this.controlPanel);
         this.content.appendChild(this.layerList);
