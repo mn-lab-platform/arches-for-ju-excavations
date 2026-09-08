@@ -17,6 +17,7 @@ define([
                     footprintNodeId: 'e2605398-9cbc-4ce0-bc88-46a96e8bcec8',
                     measurementGeojsonNodeId: 'dc38a61e-47d9-49e5-8956-a864fb87a830',
                     measurementTextNodeId: '771ad351-f735-4de5-baab-2d726c033d85',
+                    crsNodeId: '659ce2b7-bee6-48f0-8cbb-21949b69bf37',
                 },
                 'cc91f1ff-6ea8-422c-be14-b818660f66f8': { // Trench
                     targetNodegroupId: '13f0cf86-0f4f-4d8c-96dc-3daa5a58af44',
@@ -25,6 +26,7 @@ define([
                     footprintNodeId: 'ecd3d094-57fb-4dd0-80fe-bc17fc4ca7e7',
                     measurementGeojsonNodeId: 'dbf3e29b-669d-4db7-8d3a-26aa0a257813',
                     measurementTextNodeId: 'd30b4a32-7632-4147-a6e7-b1b7ad42b85c',
+                    crsNodeId: 'bdaad0d7-fa36-4920-b506-bd06c2c58891',
                 },
                 'ac939663-80ce-43df-967d-42def45ef333': { // Special Find
                     targetNodegroupId: '99dab25d-d1ee-4336-bb11-bd73d3fd400c', 
@@ -32,6 +34,7 @@ define([
                     footprintNodeId: 'bbdde26b-edb0-4f14-ba56-11d9a4296800', 
                     measurementGeojsonNodeId: null,
                     measurementTextNodeId: 'd7baaa04-3f55-40ac-99ce-2c42bcf66d10', 
+                    crsNodeId: '3ac2698f-dcf4-46ad-adde-ce1f4ed4b7fe',
                 }
             };
 
@@ -44,6 +47,7 @@ define([
             self.inputData = ko.unwrap(params.coordinatesData);
             self.graphId = ko.unwrap(params.graphId);
             self.resourceId = ko.unwrap(params.resourceId);
+            self.crsId = ko.unwrap(params.crsId);
                         
             let rawText = '';
             let rawIgnore = false;
@@ -200,6 +204,19 @@ define([
             };
 
             self._postGroupedFootprintTile = async function(config, projectedVal, originalGeojson, originalText) {
+                const applyCrsValue = (data) => {
+                    if (!config.crsNodeId) return;
+
+                    if (self.crsId) {
+                        data[config.crsNodeId] = [{
+                            resourceId: self.crsId,
+                            resourceXresourceId: ''
+                        }];
+                    } else {
+                        delete data[config.crsNodeId];
+                    }
+                };
+
                 const buildPayload = (existing, nodegroupId, parentTileId, data) => {
                     return {
                         tileid: existing ? existing.tileid : '',
@@ -236,6 +253,10 @@ define([
                     }
                 }
 
+                if (!config.measurementNodegroupId) {
+                    applyCrsValue(targetData);
+                }
+
                 const targetPayload = buildPayload(
                     existingTile,
                     config.targetNodegroupId,
@@ -263,6 +284,7 @@ define([
 
                     measurementData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
                     measurementData[config.measurementTextNodeId] = originalText;
+                    applyCrsValue(measurementData);
 
                     const measurementPayload = buildPayload(
                         existingMeasurementTile,

@@ -161,6 +161,7 @@ define([
                 prevStepValue: "['confirmation-twoface']['confirmation-twoface']['value']",
                 graphId: "['process-selection']['process-selector']['value']",
                 resourceId: "['resource-selection']['resource-selector']['value']",
+                crsId: "['crs-twoface']['crs-twoface']['value']"
               }
             }]
           }]

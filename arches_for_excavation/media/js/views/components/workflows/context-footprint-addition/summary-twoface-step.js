@@ -10,7 +10,12 @@ define([
         self.mode = self.prevStepValue.footprintSaved ? 'summary' : 'confirmation'; //if footprint saved means confirmation step completed
         self.graphId = params.graphId || null;
         self.resourceId = params.resourceId || null;
-    }
+        
+        const rawCrsValue = ko.unwrap(params.crsId);
+        self.crsId = typeof rawCrsValue === 'string'
+            ? rawCrsValue
+            : null;
+            }
 
     return ko.components.register('summary-twoface-step', {
         viewModel: viewModel,
