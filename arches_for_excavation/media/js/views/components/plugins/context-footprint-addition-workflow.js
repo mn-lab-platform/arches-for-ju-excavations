@@ -107,6 +107,8 @@ define([
               tilesManaged: 'none',
               parameters: {
                 mode: "['crs-type-selection']['process-selector']['value']",
+                graphId: "['process-selection']['process-selector']['value']",
+                resourceId: "['resource-selection']['resource-selector']['value']"
               }
             }]
           }]
@@ -122,6 +124,8 @@ define([
               tilesManaged: 'none',
               parameters: {
                 prevStepValue: "['crs-twoface']['crs-twoface']['value']",
+                graphId: "['process-selection']['process-selector']['value']",
+                resourceId: "['resource-selection']['resource-selector']['value']"
               }
             }]
           }]

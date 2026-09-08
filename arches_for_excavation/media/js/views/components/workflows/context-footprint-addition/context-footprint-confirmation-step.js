@@ -12,17 +12,19 @@ define([
             const GRAPH_CONFIG = {
                 '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c': { // Context
                     targetNodegroupId: '62ce85a9-150c-4485-8a7b-39f5c75b26ae',
+                    measurementNodegroupId: 'b66a8c3c-bdca-4ca9-b86f-4028bbfa9210',
                     parentNodegroupId: 'd45fc0db-a519-45be-911f-fe1e71153ed9', 
                     footprintNodeId: 'e2605398-9cbc-4ce0-bc88-46a96e8bcec8',
-                    measurementGeojsonNodeId: 'a6830f40-33ea-4087-a1af-9fc6e7d0bd57',
-                    measurementTextNodeId: 'be23ff04-3be2-443f-99a1-68534946e9cb',
+                    measurementGeojsonNodeId: 'dc38a61e-47d9-49e5-8956-a864fb87a830',
+                    measurementTextNodeId: '771ad351-f735-4de5-baab-2d726c033d85',
                 },
                 'cc91f1ff-6ea8-422c-be14-b818660f66f8': { // Trench
                     targetNodegroupId: '13f0cf86-0f4f-4d8c-96dc-3daa5a58af44',
+                    measurementNodegroupId: 'b7b3f2e1-1872-488a-971a-81d0cf9fb2f8',
                     parentNodegroupId: null, 
                     footprintNodeId: 'ecd3d094-57fb-4dd0-80fe-bc17fc4ca7e7',
-                    measurementGeojsonNodeId: 'ca3ca0ce-78df-4594-991c-47c3720cb1fd',
-                    measurementTextNodeId: '39c128ad-df05-4395-8ccf-cf052ac90908',
+                    measurementGeojsonNodeId: 'dbf3e29b-669d-4db7-8d3a-26aa0a257813',
+                    measurementTextNodeId: 'd30b4a32-7632-4147-a6e7-b1b7ad42b85c',
                 },
                 'ac939663-80ce-43df-967d-42def45ef333': { // Special Find
                     targetNodegroupId: '99dab25d-d1ee-4336-bb11-bd73d3fd400c', 
@@ -198,7 +200,7 @@ define([
             };
 
             self._postGroupedFootprintTile = async function(config, projectedVal, originalGeojson, originalText) {
-                const buildCleanPayload = (existing, nodegroupId, parentTileId) => {
+                const buildPayload = (existing, nodegroupId, parentTileId, data) => {
                     return {
                         tileid: existing ? existing.tileid : '',
                         nodegroup_id: nodegroupId,
@@ -206,7 +208,7 @@ define([
                         resourceinstance_id: self.resourceId,
                         sortorder: existing ? (existing.sortorder || 0) : 0,
                         tiles: existing ? (existing.tiles || {}) : {},
-                        data: existing ? (existing.data || {}) : {}
+                        data: data || {}
                     };
                 };
 
@@ -216,19 +218,65 @@ define([
                 }
 
                 const existingTile = await self._findTileByNodegroup(config.targetNodegroupId);
-                const payload = buildCleanPayload(existingTile, config.targetNodegroupId, parentTileId);
+                const targetData = existingTile ? { ...(existingTile.data || {}) } : {};
 
                 if (config.footprintNodeId) {
-                    payload.data[config.footprintNodeId] = projectedVal;
+                    targetData[config.footprintNodeId] = projectedVal;
                 }
-                if (config.measurementGeojsonNodeId) {
-                    payload.data[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson); 
+
+                if (config.measurementNodegroupId) {
+                    delete targetData[config.measurementGeojsonNodeId];
+                    delete targetData[config.measurementTextNodeId];
+                } else {
+                    if (config.measurementGeojsonNodeId) {
+                        targetData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
+                    }
+                    if (config.measurementTextNodeId) {
+                        targetData[config.measurementTextNodeId] = originalText;
+                    }
                 }
-                if (config.measurementTextNodeId) {
-                    payload.data[config.measurementTextNodeId] = originalText;
+
+                const targetPayload = buildPayload(
+                    existingTile,
+                    config.targetNodegroupId,
+                    parentTileId,
+                    targetData,
+                );
+                const targetResponse = existingTile
+                    ? await tileService.updateOne(targetPayload)
+                    : await tileService.createOne(targetPayload);
+                const targetTileId = existingTile
+                    ? existingTile.tileid
+                    : self._tileIdFromResponse(targetResponse);
+
+                if (!targetTileId) {
+                    throw new Error('Unable to determine the saved spatial extent tile ID.');
                 }
-                
-                return existingTile ? await tileService.updateOne(payload) : await tileService.createOne(payload);
+
+                if (config.measurementNodegroupId) {
+                    const existingMeasurementTile = await self._findTileByNodegroup(
+                        config.measurementNodegroupId,
+                    );
+                    const measurementData = existingMeasurementTile
+                        ? { ...(existingMeasurementTile.data || {}) }
+                        : {};
+
+                    measurementData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
+                    measurementData[config.measurementTextNodeId] = originalText;
+
+                    const measurementPayload = buildPayload(
+                        existingMeasurementTile,
+                        config.measurementNodegroupId,
+                        targetTileId,
+                        measurementData,
+                    );
+
+                    return existingMeasurementTile
+                        ? tileService.updateOne(measurementPayload)
+                        : tileService.createOne(measurementPayload);
+                }
+
+                return targetResponse;
             };
 
             self.saveFootprint = async function() {
@@ -263,11 +311,12 @@ define([
 
                 } catch (e) {
                     console.error('Failed to save footprint tile:', e);
-                    if (e && e.message) {
-                        self.errorMessage(e.message);
-                    } else {
-                        self.errorMessage('Failed to save footprint data due to an unknown error.');
-                    }
+                    const errorMessage = e && typeof e.message === 'string' && e.message.trim()
+                        ? e.message
+                        : e && typeof e.title === 'string' && e.title.trim()
+                            ? e.title
+                            : 'Failed to save footprint data.';
+                    self.errorMessage(errorMessage);
                     
                     self.infoMessage(null);
                 } finally {

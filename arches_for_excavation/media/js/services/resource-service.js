@@ -22,32 +22,18 @@ const getOne = (resourceId) => {
 };
 
 const getAll = (graphIds = null, searchTerm = '', limit = 100) => {
-    const url = '/search/resources';
+    const url = '/api/resources-by-displayname';
     let queryParams = [];
 
     if (graphIds) {
         const idsArray = Array.isArray(graphIds) ? graphIds : [graphIds];
         
-        const filterObjects = idsArray.map(id => ({
-            "graphid": id,
-            "inverted": false
-        }));
-        
-        queryParams.push('resource-type-filter=' + encodeURIComponent(JSON.stringify(filterObjects)));  
+        idsArray.forEach(id => queryParams.push('graphid=' + encodeURIComponent(id)));
     }
     
     if (searchTerm && searchTerm.trim() !== '') {
         const term = searchTerm.trim();
-        const termFilter = [{
-            "inverted": false,
-            "type": "string",
-            "context": "",
-            "context_label": "",
-            "id": term,
-            "text": term,
-            "value": term
-        }];
-        queryParams.push('term-filter=' + encodeURIComponent(JSON.stringify(termFilter)));
+        queryParams.push('q=' + encodeURIComponent(term));
     }
 
     queryParams.push('limit=' + limit);

@@ -110,7 +110,7 @@ define([
                         }
                         return {
                             id: r.resourceinstanceid,
-                            name: r.displayname || r.resourceinstanceid,
+                            name: r.displayname || 'Undefined',
                             description: r.displaydescription || '',
                             graphName: computedGraphName
                         };
