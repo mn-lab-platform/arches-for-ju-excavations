@@ -33,6 +33,7 @@ from .views.cesium_plugin import Models3DAccessView
 from .views.cidoc_periodic_table import CidocPeriodicTableDataView
 from .views.ontology_usage import OntologyUsageModelGraphView, OntologyUsageModelLayoutView, OntologyUsageModelsView
 from .views.resource_mapping_editor import ResourceMappingGraphsView, ResourceMappingMigrateView, ResourceMappingSuggestView
+from .views.displayname_search import DisplayNameSearchView
 
 urlpatterns = [
     # project-level urls
@@ -83,4 +84,5 @@ urlpatterns = [
     path("api/resource-mapping/graphs", ResourceMappingGraphsView.as_view(), name="resource_mapping_graphs"),
     path("api/resource-mapping/suggest", ResourceMappingSuggestView.as_view(), name="resource_mapping_suggest"),
     path("api/resource-mapping/migrate", ResourceMappingMigrateView.as_view(), name="resource_mapping_migrate"),
+    path("api/resources-by-displayname", DisplayNameSearchView.as_view(), name="resources_by_displayname"),
 ]
