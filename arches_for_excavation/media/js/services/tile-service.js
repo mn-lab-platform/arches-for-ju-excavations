@@ -1,5 +1,15 @@
 import { getCookie } from "./service-utils";
 
+const getErrorMessage = (errorData, status) => {
+    if (errorData && typeof errorData.message === "string" && errorData.message.trim()) {
+        return errorData.message;
+    }
+    if (errorData && typeof errorData.title === "string" && errorData.title.trim()) {
+        return errorData.title;
+    }
+    return `HTTP ${status}`;
+};
+
 const createOne = (tileData) => {
     /**
      * Important Note: this function is used for both creating and updating files
@@ -21,9 +31,9 @@ const createOne = (tileData) => {
             try {
                 errorData = await resp.json();
             } catch (err) {
-                errorData = { message: 'HTTP ' + resp.status };
+                errorData = null;
             }
-            throw errorData;
+            throw new Error(getErrorMessage(errorData, resp.status));
         }
         return resp.json ? resp.json() : {};
     });
