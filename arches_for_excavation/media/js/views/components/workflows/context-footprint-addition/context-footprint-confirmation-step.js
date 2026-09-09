@@ -150,10 +150,6 @@ define([
                 return self._createGeojsonFromText(textToUse, self._graphConfig().footprintNodeId);
             });
 
-            self.originalGeojson = ko.computed(() => {
-                return self._createGeojsonFromText(self.finalCoordinatesText(), self._graphConfig().measurementGeojsonNodeId);
-            });
-
             self.displayGeojsonString = ko.computed(() => {
                 const geojsonObj = self.projectedGeojson(); 
                 return geojsonObj ? JSON.stringify(geojsonObj, null, 2) : '';
@@ -204,7 +200,7 @@ define([
                 return self._tileIdFromResponse(created);
             };
 
-            self._postGroupedFootprintTile = async function(config, projectedVal, originalGeojson, originalText) {
+            self._postGroupedFootprintTile = async function(config, projectedGeojson , originalText) {
                 const applyCrsValue = (data) => {
                     if (!config.crsNodeId) return;
 
@@ -239,7 +235,7 @@ define([
                 const targetData = existingTile ? { ...(existingTile.data || {}) } : {};
 
                 if (config.footprintNodeId) {
-                    targetData[config.footprintNodeId] = projectedVal;
+                    targetData[config.footprintNodeId] = projectedGeojson;
                 }
 
                 if (config.measurementNodegroupId) {
@@ -247,7 +243,7 @@ define([
                     delete targetData[config.measurementTextNodeId];
                 } else {
                     if (config.measurementGeojsonNodeId) {
-                        targetData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
+                        targetData[config.measurementGeojsonNodeId] = JSON.stringify(projectedGeojson);
                     }
                     if (config.measurementTextNodeId) {
                         targetData[config.measurementTextNodeId] = originalText;
@@ -283,7 +279,7 @@ define([
                         ? { ...(existingMeasurementTile.data || {}) }
                         : {};
 
-                    measurementData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
+                    measurementData[config.measurementGeojsonNodeId] = JSON.stringify(projectedGeojson);
                     measurementData[config.measurementTextNodeId] = originalText;
                     applyCrsValue(measurementData);
 
@@ -308,18 +304,17 @@ define([
                 self.successMessage(null);
                 self.errorMessage(null);
                 
-                const projectedVal = self.projectedGeojson();
-                const originalGeojson = self.originalGeojson(); 
+                const projectedGeojson = self.projectedGeojson();
                 const originalText = self.finalCoordinatesText();
 
-                if (!projectedVal || !originalGeojson) {
+                if (!projectedGeojson) {
                     self.errorMessage('No GeoJSON data available to save.');
                     self.isLoading(false);
                     return;
                 }
 
                 try {
-                    await self._postGroupedFootprintTile(self._graphConfig(), projectedVal, originalGeojson, originalText);
+                    await self._postGroupedFootprintTile(self._graphConfig(), projectedGeojson, originalText);
                     
                     self.infoMessage(null);
                     self.successMessage('Footprint data saved successfully.');
