@@ -6,6 +6,7 @@ define([
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
   'views/components/workflows/universal/process-selection-step',
   'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/context-footprint-addition/existing-coordinate-data-step',
   'views/components/workflows/context-footprint-addition/crs-twoface-step',
   'views/components/workflows/context-footprint-addition/coord-twoface-step',
   'views/components/workflows/context-footprint-addition/confirmation-twoface-step',
@@ -66,6 +67,22 @@ define([
               parameters: {
                 graphId: "['process-selection']['process-selector']['value']",
                 searchPlaceHolder: 'Search for a Context resource...'
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Step 3',
+          name: 'Existing Coordinate Data',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'existing-coordinate-data-step',
+              uniqueInstanceName: 'existing-coordinate-data',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['resource-selection']['resource-selector']['value']",
+                graphId: "['process-selection']['process-selector']['value']"
               }
             }]
           }]
