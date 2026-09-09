@@ -100,10 +100,11 @@ define([
                 
                 lines.forEach(line => {
                     const parts = line.trim().split(/\s+/);
-                    if (parts.length >= 4) {
-                        const x = parseFloat(parts[1]);
-                        const y = parseFloat(parts[2]);
-                        const z = parseFloat(parts[3]);
+                    if (parts.length === 3 || parts.length === 4) {
+                        const coordinateStart = parts.length === 4 ? 1 : 0;
+                        const x = parseFloat(parts[coordinateStart]);
+                        const y = parseFloat(parts[coordinateStart + 1]);
+                        const z = parseFloat(parts[coordinateStart + 2]);
                         if (!isNaN(x) && !isNaN(y)) {
                             coordinates.push([x, y, z]);
                         }

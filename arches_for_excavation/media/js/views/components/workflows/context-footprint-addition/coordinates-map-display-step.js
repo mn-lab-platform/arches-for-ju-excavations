@@ -10,7 +10,7 @@ define([
 ], function(ko, arches, maplibreGl, proj4, basemapServiceModule, resourceServiceModule, template) {
     class Point {
         constructor(label, x, y, z) {
-            this.label = label;
+            this.label = label || null;
             this.x = x; 
             this.y = y;
             this.z = z;
@@ -160,11 +160,12 @@ define([
                         return;
                     }
                     const parts = line.trim().split(delimiter).filter(Boolean);
-                    if (parts.length >= 4) {
-                        const label = parts[0];
-                        const x = parseFloat(parts[1]);
-                        const y = parseFloat(parts[2]);
-                        const z = parseFloat(parts[3]);
+                    if (parts.length === 3 || parts.length === 4) {
+                        const coordinateStart = parts.length === 4 ? 1 : 0;
+                        const label = parts.length === 4 ? parts[0] : null;
+                        const x = parseFloat(parts[coordinateStart]);
+                        const y = parseFloat(parts[coordinateStart + 1]);
+                        const z = parseFloat(parts[coordinateStart + 2]);
                         points.push(new Point(label, x, y, z));
                     }
                 });
@@ -188,7 +189,7 @@ define([
                     const popupContent = `
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 200px; padding: 2px;">
                             <div style="font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #4287f5;">
-                                ${pt.label}
+                                ${pt.label || 'No Label'}
                             </div>
                             <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px; color: #4a4a4a; padding: 2px;">
                                 <span style="font-weight: 600; color: #666;">Lng:</span>
@@ -290,7 +291,6 @@ define([
 
             (async function() {
                 self.crsProjDefinition = await self.getProjDefinitionFromCRSId();
-                console.log('CRS PROJ4 Definition:', self.crsProjDefinition);
                 const rawPoints = self._extractPointsFromText(self.coordinatesText());
                 
                 let displayPoints = rawPoints;
@@ -306,7 +306,7 @@ define([
                     });
 
                     const delimiter = (self.coordinatesText() || '').includes('\t') ? '\t' : ' ';
-                    const lines = displayPoints.map(pt => `${pt.label}${delimiter}${pt.x.toFixed(8)}${delimiter}${pt.y.toFixed(8)}${delimiter}${pt.z}`);
+                    const lines = displayPoints.map(pt => `${pt.label || ''}${delimiter}${pt.x.toFixed(8)}${delimiter}${pt.y.toFixed(8)}${delimiter}${pt.z}`);
                     projectedTextStr = lines.join('\n');
                 }
 

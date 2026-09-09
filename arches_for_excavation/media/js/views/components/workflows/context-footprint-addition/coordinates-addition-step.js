@@ -163,7 +163,7 @@ define([
                     self.coordinatesValid(false);
                     self.successMessage('');
                     self.errorMessage('');
-                    self.infoMessage('Enter coordinates as: ID X Y Z');
+                    self.infoMessage('Enter coordinates as: X Y Z or ID X Y Z');
                     self.value(null);
                     return false;
                 }
@@ -182,8 +182,7 @@ define([
                     return false;
                 }
 
-                const regexString = `^([a-zA-Z0-9_.-]+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)$`;
-                const coordinateLineRegex = new RegExp(regexString);
+                const coordinateLineRegex = new RegExp(`^(?:([a-zA-Z0-9_.-]+)${delimiter})?(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)$`);
 
                 const errorLineIndices = [];
                 let allValid = true;
@@ -234,6 +233,10 @@ define([
                     const parts = line.trim().split(delimiter);
                     if (parts.length === 4) {
                         [parts[1], parts[2]] = [parts[2], parts[1]];
+                        return parts.join(delimiter);
+                    }
+                    else if (parts.length === 3) {
+                        [parts[0], parts[1]] = [parts[1], parts[0]];
                         return parts.join(delimiter);
                     }
                     return line;

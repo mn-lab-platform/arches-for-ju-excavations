@@ -16,7 +16,6 @@ define([
         self.mode = self.prevStepValue.verified ? 'confirmation' : 'map';
         self.graphId = params.graphId || null;
         self.resourceId = params.resourceId || null;
-        console.log('Confirmation Two-Face Step - Previous Step Value:', self.prevStepValue);
     }
 
     return ko.components.register('confirmation-twoface-step', {
