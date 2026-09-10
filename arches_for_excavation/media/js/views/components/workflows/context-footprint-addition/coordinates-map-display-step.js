@@ -276,9 +276,10 @@ define([
 
                 const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
                 const delimiter = trimmed.includes('\t') ? '\t' : ' ';
+                const lastPointIndex = lines.length - 1;
 
                 lines.forEach((line, index) => {
-                    if (self.ignoreLastLine() && index === lines.length - 1) {
+                    if (self.ignoreLastLine() && index === lastPointIndex) {
                         return;
                     }
                     const parts = line.trim().split(delimiter).filter(Boolean);

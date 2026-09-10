@@ -170,6 +170,12 @@ define([
                 
                 const allLines = text.split('\n');
                 const delimiter = self.delimiter();
+                const lastNonEmptyIndex = (() => {
+                    for (let i = allLines.length - 1; i >= 0; i--) {
+                        if (allLines[i].trim().length > 0) return i;
+                    }
+                    return -1;
+                })();
 
                 if (!delimiter) {
                     self.errorLines(allLines.map((_, index) => index));
@@ -188,7 +194,7 @@ define([
                 let allValid = true;
 
                 allLines.forEach((line, index) => {
-                    if (self.ignoreLastLine() && index === allLines.length - 1) {
+                    if (self.ignoreLastLine() && index === lastNonEmptyIndex) {
                         return;
                     }
 

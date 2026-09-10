@@ -10,6 +10,7 @@ define([
         self.mode = self.prevStepValue.footprintSaved ? 'summary' : 'confirmation'; //if footprint saved means confirmation step completed
         self.graphId = params.graphId || null;
         self.resourceId = params.resourceId || null;
+        self.overwriteNodeIds = params.overwriteNodeIds || null;
         
         const rawCrsValue = ko.unwrap(params.crsId);
         self.crsId = typeof rawCrsValue === 'string'

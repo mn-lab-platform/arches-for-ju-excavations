@@ -1,0 +1,183 @@
+<style>
+    .workflow-tab-controls {
+        display: none;
+    }
+
+    .tabbed-workflow-step-container {
+        overflow-y: auto;
+    }
+
+    .workflow-nav-tabs {
+        overflow-x: auto;
+    }
+
+    .empty-coordinate-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 250px;
+        text-align: center;
+    }
+
+    .empty-coordinate-state h3 {
+        margin: 0;
+        font-weight: 500;
+        color: #555;
+    }
+
+    .existing-coordinate-data-wrapper {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 1.5rem;
+    }
+
+    .data-left-header {
+        margin-bottom: 2rem;
+    }
+    
+    .data-left-header h3 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .data-left-header p {
+        margin: 0;
+        color: #666;
+    }
+
+    .existing-coordinate-data-right {
+        height: 100%;
+        width: 100%;
+        min-height: 400px;
+    }
+
+    .coordinate-data {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+        background-color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .coordinate-data:hover {
+        background-color: #f8f9fa;
+        border-color: #ccc;
+    }
+
+    .coordinate-data.active {
+        background-color: #f0f7ff; 
+        border-color: var(--aggregation-blue, #007bff);
+        box-shadow: 0 0 0 1px var(--aggregation-blue, #007bff);
+    }
+
+    .display-button {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        color: #888;
+    }
+
+    .responsive-chevron {
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .coordinate-data.active .responsive-chevron {
+        color: var(--aggregation-blue, #007bff);
+        transform: translateX(4px);
+    }
+
+    .status-icon {
+        font-size: 0.9em;
+        margin-left: 0.25rem;
+    }
+    .status-icon.valid {
+        color: #28a745;
+    }
+    .status-icon.malformed {
+        color: #dc3545;
+    }
+
+    .coord-info-display {
+        width: 100%;
+        height: 100%;
+        font-family: "Fira Mono", "Consolas", "Menlo", "Monaco", "Liberation Mono", "Courier New", monospace;
+        font-weight: 600;
+        border-radius: 4px;
+        padding: 1rem;
+        overflow: auto;
+        resize: none;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 768px) {
+        .existing-coordinate-data-wrapper {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .coordinate-data.active .responsive-chevron {
+            transform: rotate(90deg);
+        }
+    }
+</style>
+
+<!-- ko if: !loading() && coordCardInfo().length === 0 -->
+<div class="empty-coordinate-state">
+    <div style="font-size: 40px; margin-bottom: 20px; color: #28a745;">
+        <i class="fa fa-check-circle"></i>
+    </div>
+    <h3>The resource has no footprint data yet. You can move on to the next step.</h3>
+</div>
+<!-- /ko -->
+
+<!-- ko if: !loading() && coordCardInfo().length > 0 -->
+<div class="existing-coordinate-data-wrapper">
+    <div class="existing-coordinate-data-left">
+        <div class="data-left-header">
+            <h3>Selected resource has existing footprint data.</h3>
+            <p>Please choose which fields you'd like to overwrite:</p>
+        </div>
+        
+        <!-- ko foreach: coordCardInfo -->
+        <div class="coordinate-data" 
+             data-bind="click: function() { $parent.setDisplayContent($data); },
+                        css: { 'active': nodegroupId === $parent.activeNodegroupId() }">
+            
+            <input type="checkbox" 
+                   data-bind="checkedValue: nodegroupId,
+                              checked: $parent.selectedOverwrites, 
+                              click: function(data, event) { event.stopPropagation(); return true; }" />
+            
+            <strong data-bind="text: label"></strong>
+            
+            <i class="fa status-icon" 
+               data-bind="css: {
+                   'fa-check-circle valid': status === 'valid',
+                   'fa-exclamation-triangle malformed': status === 'malformed'
+               }, attr: { title: status === 'valid' ? 'Existing data is valid' : 'Existing data is malformed' }"></i>
+            
+            <div class="display-button">
+                <i class="fa fa-chevron-right responsive-chevron"></i>
+            </div>
+        </div>
+        <!-- /ko -->
+    </div>
+    
+    <div class="existing-coordinate-data-right">
+        <textarea class="coord-info-display" data-bind="value: displayContent" readonly></textarea>
+    </div>
+</div>
+<!-- /ko -->

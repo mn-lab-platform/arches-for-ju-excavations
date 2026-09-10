@@ -7,8 +7,8 @@ define([
         viewModel: function(params) {
             const self = this;
             const tileService = tileServiceModule.default || tileServiceModule;
+            
             self.value = params.value;
-
             self.resourceId = params.resourceId;
             self.graphId = params.graphId;
 
@@ -16,7 +16,7 @@ define([
             self.CONTEXT_GRAPH_ID = '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c';
             self.SPECIAL_FIND_GRAPH_ID = 'ac939663-80ce-43df-967d-42def45ef333';
 
-            self.coordDataNodegroups = {
+            self.coordDataNodegroupIds = {
                 [self.TRENCH_GRAPH_ID]: {
                     footprint: 'ecd3d094-57fb-4dd0-80fe-bc17fc4ca7e7',
                     txtMeasurement: 'd30b4a32-7632-4147-a6e7-b1b7ad42b85c',
@@ -34,23 +34,99 @@ define([
                 }
             };
 
-            self.validationStatuses = null;
+            self.loading = ko.observable(true);
+            self.coordCardInfo = ko.observableArray([]);
+            self.activeNodegroupId = ko.observable(null);
+            self.displayContent = ko.observable('');
+
+            const initialValue = ko.unwrap(self.value);
+            const initialSelection = initialValue instanceof Set
+                ? Array.from(initialValue)
+                : Array.isArray(initialValue) ? initialValue : [];
+            self.selectedOverwrites = ko.observableArray(initialSelection);
+
+            self.selectedOverwrites.subscribe(function(selectedIds) {
+                self.value(new Set(selectedIds));
+            });
+
+            self.setDisplayContent = function(item) {
+                if (!item) {
+                    self.activeNodegroupId(null);
+                    return self.displayContent('');
+                }
+
+                self.activeNodegroupId(item.nodegroupId);
+
+                if (typeof item.value === 'object' && item.value !== null) {
+                    return self.displayContent(JSON.stringify(item.value, null, 2));
+                }
+
+                const formatted = String(item.value)
+                    .replace(/\\+r\\+n|\\+n/g, '\n')
+                    .replace(/\\"/g, '"');
+
+                self.displayContent(formatted);
+            };
 
             tileService.getAllForResource(self.resourceId)
                 .then(response => {
                     const tiles = response.tiles;
-                    const nodegroups = self.coordDataNodegroups[self.graphId];
+                    const nodegroupIds = self.coordDataNodegroupIds[self.graphId];
 
-                    const getTileValue = (nodegroupId) => nodegroupId ? tiles.find(tile => tile.data?.[nodegroupId])?.data[nodegroupId] : null;
+                    const getTileValueAndLabel = (nodegroupId) => {
+                        const tile = tiles.find(tile => tile.data?.[nodegroupId]);
+                        if (!tile) return { value: null, label: 'Undefined' };
+                        const value = tile.data[nodegroupId];
+                        const label = tile.display_values?.find(display_value => display_value.nodeid === nodegroupId)?.label || 'Undefined';
+                        return { value, label };
+                    };
 
-                    self.validationStatuses = {
-                        footprint: self._validateGeoJson(getTileValue(nodegroups.footprint)),
-                        txtMeasurement: self._validateTxtMeasurement(getTileValue(nodegroups.txtMeasurement)),
-                        geojsonMeasurement: self._validateGeoJson(getTileValue(nodegroups.geojsonMeasurement))
+                    const footprintTile = getTileValueAndLabel(nodegroupIds.footprint);
+                    const txtMeasurementTile = getTileValueAndLabel(nodegroupIds.txtMeasurement);
+                    const geojsonMeasurementTile = getTileValueAndLabel(nodegroupIds.geojsonMeasurement);
+
+                    if (self._tileIsNotEmpty(footprintTile)) self.coordCardInfo.push(
+                        {
+                            nodegroupId: nodegroupIds.footprint,
+                            label: footprintTile.label,
+                            value: footprintTile.value,
+                            status: self._validateGeoJson(footprintTile.value)
+                        }
+                    );
+
+                    if (self._tileIsNotEmpty(txtMeasurementTile)) self.coordCardInfo.push(
+                        {
+                            nodegroupId: nodegroupIds.txtMeasurement,
+                            label: txtMeasurementTile.label,
+                            value: txtMeasurementTile.value,
+                            status: self._validateTxtMeasurement(txtMeasurementTile.value)
+                        }
+                    );
+
+                    if (self._tileIsNotEmpty(geojsonMeasurementTile)) self.coordCardInfo.push(
+                        {
+                            nodegroupId: nodegroupIds.geojsonMeasurement,
+                            label: geojsonMeasurementTile.label,
+                            value: geojsonMeasurementTile.value,
+                            status: self._validateGeoJson(geojsonMeasurementTile.value)
+                        }
+                    );
+
+                    if (self.coordCardInfo().length === 0) {
+                        self.value(new Set());
                     }
 
-                    console.log('Coordinate Data Statuses:', self.validationStatuses);
+                    if (self.coordCardInfo().length > 0) {
+                        self.setDisplayContent(self.coordCardInfo()[0]);
+                    }
                 })
+                .finally(() => {
+                    self.loading(false);
+                });
+
+            self._tileIsNotEmpty = function(tile) {
+                return tile && tile.value !== null && tile.label !== 'Undefined';
+            };
 
             self._parseGeoJsonValue = function(value) {
                 if (!value || typeof value === 'object') return value || null;
@@ -79,12 +155,21 @@ define([
             self._validateTxtMeasurement = function(tileValue) {
                 if (!tileValue || typeof tileValue !== 'string') return tileValue ? 'malformed' : 'empty';
                 
-                const lines = tileValue.split('\n').map(l => l.trim()).filter(Boolean);
+                const cleanedValue = String(tileValue).replace(/\\+r\\+n|\\+n/g, '\n');
+                
+                const lines = cleanedValue.split('\n').map(l => l.trim()).filter(Boolean);
                 if (!lines.length) return 'empty';
 
+                const strictNumberRegex = /^-?\d*\.?\d+$/;
+
                 const isValid = lines.every(line => {
-                    const nums = line.split(/\s+/).slice(-3).map(Number);
-                    return nums.length === 3 && nums.every(n => !isNaN(n));
+                    const tokens = line.split(/\s+/);
+                    
+                    if (tokens.length < 3) return false;
+
+                    const coords = tokens.slice(-3);
+                    
+                    return coords.every(str => strictNumberRegex.test(str));
                 });
                 
                 return isValid ? 'valid' : 'malformed';
