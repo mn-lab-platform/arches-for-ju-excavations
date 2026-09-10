@@ -153,24 +153,21 @@ define([
             };
 
             self._validateTxtMeasurement = function(tileValue) {
+                console.log('Validating txt measurement:', tileValue);
                 if (!tileValue || typeof tileValue !== 'string') return tileValue ? 'malformed' : 'empty';
                 
                 const cleanedValue = String(tileValue).replace(/\\+r\\+n|\\+n/g, '\n');
+                const normalizedValue = cleanedValue.replace(
+                    /(-?\d+(?:[.,]\d+)?)(?=[a-zA-Z][a-zA-Z0-9_.-]*\s+-?\d)/g,
+                    '$1\n'
+                );
                 
-                const lines = cleanedValue.split('\n').map(l => l.trim()).filter(Boolean);
+                const lines = normalizedValue.split('\n').map(l => l.trim()).filter(Boolean);
                 if (!lines.length) return 'empty';
 
-                const strictNumberRegex = /^-?\d*\.?\d+$/;
+                const coordinateLineRegex = /^(?:[a-zA-Z0-9_.-]+\s+)?-?\d+(?:[.,]\d+)?\s+-?\d+(?:[.,]\d+)?\s+-?\d+(?:[.,]\d+)?$/;
 
-                const isValid = lines.every(line => {
-                    const tokens = line.split(/\s+/);
-                    
-                    if (tokens.length < 3) return false;
-
-                    const coords = tokens.slice(-3);
-                    
-                    return coords.every(str => strictNumberRegex.test(str));
-                });
+                const isValid = lines.every(line => coordinateLineRegex.test(line));
                 
                 return isValid ? 'valid' : 'malformed';
             };
