@@ -163,13 +163,19 @@ define([
                     self.coordinatesValid(false);
                     self.successMessage('');
                     self.errorMessage('');
-                    self.infoMessage('Enter coordinates as: ID X Y Z');
+                    self.infoMessage('Enter coordinates as: X Y Z or ID X Y Z');
                     self.value(null);
                     return false;
                 }
                 
                 const allLines = text.split('\n');
                 const delimiter = self.delimiter();
+                const lastNonEmptyIndex = (() => {
+                    for (let i = allLines.length - 1; i >= 0; i--) {
+                        if (allLines[i].trim().length > 0) return i;
+                    }
+                    return -1;
+                })();
 
                 if (!delimiter) {
                     self.errorLines(allLines.map((_, index) => index));
@@ -182,14 +188,13 @@ define([
                     return false;
                 }
 
-                const regexString = `^([a-zA-Z0-9_.-]+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)$`;
-                const coordinateLineRegex = new RegExp(regexString);
+                const coordinateLineRegex = new RegExp(`^(?:([a-zA-Z0-9_.-]+)${delimiter})?(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)${delimiter}(-?\\d+[.,]?\\d+)$`);
 
                 const errorLineIndices = [];
                 let allValid = true;
 
                 allLines.forEach((line, index) => {
-                    if (self.ignoreLastLine() && index === allLines.length - 1) {
+                    if (self.ignoreLastLine() && index === lastNonEmptyIndex) {
                         return;
                     }
 
@@ -234,6 +239,10 @@ define([
                     const parts = line.trim().split(delimiter);
                     if (parts.length === 4) {
                         [parts[1], parts[2]] = [parts[2], parts[1]];
+                        return parts.join(delimiter);
+                    }
+                    else if (parts.length === 3) {
+                        [parts[0], parts[1]] = [parts[1], parts[0]];
                         return parts.join(delimiter);
                     }
                     return line;

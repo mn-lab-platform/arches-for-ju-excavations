@@ -10,108 +10,231 @@ define([
 ], function(ko, arches, maplibreGl, proj4, basemapServiceModule, resourceServiceModule, template) {
     class Point {
         constructor(label, x, y, z) {
-            this.label = label;
+            this.label = label || null;
             this.x = x; 
             this.y = y;
             this.z = z;
         }
     }
 
-    class SimpleBasemapControl {
+    class LayerControl {
         constructor(options) {
-            const defaultBasemap = {
-                source_info: {
-                    name: 'osm-standard',
-                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                    tileSize: 256,
-                    type: 'raster'
-                },
-                layer_info: {
-                    name: 'Default Basemap',
-                    id: 'osm-standard-layer',
-                    source: 'osm-standard',
-                    icon: 'fa fa-home'
-                }
-            };
-
-            const areLayersProvided = options && options.layers && options.layers.length > 0;
-            this._layers = areLayersProvided ? [...options.layers, defaultBasemap] : [defaultBasemap];
-            this._activeLayerId = this._layers[0].layer_info.id;
+            this._basemaps = options.basemaps || [];
+            this._overlays = options.overlays || [];
+            this._activeBasemapId = this._basemaps.length > 0
+                ? this._basemaps[0].layer_info.id
+                : null;
             
             this._container = document.createElement('div');
-            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group basemap-control-panel';
-            this._container.style.padding = '5px';
+            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+            this._container.style.padding = '10px';
             this._container.style.backgroundColor = '#fff';
             this._container.style.boxShadow = '0 0 0 2px rgba(0,0,0,0.1)';
             this._container.style.borderRadius = '4px';
             this._container.style.display = 'flex';
             this._container.style.flexDirection = 'column';
-            this._container.style.gap = '5px';
+            this._container.style.gap = '10px';
+            this._container.style.minWidth = '150px';
+            this._container.style.overflow = 'hidden';
+            this._container.style.boxSizing = 'border-box';
         }
 
         onAdd(map) {
             this._map = map;
+            this._initializeLayers();
+            this._buildBasemapSection();
+
+            if (this._overlays.length > 0) {
+                this._buildDivider();
+                this._buildOverlaySection();
+            }
+
+            this._resizeHandler = () => {
+                if (this._map && this._map.getContainer()) {
+                    const mapHeight = this._map.getContainer().clientHeight;
+                    const controlHeight = Math.max(mapHeight - 20, 120);
+                    this._container.style.height = `${controlHeight}px`;
+                    this._container.style.maxHeight = `${controlHeight}px`;
+                }
+            };
+
+            this._map.on('resize', this._resizeHandler);
             
-            this._layers.forEach(layer => {
-                const { source_info, layer_info } = layer;
+            this._resizeHandler();
 
-                if (!this._map.getSource(source_info.name)) {
-                    this._map.addSource(source_info.name, source_info);
-                }
-                if (!this._map.getLayer(layer_info.id)) {
-                    this._map.addLayer({
-                        id: layer_info.id,
-                        type: 'raster',
-                        source: layer_info.source,
-                        layout: {
-                            visibility: this._activeLayerId === layer_info.id ? 'visible' : 'none'
-                        }
-                    });
-                }
-
-                const tile = document.createElement("div");
-                tile.style.cursor = 'pointer';
-                tile.style.padding = '4px 8px';
-                tile.style.borderRadius = '3px';
-                tile.style.display = 'flex';
-                tile.style.alignItems = 'center';
-                tile.style.gap = '8px';
-
-                if (this._activeLayerId === layer_info.id) {
-                    tile.style.backgroundColor = '#e0e0e0';
-                }
-
-                tile.innerHTML = `<i class="${layer_info.icon || 'fa fa-map'}"></i> <span style="font-size: 12px;">${layer_info.name}</span>`;
-
-                tile.addEventListener("click", () => {
-                    this._switchBasemap(layer_info.id, tile);
-                });
-
-                this._container.appendChild(tile);
-            });
-            
             return this._container;
         }
 
-        _switchBasemap(newLayerId, clickedTile) {
-            this._layers.forEach(l => {
-                if (this._map.getLayer(l.layer_info.id)) {
-                    this._map.setLayoutProperty(l.layer_info.id, 'visibility', 'none');
+        onRemove() {
+            if (this._map && this._resizeHandler) {
+                this._map.off('resize', this._resizeHandler);
+            }
+            this._container.parentNode?.removeChild(this._container);
+            this._map = undefined;
+        }
+
+        _initializeLayers() {
+            this._basemaps.forEach(basemap => {
+                if (basemap.source_info && !this._map.getSource(basemap.source_info.name)) {
+                    const { name, ...sourceDef } = basemap.source_info;
+                    this._map.addSource(name, sourceDef);
+                }
+
+                if (!this._map.getLayer(basemap.layer_info.id)) {
+                    const firstLayerId = this._map.getStyle().layers?.[0]?.id;
+                    const basemapLayer = {
+                        ...basemap.layer_info,
+                        layout: {
+                            ...(basemap.layer_info.layout || {}),
+                            visibility: this._activeBasemapId === basemap.layer_info.id ? 'visible' : 'none'
+                        }
+                    };
+
+                    if (firstLayerId) {
+                        this._map.addLayer(basemapLayer, firstLayerId);
+                    } else {
+                        this._map.addLayer(basemapLayer);
+                    }
+                }
+            });
+
+            this._overlays.forEach(overlay => {
+                const sources = overlay.sources || (overlay.source_info ? [overlay.source_info] : []);
+                sources.forEach(source => {
+                    if (source && source.name && !this._map.getSource(source.name)) {
+                        const { name, ...sourceDef } = source;
+                        this._map.addSource(name, sourceDef);
+                    }
+                });
+                
+                overlay.layers.forEach(layer => {
+                    if (layer.source && !this._map.getSource(layer.source)) {
+                        console.warn(`Skipping overlay layer ${layer.id}: source ${layer.source} is not registered.`);
+                        return;
+                    }
+
+                    if (!this._map.getLayer(layer.id)) {
+                        this._map.addLayer({
+                            ...layer,
+                            layout: {
+                                ...(layer.layout || {}),
+                                visibility: overlay.visible !== false ? 'visible' : 'none'
+                            }
+                        });
+                    }
+                });
+            });
+
+            ['polygon-fill', 'polygon-outline'].forEach(layerId => {
+                if (this._map.getLayer(layerId)) {
+                    this._map.moveLayer(layerId);
+                }
+            });
+        }
+
+        _buildBasemapSection() {
+            const section = document.createElement('div');
+            section.style.display = 'flex';
+            section.style.flexDirection = 'column';
+            section.style.gap = '6px';
+            section.style.overflowY = 'auto';
+            section.style.flex = '0 1 auto';
+            section.style.minHeight = '0';
+            section.style.maxHeight = '50%';
+            
+            const header = document.createElement('strong');
+            header.innerText = 'Basemaps';
+            header.style.fontSize = '12px';
+            header.style.color = '#666';
+            section.appendChild(header);
+
+            this._basemaps.forEach(layer => {
+                const { layer_info } = layer;
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '8px';
+                label.style.fontSize = '13px';
+                label.style.cursor = 'pointer';
+
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'basemap-toggle';
+                radio.checked = this._activeBasemapId === layer_info.id;
+                radio.addEventListener('change', () => this._switchBasemap(layer_info.id));
+
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(layer_info.name));
+                section.appendChild(label);
+            });
+
+            this._container.appendChild(section);
+        }
+
+        _buildOverlaySection() {
+            const section = document.createElement('div');
+            section.style.display = 'flex';
+            section.style.flexDirection = 'column';
+            section.style.gap = '6px';
+            section.style.paddingInline = '8px';
+            section.style.overflowY = 'auto';
+            section.style.flex = '1 1 0';
+            section.style.minHeight = '0';
+
+            const header = document.createElement('strong');
+            header.innerText = 'Resource Overlays';
+            header.style.fontSize = '12px';
+            header.style.color = '#666';
+            section.appendChild(header);
+
+            this._overlays.forEach(overlay => {
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '8px';
+                label.style.fontSize = '13px';
+                label.style.cursor = 'pointer';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = overlay.visible !== false;
+                
+                checkbox.addEventListener('change', event => {
+                    overlay.layers.forEach(layer => {
+                        if (this._map.getLayer(layer.id)) {
+                            this._map.setLayoutProperty(layer.id, 'visibility', event.target.checked ? 'visible' : 'none');
+                        }
+                    });
+                });
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(overlay.name));
+                section.appendChild(label);
+            });
+
+            this._container.appendChild(section);
+        }
+
+        _buildDivider() {
+            const divider = document.createElement('div');
+            divider.style.height = '1px';
+            divider.style.backgroundColor = '#ddd';
+            divider.style.margin = '4px 0';
+            this._container.appendChild(divider);
+        }
+
+        _switchBasemap(newLayerId) {
+            this._basemaps.forEach(layer => {
+                if (this._map.getLayer(layer.layer_info.id)) {
+                    this._map.setLayoutProperty(layer.layer_info.id, 'visibility', 'none');
                 }
             });
 
             if (this._map.getLayer(newLayerId)) {
                 this._map.setLayoutProperty(newLayerId, 'visibility', 'visible');
             }
-            
-            Array.from(this._container.children).forEach(el => el.style.backgroundColor = 'transparent');
-            clickedTile.style.backgroundColor = '#e0e0e0';
-            this._activeLayerId = newLayerId;
-        }
 
-        onRemove() {
-            this._container.parentNode?.removeChild(this._container);
-            this._map = undefined;
+            this._activeBasemapId = newLayerId;
         }
     }
 
@@ -139,7 +262,6 @@ define([
                 if (!self.crsId) return null;
                 try {
                     const crsResource = await resourceService.getOne(self.crsId);
-                    console.log('Fetched CRS resource:', crsResource);
                     return crsResource.resource["Definition (files)"]?.find((crs) => crs.Type === 'PROJ4').String || null;
                 } catch (error) {
                     console.error('Error fetching CRS definition:', error);
@@ -154,17 +276,19 @@ define([
 
                 const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
                 const delimiter = trimmed.includes('\t') ? '\t' : ' ';
+                const lastPointIndex = lines.length - 1;
 
                 lines.forEach((line, index) => {
-                    if (self.ignoreLastLine() && index === lines.length - 1) {
+                    if (self.ignoreLastLine() && index === lastPointIndex) {
                         return;
                     }
                     const parts = line.trim().split(delimiter).filter(Boolean);
-                    if (parts.length >= 4) {
-                        const label = parts[0];
-                        const x = parseFloat(parts[1]);
-                        const y = parseFloat(parts[2]);
-                        const z = parseFloat(parts[3]);
+                    if (parts.length === 3 || parts.length === 4) {
+                        const coordinateStart = parts.length === 4 ? 1 : 0;
+                        const label = parts.length === 4 ? parts[0] : null;
+                        const x = parseFloat(parts[coordinateStart]);
+                        const y = parseFloat(parts[coordinateStart + 1]);
+                        const z = parseFloat(parts[coordinateStart + 2]);
                         points.push(new Point(label, x, y, z));
                     }
                 });
@@ -188,7 +312,7 @@ define([
                     const popupContent = `
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 200px; padding: 2px;">
                             <div style="font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #4287f5;">
-                                ${pt.label}
+                                ${pt.label || 'No Label'}
                             </div>
                             <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px; color: #4a4a4a; padding: 2px;">
                                 <span style="font-weight: 600; color: #666;">Lng:</span>
@@ -290,7 +414,6 @@ define([
 
             (async function() {
                 self.crsProjDefinition = await self.getProjDefinitionFromCRSId();
-                console.log('CRS PROJ4 Definition:', self.crsProjDefinition);
                 const rawPoints = self._extractPointsFromText(self.coordinatesText());
                 
                 let displayPoints = rawPoints;
@@ -300,13 +423,12 @@ define([
                     const wgs84 = '+proj=longlat +datum=WGS84 +no_defs';
                     
                     displayPoints = rawPoints.map(pt => {
-                        // Transform from Local CRS to WGS84
                         const transformed = proj4(self.crsProjDefinition, wgs84, [pt.x, pt.y]);
                         return new Point(pt.label, transformed[0], transformed[1], pt.z);
                     });
 
                     const delimiter = (self.coordinatesText() || '').includes('\t') ? '\t' : ' ';
-                    const lines = displayPoints.map(pt => `${pt.label}${delimiter}${pt.x.toFixed(8)}${delimiter}${pt.y.toFixed(8)}${delimiter}${pt.z}`);
+                    const lines = displayPoints.map(pt => `${pt.label || ''}${delimiter}${pt.x.toFixed(8)}${delimiter}${pt.y.toFixed(8)}${delimiter}${pt.z}`);
                     projectedTextStr = lines.join('\n');
                 }
 
@@ -334,18 +456,97 @@ define([
                 });
 
                 self.map.on('load', () => {
-                    if (displayPoints.length === 0) return;
-
-                    basemapService.getBasemapsAndOverlaysInfo().then(info => {
-                        const basemapInfo = info.basemaps;
-
-                        const basemapControl = new SimpleBasemapControl({
-                            layers: basemapInfo
-                        });
-                        self.map.addControl(basemapControl, 'top-right');
-
+                    if (displayPoints.length > 0) {
                         self._generateMarkers(displayPoints);
                         self._drawFeatures(displayPoints);
+                    }
+
+                    basemapService.getBasemapsAndOverlaysInfo().then(info => {
+                        
+                        const defaultBasemap = {
+                            source_info: {
+                                name: 'osm-standard',
+                                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                                tileSize: 256,
+                                type: 'raster',
+                                maxzoom: 19
+                            },
+                            layer_info: {
+                                name: 'Default Basemap',
+                                id: 'osm-standard-layer',
+                                source: 'osm-standard',
+                                type: 'raster'
+                            }
+                        };
+
+                        const providedBasemaps = info.basemaps || [];
+                        const basemapInfo = [
+                            ...providedBasemaps.map(basemap => ({
+                                ...basemap,
+                                layer_info: {
+                                    ...basemap.layer_info,
+                                    type: 'raster',
+                                    source: basemap.layer_info.source || basemap.source_info.name
+                                }
+                            })),
+                            defaultBasemap
+                        ];
+
+                        const mapLayers = (arches.default && arches.default.mapLayers) || [];
+                        const mapSources = (arches.default && arches.default.mapSources) || {};
+                        
+                        const overlayInfo = mapLayers
+                            .filter(layer => layer.isoverlay === true)
+                            .map(layer => {
+                                const layerDefinitions = layer.layer_definitions || [];
+                                const sourceIds = [...new Set(
+                                    layerDefinitions.map(layerDefinition => layerDefinition.source).filter(Boolean)
+                                )];
+                                
+                                const vectorSourceIds = sourceIds.filter(sourceId => {
+                                    return mapSources[sourceId]?.type === 'vector';
+                                });
+
+                                if (vectorSourceIds.length === 0) return null;
+
+                                const sources = vectorSourceIds.map(sourceId => {
+                                    const sourceDef = {
+                                        ...mapSources[sourceId],
+                                        tiles: mapSources[sourceId].tiles
+                                            ? [...mapSources[sourceId].tiles]
+                                            : mapSources[sourceId].tiles
+                                    };
+
+                                    if (sourceDef.tiles) {
+                                        sourceDef.tiles = sourceDef.tiles.map(url => 
+                                            url.startsWith('/') ? `${window.location.origin}${url}` : url
+                                        );
+                                    }
+
+                                    return {
+                                        ...sourceDef,
+                                        name: sourceId
+                                    };
+                                });
+
+                                const layers = layerDefinitions.filter(layerDefinition => {
+                                    return vectorSourceIds.includes(layerDefinition.source);
+                                });
+
+                                return {
+                                    name: layer.name,
+                                    visible: false,
+                                    sources,
+                                    layers
+                                };
+                            })
+                            .filter(Boolean);
+                            
+                        const layerControl = new LayerControl({
+                            basemaps: basemapInfo,
+                            overlays: overlayInfo
+                        });
+                        self.map.addControl(layerControl, 'top-right');
                     });
                 });
 

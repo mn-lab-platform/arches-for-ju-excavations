@@ -1,13 +1,18 @@
 define([
     'knockout',
-    'arches',
     '../../../../services/tile-service',
     'templates/views/components/workflows/context-footprint-addition/context-footprint-confirmation-step.htm',
-], function(ko, arches, tileServiceModule, template) {
+], function(ko, tileServiceModule, template) {
     return ko.components.register('context-footprint-confirmation-step', {
         viewModel: function(params) {
             const self = this;
             const tileService = tileServiceModule.default || tileServiceModule;
+
+            self.inputData = ko.unwrap(params.coordinatesData);
+            self.graphId = ko.unwrap(params.graphId);
+            self.resourceId = ko.unwrap(params.resourceId);
+            self.crsId = ko.unwrap(params.crsId);
+            self.overwriteNodeIds = ko.unwrap(params.overwriteNodeIds) || new Set();
 
             const GRAPH_CONFIG = {
                 '2c536779-d3e6-43ef-bc0c-cd4d97dc8c6c': { // Context
@@ -43,11 +48,6 @@ define([
                 if (!config) throw new Error('Unknown graphId: ' + self.graphId);
                 return config;
             };
-
-            self.inputData = ko.unwrap(params.coordinatesData);
-            self.graphId = ko.unwrap(params.graphId);
-            self.resourceId = ko.unwrap(params.resourceId);
-            self.crsId = ko.unwrap(params.crsId);
                         
             let rawText = '';
             let rawIgnore = false;
@@ -63,17 +63,25 @@ define([
             self.ignoreLastLine = ko.observable(rawIgnore);
             self.projectedText = ko.observable(projectedTextStr);
 
+            const withoutLastNonEmptyLine = (text) => {
+                const lines = (text || '').split('\n');
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    if (lines[i].trim().length > 0) {
+                        lines.splice(i, 1);
+                        break;
+                    }
+                }
+                return lines.join('\n');
+            };
+
             self.finalCoordinatesText = ko.computed(() => {
                 if (self.ignoreLastLine()) {
-                    return self.coordinatesText().split('\n').slice(0, -1).join('\n');
+                    return withoutLastNonEmptyLine(self.coordinatesText());
                 }
                 return self.coordinatesText();
             });
 
             self.finalProjectedText = ko.computed(() => {
-                if (self.ignoreLastLine() && self.projectedText()) {
-                    return self.projectedText().split('\n').slice(0, -1).join('\n');
-                }
                 return self.projectedText();
             });
 
@@ -100,10 +108,11 @@ define([
                 
                 lines.forEach(line => {
                     const parts = line.trim().split(/\s+/);
-                    if (parts.length >= 4) {
-                        const x = parseFloat(parts[1]);
-                        const y = parseFloat(parts[2]);
-                        const z = parseFloat(parts[3]);
+                    if (parts.length === 3 || parts.length === 4) {
+                        const coordinateStart = parts.length === 4 ? 1 : 0;
+                        const x = parseFloat(parts[coordinateStart]);
+                        const y = parseFloat(parts[coordinateStart + 1]);
+                        const z = parseFloat(parts[coordinateStart + 2]);
                         if (!isNaN(x) && !isNaN(y)) {
                             coordinates.push([x, y, z]);
                         }
@@ -147,10 +156,6 @@ define([
             self.projectedGeojson = ko.computed(() => {
                 const textToUse = self.finalProjectedText() || self.finalCoordinatesText(); 
                 return self._createGeojsonFromText(textToUse, self._graphConfig().footprintNodeId);
-            });
-
-            self.originalGeojson = ko.computed(() => {
-                return self._createGeojsonFromText(self.finalCoordinatesText(), self._graphConfig().measurementGeojsonNodeId);
             });
 
             self.displayGeojsonString = ko.computed(() => {
@@ -203,13 +208,25 @@ define([
                 return self._tileIdFromResponse(created);
             };
 
-            self._postGroupedFootprintTile = async function(config, projectedVal, originalGeojson, originalText) {
+            self._postGroupedFootprintTile = async function(config, projectedGeojson , originalText) {
+                const overwriteAll = self.overwriteNodeIds.size === 0;
+                const shouldOverwrite = (nodeId) => overwriteAll || self.overwriteNodeIds.has(nodeId);
+                const crsResourceId = typeof self.crsId === 'string' && self.crsId.trim()
+                    ? self.crsId
+                    : null;
+                const overwriteFootprint = shouldOverwrite(config.footprintNodeId);
+                const overwriteGeojson = config.measurementGeojsonNodeId
+                    && shouldOverwrite(config.measurementGeojsonNodeId);
+                const overwriteText = config.measurementTextNodeId
+                    && shouldOverwrite(config.measurementTextNodeId);
+                const overwriteMeasurement = overwriteGeojson || overwriteText;
+
                 const applyCrsValue = (data) => {
                     if (!config.crsNodeId) return;
 
-                    if (self.crsId) {
+                    if (crsResourceId) {
                         data[config.crsNodeId] = [{
-                            resourceId: self.crsId,
+                            resourceId: crsResourceId,
                             resourceXresourceId: ''
                         }];
                     } else {
@@ -237,44 +254,54 @@ define([
                 const existingTile = await self._findTileByNodegroup(config.targetNodegroupId);
                 const targetData = existingTile ? { ...(existingTile.data || {}) } : {};
 
-                if (config.footprintNodeId) {
-                    targetData[config.footprintNodeId] = projectedVal;
+                if (config.footprintNodeId && overwriteFootprint) {
+                    targetData[config.footprintNodeId] = projectedGeojson;
                 }
 
                 if (config.measurementNodegroupId) {
-                    delete targetData[config.measurementGeojsonNodeId];
-                    delete targetData[config.measurementTextNodeId];
+                    if (overwriteGeojson) delete targetData[config.measurementGeojsonNodeId];
+                    if (overwriteText) delete targetData[config.measurementTextNodeId];
                 } else {
-                    if (config.measurementGeojsonNodeId) {
-                        targetData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
+                    if (config.measurementGeojsonNodeId && overwriteGeojson) {
+                        targetData[config.measurementGeojsonNodeId] = JSON.stringify(projectedGeojson);
                     }
-                    if (config.measurementTextNodeId) {
+                    if (config.measurementTextNodeId && overwriteText) {
                         targetData[config.measurementTextNodeId] = originalText;
                     }
                 }
 
-                if (!config.measurementNodegroupId) {
+                if (!config.measurementNodegroupId && overwriteMeasurement) {
                     applyCrsValue(targetData);
                 }
 
-                const targetPayload = buildPayload(
-                    existingTile,
-                    config.targetNodegroupId,
-                    parentTileId,
-                    targetData,
-                );
-                const targetResponse = existingTile
-                    ? await tileService.updateOne(targetPayload)
-                    : await tileService.createOne(targetPayload);
+                const shouldSaveTarget = overwriteFootprint
+                    || (!config.measurementNodegroupId && overwriteMeasurement)
+                    || (!existingTile && overwriteMeasurement);
+                let targetResponse = null;
+                if (shouldSaveTarget) {
+                    const targetPayload = buildPayload(
+                        existingTile,
+                        config.targetNodegroupId,
+                        parentTileId,
+                        targetData,
+                    );
+                    targetResponse = existingTile
+                        ? await tileService.updateOne(targetPayload)
+                        : await tileService.createOne(targetPayload);
+                }
                 const targetTileId = existingTile
                     ? existingTile.tileid
                     : self._tileIdFromResponse(targetResponse);
+
+                if (!targetTileId && !shouldSaveTarget) return null;
 
                 if (!targetTileId) {
                     throw new Error('Unable to determine the saved spatial extent tile ID.');
                 }
 
                 if (config.measurementNodegroupId) {
+                    if (!overwriteMeasurement) return targetResponse;
+
                     const existingMeasurementTile = await self._findTileByNodegroup(
                         config.measurementNodegroupId,
                     );
@@ -282,8 +309,12 @@ define([
                         ? { ...(existingMeasurementTile.data || {}) }
                         : {};
 
-                    measurementData[config.measurementGeojsonNodeId] = JSON.stringify(originalGeojson);
-                    measurementData[config.measurementTextNodeId] = originalText;
+                    if (overwriteGeojson) {
+                        measurementData[config.measurementGeojsonNodeId] = JSON.stringify(projectedGeojson);
+                    }
+                    if (overwriteText) {
+                        measurementData[config.measurementTextNodeId] = originalText;
+                    }
                     applyCrsValue(measurementData);
 
                     const measurementPayload = buildPayload(
@@ -307,18 +338,17 @@ define([
                 self.successMessage(null);
                 self.errorMessage(null);
                 
-                const projectedVal = self.projectedGeojson();
-                const originalGeojson = self.originalGeojson(); 
+                const projectedGeojson = self.projectedGeojson();
                 const originalText = self.finalCoordinatesText();
 
-                if (!projectedVal || !originalGeojson) {
+                if (!projectedGeojson) {
                     self.errorMessage('No GeoJSON data available to save.');
                     self.isLoading(false);
                     return;
                 }
 
                 try {
-                    await self._postGroupedFootprintTile(self._graphConfig(), projectedVal, originalGeojson, originalText);
+                    await self._postGroupedFootprintTile(self._graphConfig(), projectedGeojson, originalText);
                     
                     self.infoMessage(null);
                     self.successMessage('Footprint data saved successfully.');

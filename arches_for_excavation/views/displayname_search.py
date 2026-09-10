@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views import View
 
-from arches.app.search.elasticsearch_dsl_builder import Bool, Nested, Prefix, Query, Terms
+from arches.app.search.elasticsearch_dsl_builder import Bool, Nested, Query, Terms, Wildcard
 from arches.app.search.mappings import RESOURCES_INDEX
 from arches.app.search.search_engine_factory import SearchEngineFactory
 from arches.app.utils import permission_backend
@@ -17,6 +17,11 @@ def _english_value(value):
     )
 
 
+def _contains_wildcard(value):
+    escaped_value = value.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?")
+    return f"*{escaped_value}*"
+
+
 class DisplayNameSearchView(View):
     def get(self, request):
         term = request.GET.get("q", "").strip()
@@ -30,12 +35,14 @@ class DisplayNameSearchView(View):
 
         search_engine = SearchEngineFactory().create()
         search_query = Query(search_engine, start=0, limit=limit)
+        search_query.sort("date_last_edited", {"order": "desc"})
         for field in (
             "resourceinstanceid",
             "graph_id",
             "displayname",
             "displaydescription",
             "geometries",
+            "date_last_edited",
         ):
             search_query.include(field)
 
@@ -44,7 +51,10 @@ class DisplayNameSearchView(View):
             query.must(
                 Nested(
                     path="displayname",
-                    query=Prefix(field="displayname.value", query=term),
+                    query=Wildcard(
+                        field="displayname.value",
+                        query=_contains_wildcard(term),
+                    ),
                 )
             )
 

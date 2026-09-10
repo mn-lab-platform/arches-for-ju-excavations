@@ -6,6 +6,7 @@ define([
   'templates/views/components/plugins/context-footprint-addition-workflow.htm',
   'views/components/workflows/universal/process-selection-step',
   'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/context-footprint-addition/existing-coordinate-data-step',
   'views/components/workflows/context-footprint-addition/crs-twoface-step',
   'views/components/workflows/context-footprint-addition/coord-twoface-step',
   'views/components/workflows/context-footprint-addition/confirmation-twoface-step',
@@ -72,6 +73,22 @@ define([
         },
         {
           title: 'Step 3',
+          name: 'existing-coordinate-data',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'existing-coordinate-data-step',
+              uniqueInstanceName: 'existing-coordinate-data',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['resource-selection']['resource-selector']['value']",
+                graphId: "['process-selection']['process-selector']['value']"
+              }
+            }]
+          }]
+        },
+        {
+          title: 'Step 4',
           name: 'crs-type-selection',
           required: true,
           layoutSections: [{
@@ -97,7 +114,7 @@ define([
           }]
         },
         {
-          title: 'Step 4',
+          title: 'Step 5',
           name: 'crs-twoface',
           required: true,
           layoutSections: [{
@@ -114,7 +131,7 @@ define([
           }]
         },
         {
-          title: 'Step 5',
+          title: 'Step 6',
           name: 'coord-twoface',
           required: true,
           layoutSections: [{
@@ -131,7 +148,7 @@ define([
           }]
         },
         {
-          title: 'Step 6',
+          title: 'Step 7',
           name: 'confirmation-twoface',
           required: true,
           layoutSections: [{
@@ -143,13 +160,14 @@ define([
                 prevStepValue: "['coord-twoface']['coord-twoface']['value']",
                 graphId: "['process-selection']['process-selector']['value']",
                 resourceId: "['resource-selection']['resource-selector']['value']",
-                crsId: "['crs-twoface']['crs-twoface']['value']"              
+                crsId: "['crs-twoface']['crs-twoface']['value']",
+                overwriteNodeIds: "['existing-coordinate-data']['existing-coordinate-data']['value']",           
               }
             }]
           }]
         },
         {
-          title: 'Step 7',
+          title: 'Step 8',
           name: 'summary-twoface',
           required: true,
           layoutSections: [{
@@ -161,13 +179,14 @@ define([
                 prevStepValue: "['confirmation-twoface']['confirmation-twoface']['value']",
                 graphId: "['process-selection']['process-selector']['value']",
                 resourceId: "['resource-selection']['resource-selector']['value']",
-                crsId: "['crs-twoface']['crs-twoface']['value']"
+                crsId: "['crs-twoface']['crs-twoface']['value']",
+                overwriteNodeIds: "['existing-coordinate-data']['existing-coordinate-data']['value']",
               }
             }]
           }]
         },
         {
-          title: 'Step 8',
+          title: 'Step 9',
           name: 'coordinates-summary',
           required: true,
           layoutSections: [{
