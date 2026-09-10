@@ -211,6 +211,9 @@ define([
             self._postGroupedFootprintTile = async function(config, projectedGeojson , originalText) {
                 const overwriteAll = self.overwriteNodeIds.size === 0;
                 const shouldOverwrite = (nodeId) => overwriteAll || self.overwriteNodeIds.has(nodeId);
+                const crsResourceId = typeof self.crsId === 'string' && self.crsId.trim()
+                    ? self.crsId
+                    : null;
                 const overwriteFootprint = shouldOverwrite(config.footprintNodeId);
                 const overwriteGeojson = config.measurementGeojsonNodeId
                     && shouldOverwrite(config.measurementGeojsonNodeId);
@@ -221,9 +224,9 @@ define([
                 const applyCrsValue = (data) => {
                     if (!config.crsNodeId) return;
 
-                    if (self.crsId) {
+                    if (crsResourceId) {
                         data[config.crsNodeId] = [{
-                            resourceId: self.crsId,
+                            resourceId: crsResourceId,
                             resourceXresourceId: ''
                         }];
                     } else {
