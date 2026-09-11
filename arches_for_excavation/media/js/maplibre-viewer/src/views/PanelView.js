@@ -1,7 +1,6 @@
 import { LayerMenuView } from './LayerMenuView.js';
 import { FlyoutView } from './FlyoutView.js';
 import { FlyoutContentResourceSearch } from '../components/FlyoutContentResourceSearch.js';
-import { getAllResources } from '../api/archesService';
 
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
@@ -26,11 +25,6 @@ export class PanelView {
 
         this.activeFlyoutMode = null;
 
-        this.preloadedResourceApiResponse = null;
-        this.resourceSearchPromise = getAllResources().then(response => {
-            this.preloadedResourceApiResponse = response;
-        });
-
         this._setupEventListeners();
     }
 
@@ -43,15 +37,11 @@ export class PanelView {
             store.searchFlyoutWidth = 0;
         });
 
-        EventBusInstance.subscribe(events.FLYOUT_OPEN_RESOURCE_SEARCH, async () => {
+        EventBusInstance.subscribe(events.FLYOUT_OPEN_RESOURCE_SEARCH, () => {
             this.activeFlyoutMode = 'search';
             this.addLayerBtn.textContent = 'Close Flyout';
 
-            if (!this.preloadedResourceApiResponse) {
-                await this.resourceSearchPromise;
-            }
-
-            this.flyout.setContent(new FlyoutContentResourceSearch(this.preloadedResourceApiResponse).build());
+            this.flyout.setContent(new FlyoutContentResourceSearch().build());
             this.flyout.open(); 
             store.searchFlyoutWidth = this.flyout.getWidth();
         });
