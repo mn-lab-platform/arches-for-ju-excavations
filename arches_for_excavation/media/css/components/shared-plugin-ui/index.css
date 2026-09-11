@@ -526,6 +526,16 @@
   align-items: start;   
 }
 
+.flyout-result-limit-notice {
+  grid-column: 1 / -1;
+  padding: 0.5rem;
+  color: var(--light-text);
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--panel-border-soft);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
 .flyout-result-item {
   display: flex;
 

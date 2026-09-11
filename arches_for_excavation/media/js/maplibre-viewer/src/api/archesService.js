@@ -51,8 +51,8 @@ export const getBasemapsAndOverlays = () => {
     return basemapService.getBasemapsAndOverlaysInfo();
 };
 
-export const getAllResources = (graphId=null) => {
-    return resourceService.getAll(graphId, '', 10000);
+export const getAllResources = (graphId = null, searchTerm = '', limit = 100) => {
+    return resourceService.getAll(graphId, searchTerm, limit);
 };
 
 export const getAllResourcesFromFilterString = async (filterString, maxPages = 1000) => {

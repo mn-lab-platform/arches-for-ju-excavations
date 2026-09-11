@@ -1,12 +1,12 @@
 import arches from 'arches';
-import { getAllResourcesFromFilterString } from '../api/archesService';
+import { getAllResources, getAllResourcesFromFilterString } from '../api/archesService';
 import { extractGeommetryFeaturesFromArchesResourceInfo } from '../core/utils/utils';
 import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import constants from '../constants/constants';
 
 export class FlyoutContentResourceSearch {
-    constructor(preloadedResourceApiResponse = null) {
+    constructor() {
         this.LABELS = {
             SELECT_ALL: 'Select All Of Type',
             UNSELECT_ALL: 'Unselect All Of Type',
@@ -16,19 +16,16 @@ export class FlyoutContentResourceSearch {
 
         this.resourceTypeDicts = {}; 
         this.resources = [];
-        if (preloadedResourceApiResponse) {
-            this.preloadedResourceApiResponse = preloadedResourceApiResponse;
-        }
         this.selectedForLayer = new Map();
         this.currentlyRenderedResources = [];
         this.previewedIds = new Set();
         this.advancedSearchOn = false;
         this.currentlySelectedGraphId = null;
         this.activeRenderedItemRefs = new Map();
-        this.mapDisplayableGraphIds = new Set();
         this.IIIF_GRAPH_ID = 'f1b9e37a-c3ba-4c26-a797-7f16302c031c';
         
         this.searchTimeout = null;
+        this.resultLimit = 100;
         this._initResourceTypes();
     }
 
@@ -48,7 +45,8 @@ export class FlyoutContentResourceSearch {
         this.content.appendChild(this.filters);
         this.content.appendChild(this.results);
         
-        this._initAllResources();
+        this._fillTypeSelect();
+        this._loadResources();
         
         return this.content;
     }
@@ -124,7 +122,7 @@ export class FlyoutContentResourceSearch {
             if (!this.advancedSearchCheckbox.checked) {
                 clearTimeout(this.searchTimeout);
                 this.searchTimeout = setTimeout(() => {
-                    this._applyFilters();
+                    this._loadResources();
                 }, 300);
             }
         });
@@ -156,8 +154,7 @@ export class FlyoutContentResourceSearch {
                 this.searchInput.placeholder = this.LABELS.SEARCH_PLACEHOLDER;
                 this.advancedApplyButton.style.display = 'none';
                 this.searchInput.classList.remove('flyout-search-input--error');
-                this._initAllResources();
-                this._applyFilters();
+                this._loadResources();
             }
         });
 
@@ -198,7 +195,7 @@ export class FlyoutContentResourceSearch {
         this.typeSelect.setAttribute('aria-label', 'Filter by resource type');
 
         this.typeSelect.addEventListener('change', () => {
-            this._applyFilters();
+            this._loadResources();
         });
         
         this.actionGroup = document.createElement('div');
@@ -353,9 +350,7 @@ export class FlyoutContentResourceSearch {
         defaultOption.textContent = 'All Resource Types';
         this.typeSelect.appendChild(defaultOption);
 
-        this.resourceTypes
-            .filter(type => this.mapDisplayableGraphIds.has(type.graphid))
-            .forEach(type => {
+        this.resourceTypes.forEach(type => {
                 const option = document.createElement('option');
                 option.value = type.graphid;
                 option.textContent = type.name;
@@ -370,11 +365,22 @@ export class FlyoutContentResourceSearch {
         });
     }
 
-    _initAllResources() {
-        this._fillInstanceResourcesFromApiResponse(this.preloadedResourceApiResponse);
-        this._renderResults(this.resources);
-        this._fillTypeSelect();
-    };
+    _loadResources() {
+        const searchTerm = this.searchInput ? this.searchInput.value.trim() : '';
+        const graphId = this.typeSelect ? this.typeSelect.value : '';
+
+        getAllResources(graphId || null, searchTerm, this.resultLimit)
+            .then(response => {
+                this._fillInstanceResourcesFromApiResponse(response);
+                this._removeAllPreviews();
+                this._renderResults(this.resources);
+            })
+            .catch(error => {
+                console.error('Failed to load map resources:', error);
+                this.resources = [];
+                this._renderResults(this.resources);
+            });
+    }
 
     _fillInstanceResourcesFromApiResponse(apiResponse) {
         const allHits = [];
@@ -403,10 +409,15 @@ export class FlyoutContentResourceSearch {
         this.currentlyRenderedResources = resourcesToRender;
         this.results.innerHTML = '';
         this.activeRenderedItemRefs.clear();
+
+        if (resourcesToRender.length === this.resultLimit) {
+            const resultLimitNotice = document.createElement('div');
+            resultLimitNotice.className = 'flyout-result-limit-notice';
+            resultLimitNotice.textContent = `Showing the first ${this.resultLimit} resources. Please use the search bar to refine your results.`;
+            this.results.appendChild(resultLimitNotice);
+        }
+
         resourcesToRender.forEach(resourceInfo => {
-            if (this._resourceShouldBeActive(resourceInfo)) {
-                this.mapDisplayableGraphIds.add(resourceInfo.graph_id);
-            }
             const item = this._createResultItem(resourceInfo);
             this.results.appendChild(item);
         });
