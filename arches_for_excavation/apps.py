@@ -8,3 +8,4 @@ class ArchesForExcavationConfig(AppConfig):
     def ready(self):
         from .signals import geometries_refresh
         from .signals import maplayers
+        from .signals import models3d
