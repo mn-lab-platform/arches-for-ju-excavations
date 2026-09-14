@@ -1,9 +1,8 @@
 import { Map as MapLibreMap, ScaleControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { centroid, polygon } from '@turf/turf';
 import { updateGeojsonSource, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer, refreshGeojsonLayer, fitMapToBounds, extractBoundsFromRasterPreviewLayers, extractBoundsFromVectorPreviewLayers, extractBoundsFromGeojson, extractBoundsFromLayerDefinition } from './utils/utils';
 import { combineLngLatBounds } from './utils/bounds';
-import { getMapExtent, getBasemapsAndOverlays } from '../api/archesService';
+import { getBasemapsAndOverlays } from '../api/archesService';
 import { createWarpedOrthoLayer } from './iiif/iiifLayerFactory';
 import { BasemapControl } from './controls/BasemapControl';
 import { OverlayControl } from './controls/OverlayControl';
@@ -13,6 +12,7 @@ import { EventBusInstance } from '../core/EventBus';
 import { events } from '../constants/events';
 import store from '../core/store';
 import constants from '../constants/constants';
+import arches from 'arches';
 
 export class MapEngine {
     constructor(containerId) {
@@ -22,6 +22,7 @@ export class MapEngine {
         this.previewOrthoLayers = new Map();
         this.container = document.getElementById(containerId);
         this.extent = null;
+        this.centerPoint = (arches.mapDefaultX != null && arches.mapDefaultY != null) ? [arches.mapDefaultX, arches.mapDefaultY] : [0, 0];
         this.map = new MapLibreMap({
             container: containerId,
             preserveDrawingBuffer: true,
@@ -34,7 +35,7 @@ export class MapEngine {
             maxZoom: 24,
             maxPitch: 0
         });
-        this._centerMapToDefaultExtent();
+        this._centerMapToDefaultCenter();
         this.map.on('load', async () => {
             this._register_controls();
             await this._loadHatchFillImages();
@@ -103,29 +104,10 @@ export class MapEngine {
         ];
     }    
 
-    _centerMapToDefaultExtent() {
-        if (this.extent) {
-            this.map.setCenter(this._getCenterFromExtent(this.extent));
-            this.map.setZoom(16.5);
-            this.map.setBearing(0);
-        } else {
-            getMapExtent()
-                .then(extent => {
-                    this.map.setCenter(this._getCenterFromExtent(extent));
-                    this.extent = extent;
-                    this.map.setZoom(16.5);
-                    this.map.setBearing(0);
-                })
-                .catch(error => {
-                    console.error('Error fetching map extent:', error);
-                });
-        }
-    }
-
-    _getCenterFromExtent(extent) {
-        const extentPolygon = polygon([extent]);
-        const center = centroid(extentPolygon);
-        return center.geometry.coordinates ?? [0, 0];
+    _centerMapToDefaultCenter() {
+        this.map.setCenter(this.centerPoint);
+        this.map.setZoom(16.5);
+        this.map.setBearing(0);
     }
 
     _register_controls() {
@@ -370,7 +352,7 @@ export class MapEngine {
         });
 
         EventBusInstance.subscribe(events.MAP_TO_DEFAULT, () => {
-            this._centerMapToDefaultExtent();
+            this._centerMapToDefaultCenter();
         });
     }
 
