@@ -1,7 +1,7 @@
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { CesiumWidget, Color, UrlTemplateImageryProvider, Rectangle, Cesium3DTileset, OrientedBoundingBox, Cartographic, Cartesian3, Matrix4, Math as CesiumMath } from "cesium";
-import { getMapExtent, getWKT2DefinitionForModelId, getBasemapsAndOverlays } from '../api/archesService';
+import { getWKT2DefinitionForModelId, getBasemapsAndOverlays } from '../api/archesService';
 import { getTransformedModelMatrixForTileset } from '../api/modelMatrixService';
 import { ControlManager } from './controls/ControlManager';
 
@@ -39,20 +39,15 @@ export class CesiumEngine {
     }
 
     _zoomToDefaultExtent() {
+        if (!this._defaultExtentRect && arches.hexBinBounds && arches.hexBinBounds.length === 4) {
+            const [west, south, east, north] = arches.hexBinBounds;
+            this._defaultExtentRect = Rectangle.fromDegrees(west, south, east, north);
+        }
+
         if (this._defaultExtentRect) {
             this._widget.scene.camera.flyTo({
                 destination: this._defaultExtentRect,
-                duration: 1.5
-            });
-        }
-        else {
-            getMapExtent().then(extent => {
-                const rect = this._getBboxRectFromCoords(extent);
-                this._defaultExtentRect = rect;
-                this._widget.scene.camera.flyTo({
-                    destination: rect,
-                    duration: 0
-                });
+                duration: 0
             });
         }
     }
