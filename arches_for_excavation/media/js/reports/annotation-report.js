@@ -16,6 +16,7 @@ export default ko.components.register('annotation-report', {
         self.existingAnnotations = ko.observableArray([]);
 
         ReportViewModel.apply(self, [params]);
+        self.hideEmptyNodes(true);
         const resourceId = params.report.attributes.resourceid;
 
         const tiles = self.report.get('tiles') || [];

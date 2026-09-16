@@ -6,6 +6,7 @@ export default ko.components.register('default-report', {
     viewModel: function (params) {
         params.configKeys = [];
         ReportViewModel.apply(this, [params]);
+        this.hideEmptyNodes(true);
     },
     template: defaultReportTemplate
 });

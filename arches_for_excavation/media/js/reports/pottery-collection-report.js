@@ -94,6 +94,7 @@ export default ko.components.register('pottery-collection-report', {
         ];
 
         setupTabbedReport(self, params, myTabs);
+        self.hideEmptyNodes(true);
     },
     template: tabbedReportTemplate
 });

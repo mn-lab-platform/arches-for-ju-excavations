@@ -5,24 +5,25 @@ import 'views/components/custom/cesium-viewer';
 import 'views/components/iiif/iiif-map-viewer';
 import 'viewmodels/map-report';
 import resourceService from '../services/resource-service';
- 
+
 export default ko.components.register('context-tabbed-report', {
     viewModel: function(params) {
         const self = this;
 
+
         const ANNOTATION_RESOURCE_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
         const CRS_RESOURCE_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
-       
+
         self.models3D = ko.observableArray([]);
         self.allowAnnotationsEdits = ko.observable(false);
         self.allowObjectPicking = ko.observable(true);
         self.allowObjectAddition = ko.observable(false);
         self.existingAnnotations = ko.observableArray([]);
         self.modelCrsDefinitions = ko.observableArray([]);
-       
+
         self.iiifResources = ko.observableArray([]);
         self.readOnly = ko.observable(true);
- 
+
         const myTabs = [
             ko.mapping.fromJS({
                 name: 'Info',
@@ -32,7 +33,7 @@ export default ko.components.register('context-tabbed-report', {
                 component_params: {}
             })
         ];
- 
+
         const relatedResources = params.report.relatedResourcesLookup();
         console.log('[CONTEXT REPORT] relatedResourcesLookup buckets',
             Object.entries(relatedResources).map(([key, value]) => ({
@@ -131,11 +132,11 @@ export default ko.components.register('context-tabbed-report', {
                 crsData
             };
         };
-        
+
         const model3DResource = Object.entries(relatedResources)
             .filter(([_, value]) => (value.name.toLowerCase() || '').includes('3d'))
             .map(([_, value]) => value);
-       
+
         if (model3DResource.length > 0) {
             const actualModels = model3DResource.flatMap(group => group.loadedRelatedResources());
             if (actualModels.length > 0) {
@@ -152,7 +153,7 @@ export default ko.components.register('context-tabbed-report', {
                         modelCrsDefinitions: self.modelCrsDefinitions
                     }
                 }));
-       
+
                 const modelPromises = actualModels.map(loadModelBundle);
 
                 Promise.allSettled(modelPromises)
@@ -195,14 +196,14 @@ export default ko.components.register('context-tabbed-report', {
                     });
             }
         }
- 
+
         const iiifResourceList = Object.entries(relatedResources)
             .filter(([_, value]) => {
                 const name = (value.name || '').toLowerCase();
                 return name.includes('iiif');
             })
             .map(([_, value]) => value);
-            
+
             if (iiifResourceList.length > 0) {
             const actualIiifResources = iiifResourceList.flatMap(group =>
                 group.loadedRelatedResources()
@@ -212,17 +213,17 @@ export default ko.components.register('context-tabbed-report', {
                 if (iiifResource) {
                     const resourceId = iiifResource.link.split('/').pop();
                     iiifResourceIds.push(resourceId);
-                   
+
                     self.iiifResources.push({
                         resourceId: resourceId,
                         displayName: iiifResource.displayname || `IIIF ${resourceId.substring(0, 8)}...`
                     });
                 }
             });
- 
+
             iiifResourceIds.forEach((resourceId, index) => {
                 const resourceData = self.iiifResources()[index];
-               
+
                 myTabs.push(ko.mapping.fromJS({
                     name: resourceData.displayName,
                     icon: 'fa-picture-o',
@@ -235,8 +236,9 @@ export default ko.components.register('context-tabbed-report', {
                 }));
             });
         }
- 
+
         setupTabbedReport(self, params, myTabs);
+        this.hideEmptyNodes(true);
     },
     template: tabbedReportTemplate
 });

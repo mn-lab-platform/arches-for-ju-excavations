@@ -25,6 +25,7 @@ export default ko.components.register('digital-resource-3d-report', {
         self.modelCrsDefinitions = ko.observableArray([]);
 
         ReportViewModel.apply(self, [params]);
+        self.hideEmptyNodes(true);
         
         const relatedResourcesArray = self.report.get('related_resources') || [];
 

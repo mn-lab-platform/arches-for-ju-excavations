@@ -19,6 +19,7 @@ export default ko.components.register('iiif-report', {
 
     params.configKeys = params.configKeys || [];
     ReportViewModel.apply(self, [params]);
+    self.hideEmptyNodes(true);
     
     function baseRoot() {
       const root = (arches && arches.urls && arches.urls.root) ? arches.urls.root : '/';
