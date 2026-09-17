@@ -9,3 +9,4 @@ class ArchesForExcavationConfig(AppConfig):
         from .signals import geometries_refresh
         from .signals import maplayers
         from .signals import models3d
+        from .signals import iiif
