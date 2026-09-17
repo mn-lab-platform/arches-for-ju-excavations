@@ -5,7 +5,6 @@ from django.conf import settings
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.db import transaction
-from arches.app.models.models import TileModel
 from arches.app.models.resource import Resource
 
 IIIF_RESOURCE_GRAPHID = "f1b9e37a-c3ba-4c26-a797-7f16302c031c"
