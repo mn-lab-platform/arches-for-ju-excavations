@@ -168,4 +168,4 @@ class BasemapAccessView(View):
             }
         }
     def _user_can_access_restricted_basemaps(self, user):
-        return user.groups.filter(name='Restricted Basemap Access').exists()
+        return user.groups.filter(name='Restricted Basemap Access').exists() or user.is_superuser
