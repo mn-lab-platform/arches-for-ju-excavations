@@ -1,6 +1,6 @@
 import { Map as MapLibreMap, ScaleControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { updateGeojsonSource, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer, refreshGeojsonLayer, fitMapToBounds, extractBoundsFromRasterPreviewLayers, extractBoundsFromVectorPreviewLayers, extractBoundsFromGeojson, extractBoundsFromLayerDefinition } from './utils/utils';
+import { updateGeojsonSource, createValidLayerInfoFromResourceData, addSourceAndLayersToMap, showLayer, hideLayer, refreshGeojsonLayer, fitMapToBounds, extractBoundsFromRasterPreviewLayers, extractBoundsFromVectorPreviewLayers, extractBoundsFromLayerDefinition } from './utils/utils';
 import { combineLngLatBounds } from './utils/bounds';
 import { getBasemapsAndOverlays } from '../api/archesService';
 import { createWarpedOrthoLayer } from './iiif/iiifLayerFactory';

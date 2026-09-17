@@ -2,7 +2,6 @@ import os
 import shutil
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.db import transaction
@@ -11,10 +10,11 @@ from arches.app.models.resource import Resource
 
 MODEL3D_GRAPHID = "039f5a45-82e2-4597-8609-d24c758bfd59"
 PARENT_RESOURCE_NODE_ID = "f67c4c42-fe0e-489b-9af7-58405ad7c65f"
+BASE_PATH = os.path.join(settings.MEDIA_ROOT, settings.UPLOADED_FILES_DIR, "3d_models")
 
 def cleanup_3d_model_directory(directory_path):
     if os.path.exists(directory_path):
-        shutil.rmtree(directory_path, ignore_errors=True)
+        shutil.rmtree(directory_path)
         print(f"Deleted 3D model directory: {directory_path}")
     else:
         print(f"Warning: 3D model directory does not exist: {directory_path}")
@@ -36,9 +36,7 @@ def delete_3d_model_files(sender, instance, **kwargs):
         if parent_id:
             target_dir = os.path.abspath(
                 os.path.join(
-                    settings.MEDIA_ROOT, 
-                    settings.UPLOADED_FILES_DIR,
-                    "3d_models",
+                    BASE_PATH,
                     parent_id,
                     resource_id
                 )
