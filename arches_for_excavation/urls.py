@@ -34,6 +34,7 @@ from .views.cidoc_periodic_table import CidocPeriodicTableDataView
 from .views.ontology_usage import OntologyUsageModelGraphView, OntologyUsageModelLayoutView, OntologyUsageModelsView
 from .views.resource_mapping_editor import ResourceMappingGraphsView, ResourceMappingMigrateView, ResourceMappingSuggestView
 from .views.displayname_search import DisplayNameSearchView
+from .views.tusd_webhook import tus_webhook
 
 urlpatterns = [
     # project-level urls
@@ -85,4 +86,5 @@ urlpatterns = [
     path("api/resource-mapping/suggest", ResourceMappingSuggestView.as_view(), name="resource_mapping_suggest"),
     path("api/resource-mapping/migrate", ResourceMappingMigrateView.as_view(), name="resource_mapping_migrate"),
     path("api/resources-by-displayname", DisplayNameSearchView.as_view(), name="resources_by_displayname"),
+    path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
 ]
