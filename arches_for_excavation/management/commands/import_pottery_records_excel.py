@@ -6,6 +6,7 @@ by Form ID: the same Context Number can occur in both PAP and MAL trenches.
 """
 
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 import re
 from uuid import uuid4
@@ -15,6 +16,7 @@ from django.db import transaction
 from openpyxl import Workbook, load_workbook
 
 from arches.app.models.models import Resource, TileModel
+from arches.app.models.resource import Resource as IndexedResource
 from arches.app.models.tile import Tile
 from arches.app.utils.date_utils import ExtendedDateFormat
 from arches_for_excavation.management.commands.import_collection_excel import (
@@ -33,7 +35,9 @@ from arches_for_excavation.utils.pottery.common import (
 from arches_for_excavation.utils.pottery.concept_lookup import (
     apply_dictionary_alias,
     format_concept_tile_value,
+    get_dictionary_index,
     get_node_datatype,
+    normalize_dictionary_label,
     resolve_dictionary_value,
 )
 from arches_for_excavation.utils.pottery.generic_record_parser import normalize_partial_century
@@ -79,14 +83,134 @@ VESSEL_PART_NORMALIZATIONS = {
     "upper part rn": "upper part",
 }
 
-# Preserve the source wording for partial-century dates in Comment while
-# storing the requested exact EDTF boundaries. The two-century form is a
-# multi-select chronology, not a date range.
+def split_provenance_value_ids(raw_value, values_by_label):
+    """Resolve an unseparated Provenance cell into dictionary value IDs."""
+    tokens = normalize_dictionary_label(raw_value).split()
+    if len(tokens) < 2:
+        return []
+
+    @lru_cache(maxsize=None)
+    def segment_from(start):
+        if start == len(tokens):
+            return ((),)
+
+        segmentations = []
+        for end in range(start + 1, len(tokens) + 1):
+            value_id = values_by_label.get(" ".join(tokens[start:end]))
+            if not value_id:
+                continue
+            for tail in segment_from(end):
+                candidate = (value_id,) + tail
+                if candidate not in segmentations:
+                    segmentations.append(candidate)
+                if len(segmentations) > 1:
+                    return tuple(segmentations)
+        return tuple(segmentations)
+
+    segmentations = segment_from(0)
+    if len(segmentations) != 1 or len(segmentations[0]) < 2:
+        return []
+    return list(segmentations[0])
+
+# Preserve the source wording for reviewed partial-century dates in Comment
+# while storing the requested exact EDTF boundaries. The broad-century form
+# remains a multi-select chronology, not a separate range value.
 SPECIAL_CHRONOLOGY_NORMALIZATIONS = {
     "1st 2nd c ce": {
         "periods": "1st c. CE|2nd c. CE",
     },
+    # late 3rd c. BCE (years 225–201 BCE) through early 2nd c. BCE
+    # (200–176 BCE); astronomical EDTF years are -224 through -175.
+    "3rd early 2nd c bce": {
+        "periods": "3rd c. BCE|2nd c. BCE",
+        "boundaries": (-224, -175),
+        "preserve_in_comment": True,
+    },
+    # late 4th c. BCE (325–301 BCE) through middle 3rd c. BCE
+    # (275–251 BCE).
+    "late 4th mid 3rd c bce": {
+        "periods": "4th c. BCE|3rd c. BCE",
+        "boundaries": (-324, -250),
+        "preserve_in_comment": True,
+    },
+    # second half of 2nd c. BCE (150–101 BCE) through 1st c. BCE.
+    "sec half of 2nd 1st c bce": {
+        "periods": "2nd c. BCE|1st c. BCE",
+        "boundaries": (-149, 0),
+        "preserve_in_comment": True,
+    },
+    # The final quarter of 2nd c. BCE (125–101 BCE) through 1st c. BCE.
+    "end of 2nd 1st c bce": {
+        "periods": "2nd c. BCE|1st c. BCE",
+        "boundaries": (-124, 0),
+        "preserve_in_comment": True,
+    },
+    "late 2nd 1st c bce": {
+        "periods": "2nd c. BCE|1st c. BCE",
+        "boundaries": (-124, 0),
+        "preserve_in_comment": True,
+    },
+    # The final quarter of 3rd c. BCE (225–201 BCE) through 2nd c. BCE.
+    "late 3rd 2nd c bce": {
+        "periods": "3rd c. BCE|2nd c. BCE",
+        "boundaries": (-224, -100),
+        "preserve_in_comment": True,
+    },
+    "lclass early hellenistic": {
+        "periods": "Late Classical / Early Hellenistic",
+        "preserve_in_comment": True,
+    },
+    # No combined ``Late Classical / Early Roman`` concept exists in RDM, so
+    # retain the source wording and use its two existing component periods.
+    "lclass early roman": {
+        "periods": "Late Classical|Early Roman",
+        "preserve_in_comment": True,
+    },
+    # ``LA`` is an ignored suffix, not a second chronology. Keep the useful
+    # period and preserve the complete source cell for traceability.
+    "late hellenistic la": {
+        "periods": "Late Hellenistic",
+        "preserve_in_comment": True,
+    },
 }
+
+# These source strings are not reliable enough to infer a period. Retain the
+# original wording in Comment, without populating Period or reporting it as an
+# unresolved chronology. They can be reviewed later without corrupting data.
+# The audit may show a fragment after the normal chronology parser splits a
+# cell; retain both those fragments and the original complete source strings.
+COMMENT_ONLY_CHRONOLOGY_VALUES = frozenset({
+    "2nd c. bce-1",
+    "1-1st c. bce - ce",
+    "1",
+    "1 1st c. bce ce",
+    "1st / 2nd c. ce",
+    "1st / 3rd c. ce",
+    "late hellenistic - 1st i 2nd r.c",
+    "1st i 2nd r.c",
+    "2-4",
+    "2 4",
+    "late hellenistic (2 bce",
+    "2 bce",
+    "2h-3rd c. ce",
+    "2h 3rd c. ce",
+    "2nd / 1st c. bce",
+    "3rd / 2nd c. bce",
+    "4th / 3rd c. bce",
+    "4th / 5th c. ce",
+    "1st c. ce b",
+    "b",
+})
+
+
+def is_comment_only_chronology(raw_value):
+    normalized = re.sub(r"\s+", " ", clean_cell(raw_value)).casefold()
+    return normalized in COMMENT_ONLY_CHRONOLOGY_VALUES
+
+
+def is_ignored_chronology(raw_value):
+    return clean_cell(raw_value).casefold() == "la"
+
 
 # Nodes which are present in all five record graphs but are not part of the
 # original web-workflow parser configuration.
@@ -173,6 +297,19 @@ class Command(BaseCommand):
         source.add_argument("--file", action="append", dest="files", help="One detailed .xlsx file; may be repeated.")
         parser.add_argument("--apply", action="store_true", help="Create records. Without this flag the command is a dry-run.")
         parser.add_argument("--dry-run", action="store_true", help="Explicitly validate only; records are never created.")
+        parser.add_argument(
+            "--create-missing-collections",
+            action="store_true",
+            help="Create one minimal Pottery Collection for each existing Context that has none.",
+        )
+        parser.add_argument(
+            "--create-missing-contexts",
+            action="store_true",
+            help=(
+                "Create a minimal (O) Context in its existing Trench when it is "
+                "missing; requires --create-missing-collections."
+            ),
+        )
         parser.add_argument("--dataset", default="pottery-records", help="Stable prefix used for idempotent source row IDs.")
         parser.add_argument("--missing-collections-report", help="Optional .xlsx path for the dry-run list of Contexts without a usable Pottery Collection.")
         parser.add_argument(
@@ -199,21 +336,34 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options["apply"] and (options["dry_run"] or options["audit_unknown_concepts"] or options["audit_contexts"] or options["audit_type_values"]):
             raise CommandError("--apply cannot be used with --dry-run or an audit option.")
+        if options["create_missing_contexts"] and not options["create_missing_collections"]:
+            raise CommandError(
+                "--create-missing-contexts requires --create-missing-collections."
+            )
+        if (options["create_missing_contexts"] or options["create_missing_collections"]) and (
+            options["audit_unknown_concepts"] or options["audit_contexts"] or options["audit_type_values"]
+        ):
+            raise CommandError("Creation options cannot be used with an audit option.")
         self.audit_unknown_concepts = options["audit_unknown_concepts"]
         self.audit_contexts = options["audit_contexts"]
         self.audit_type_values = options["audit_type_values"]
         self.unknown_concept_values = {}
         self.type_values = {}
         self.apply = options["apply"]
+        self.create_missing_collections = options["create_missing_collections"]
+        self.create_missing_contexts = options["create_missing_contexts"]
         self.dataset = clean_cell(options["dataset"]) or "pottery-records"
         self.context_importer = CollectionImportCommand()
-        self.context_importer.apply = False
-        self.context_importer.create_missing_contexts = False
+        self.context_importer.apply = self.apply
+        self.context_importer.create_missing_contexts = self.create_missing_contexts
         self.context_importer.context_resource_id = None
         self.context_importer.context_map = {}
         self.context_importer.created_contexts = {}
         self.context_importer.trench_resource_ids = None
         self.collection_ids_by_context = {}
+        self.created_context_keys = set()
+        self.reported_created_context_keys = set()
+        self.created_collection_ids = {}
         self.missing_collections = {}
 
         files = self._source_files(options)
@@ -240,6 +390,7 @@ class Command(BaseCommand):
             "would_create", "unchanged", "skipped_empty", "skipped_red_context",
             "missing_collections", "duplicate_collections", "invalid_contexts",
             "invalid_quantity", "unknown_concepts", "unknown_special_finds", "valid_contexts", "type_value_rows", "errors",
+            "contexts_would_create", "contexts_created", "collections_would_create", "collections_created",
         ):
             self.stdout.write(f"  {key}: {totals[key]}")
         if not self.apply:
@@ -385,6 +536,17 @@ class Command(BaseCommand):
             self._record_missing_collection(context_label, record_type, source, context_error)
             self.stderr.write(f"  {source}: {context_error}")
             return totals
+        context_key = normalize_source_context(context_label).casefold()
+        if (
+            context_key in self.created_context_keys
+            and context_key not in self.reported_created_context_keys
+        ):
+            self.reported_created_context_keys.add(context_key)
+            totals["contexts_created" if self.apply else "contexts_would_create"] += 1
+            self.stdout.write(
+                f"  {source}: "
+                f"{'created' if self.apply else 'would create'} Context for {context_label!r}"
+            )
         collection_ids, collection_created, creation_error = self._create_missing_collection_if_enabled(
             context_label, collection_ids,
         )
@@ -426,6 +588,10 @@ class Command(BaseCommand):
             self._save_record(resource, record_type, record, str(collection_ids[0]))
             resource.name = f"{config['label']} {form_no or record['pNo'] or 'record'} row {row_number}"
             resource.save(update_fields=["name"])
+            # Tile.save normally indexes the entire resource after every card.
+            # Index once, with all cards and the final name present. Keep this
+            # inside the row transaction so an indexing failure rolls back it.
+            IndexedResource.objects.get(pk=resource.pk).index()
         totals["created"] += 1
         self.stdout.write(f"  {source}: created {resource.resourceinstanceid}")
         return totals
@@ -498,13 +664,19 @@ class Command(BaseCommand):
 
         unknown_periods = []
         source_chronology = self._value(row, "chronology")
-        chronology_normalization = self._special_chronology(source_chronology)
-        chronology_value = source_chronology
-        if chronology_normalization:
-            chronology_value = chronology_normalization["periods"]
-            record["chronologyBoundaries"] = chronology_normalization.get("boundaries")
-            if chronology_normalization.get("preserve_in_comment"):
-                source_notes.append(f"{FIELD_HEADERS['chronology'][0]}: {source_chronology}")
+        if is_ignored_chronology(source_chronology):
+            chronology_value = ""
+        elif is_comment_only_chronology(source_chronology):
+            chronology_value = ""
+            source_notes.append(f"{FIELD_HEADERS['chronology'][0]}: {source_chronology}")
+        else:
+            chronology_normalization = self._special_chronology(source_chronology)
+            chronology_value = source_chronology
+            if chronology_normalization:
+                chronology_value = chronology_normalization["periods"]
+                record["chronologyBoundaries"] = chronology_normalization.get("boundaries")
+                if chronology_normalization.get("preserve_in_comment"):
+                    source_notes.append(f"{FIELD_HEADERS['chronology'][0]}: {source_chronology}")
 
         record["chronology"] = CollectionImportCommand._period_values(
             chronology_value, unknown_periods,
@@ -550,7 +722,7 @@ class Command(BaseCommand):
     def _special_chronology(cls, raw_value):
         normalized = re.sub(r"[.]", "", clean_cell(raw_value))
         normalized = re.sub(r"\s+", " ", normalized).casefold()
-        normalized = re.sub(r"\s*[-–—]\s*", " ", normalized)
+        normalized = re.sub(r"\s*(?:[-–—]|/)\s*", " ", normalized)
         special = SPECIAL_CHRONOLOGY_NORMALIZATIONS.get(normalized)
         if special:
             return special
@@ -567,8 +739,9 @@ class Command(BaseCommand):
 
     def _concept_values(self, key, raw_value, dictionary, node_id, config, source, totals):
         raw_value = clean_cell(raw_value)
+        node_datatype = get_node_datatype(node_id)
         if not raw_value:
-            return [] if get_node_datatype(node_id) == "concept-list" else ""
+            return [] if node_datatype == "concept-list" else ""
         if key == "morphology":
             raw_value = MULTIPLE_MORPHOLOGY_NORMALIZATIONS.get(
                 raw_value.casefold(), raw_value,
@@ -585,56 +758,22 @@ class Command(BaseCommand):
             raw_value = VESSEL_PART_NORMALIZATIONS.get(
                 raw_value.casefold(), raw_value,
             )
-        if key == "type" and get_node_datatype(node_id) == "concept-list" and re.search(r"[/,]", raw_value):
-            # Prefer independent Types when every slash/comma-separated part resolves.
-            # Otherwise preserve the complete source label for lookup.
-            parts = [
-                clean_cell(part).replace("?", "").strip()
-                for part in re.split(r"\s*(?:/|,)\s*", raw_value)
-                if clean_cell(part).replace("?", "").strip()
-            ]
-            part_ids = [
-                resolve_dictionary_value(
-                    dictionary,
-                    apply_dictionary_alias(key, part, config.get("dictionary_aliases", {})),
-                )
-                for part in parts
-            ]
-            if parts and all(part_ids):
-                return list(dict.fromkeys(part_ids))
-
-            full_value = raw_value.replace("?", "").strip()
-            full_id = resolve_dictionary_value(
-                dictionary,
-                apply_dictionary_alias(key, full_value, config.get("dictionary_aliases", {})),
+        if key == "type" and node_datatype == "concept-list":
+            return self._type_concept_values(raw_value, dictionary, config, source, totals)
+        if key == "provenance" and node_datatype == "concept-list":
+            return self._provenance_concept_values(
+                raw_value, dictionary, config, source, totals,
             )
-            if full_id:
-                return [full_id]
-
-            totals["unknown_concepts"] += 1
-            self._record_unknown(key, full_value, source)
-            return []
-        if get_node_datatype(node_id) == "concept-list" and key != "type":
+        if node_datatype == "concept-list" and key != "type":
             separator = {
                 "vesselPart": r"\s*(?:\+|/|\?\s+)\s*",
                 "morphology": r"\s*(?:\+|/|,)\s*",
                 "vesselForm": r"\s*(?:\+|/|,)\s*",
                 "subcategory": r"\s*(?:\+|/|,)\s*",
-                "provenance": r"\s*(?:\+|/|,)\s*",
             }.get(key, r"\s*(?:\+|/)\s*")
             values = [value for value in re.split(separator, raw_value) if value]
         else:
-
             values = [raw_value]
-        if key == "provenance" and get_node_datatype(node_id) == "concept-list":
-            exact_id = resolve_dictionary_value(
-                dictionary,
-                apply_dictionary_alias(key, raw_value, config.get("dictionary_aliases", {})),
-            )
-            if exact_id:
-                return [exact_id]
-
-
         resolved = []
         for value in values:
             value = self._non_uncertainty_value(value)
@@ -645,9 +784,64 @@ class Command(BaseCommand):
                 self._record_unknown(key, value, source)
                 continue
             resolved.append(value_id)
-        if get_node_datatype(node_id) == "concept-list":
+        if node_datatype == "concept-list":
             return resolved
         return resolved[0] if resolved else ""
+
+    def _provenance_concept_values(self, raw_value, dictionary, config, source, totals):
+        """Resolve explicit and whitespace-separated Provenance values safely."""
+        resolved = []
+        for raw_part in re.split(r"\s*(?:\+|/|,)\s*", raw_value):
+            value = self._non_uncertainty_value(raw_part)
+            if not value:
+                continue
+            value_ids = self._dictionary_value_ids(
+                "provenance", value, dictionary, config,
+            )
+            if value_ids:
+                resolved.extend(value_ids)
+                continue
+
+            totals["unknown_concepts"] += 1
+            self._record_unknown("provenance", value, source)
+        return list(dict.fromkeys(resolved))
+
+    def _type_concept_values(self, raw_value, dictionary, config, source, totals):
+        """Resolve one or more Type values, including unseparated values."""
+        full_value = self._non_uncertainty_value(raw_value)
+        parts = [
+            self._non_uncertainty_value(part)
+            for part in re.split(r"\s*(?:/|,)\s*", raw_value)
+            if self._non_uncertainty_value(part)
+        ]
+        if len(parts) > 1:
+            resolved_parts = [
+                self._dictionary_value_ids("type", part, dictionary, config)
+                for part in parts
+            ]
+            if all(resolved_parts):
+                return list(dict.fromkeys(
+                    value_id for value_ids in resolved_parts for value_id in value_ids
+                ))
+
+        value_ids = self._dictionary_value_ids("type", full_value, dictionary, config)
+        if value_ids:
+            return value_ids
+        totals["unknown_concepts"] += 1
+        self._record_unknown("type", full_value, source)
+        return []
+
+    @staticmethod
+    def _dictionary_value_ids(key, value, dictionary, config):
+        canonical = apply_dictionary_alias(
+            key, value, config.get("dictionary_aliases", {}),
+        )
+        value_id = resolve_dictionary_value(dictionary, canonical)
+        if value_id:
+            return [value_id]
+        return split_provenance_value_ids(
+            canonical, get_dictionary_index(dictionary).values_by_label,
+        )
 
     def _special_find_relations(self, raw_value, source, totals):
         # The fresh workbooks currently have this column empty.  Preserve a
@@ -713,6 +907,8 @@ class Command(BaseCommand):
             chronology_data.update(self._chronology_boundary_data(
                 fields["chronology"], record["chronologyBoundaries"],
             ))
+        if chronology_data and fields["chronologyUncertain"] not in chronology_data:
+            chronology_data[fields["chronologyUncertain"]] = False
         if chronology_data:
             self._save_group(resource, chronology_data)
 
@@ -775,8 +971,8 @@ class Command(BaseCommand):
         }
 
     @staticmethod
-    def _save_group(resource, data):
-        """Merge values for a shared card into one tile."""
+    def _save_group(resource, data, *, index=False):
+        """Merge a card; the record writer indexes once after all cards save."""
         node_id = next(iter(data))
         from arches.app.models.models import Node
         node = Node.objects.get(nodeid=node_id)
@@ -790,10 +986,10 @@ class Command(BaseCommand):
                 nodegroup_id,
                 resourceid=str(resource.resourceinstanceid),
             )
-        ensure_tile_parent(resource, tile, node)
+        ensure_tile_parent(resource, tile, node, index=index)
         tile.data = dict(tile.data or {})
         tile.data.update(data)
-        tile.save()
+        tile.save(index=index)
 
     @staticmethod
     def _relation(resource_id):
@@ -813,10 +1009,15 @@ class Command(BaseCommand):
         except (SkipRow, CommandError) as error:
             result = ([], str(error))
         else:
+            if getattr(context, "_created_by_pottery_import", False):
+                self.created_context_keys.add(key)
             resource_ids = []
             for resource_id, data in TileModel.objects.filter(
                 resourceinstance__graph_id=POTTERY_GRAPH_ID,
                 data__has_key=CONTEXT_NODE_ID,
+                data__contains={
+                    CONTEXT_NODE_ID: [{"resourceId": str(context.resourceinstanceid)}],
+                },
             ).values_list("resourceinstance_id", "data"):
                 relations = (data or {}).get(CONTEXT_NODE_ID) or []
                 if any(isinstance(item, dict) and str(item.get("resourceId")) == str(context.resourceinstanceid) for item in relations):
@@ -848,6 +1049,7 @@ class Command(BaseCommand):
             self._save_group(
                 collection,
                 {CONTEXT_NODE_ID: [self._relation(str(context.resourceinstanceid))]},
+                index=True,
             )
             collection.name = f"Pottery Collection {context_label}"
             collection.save(update_fields=["name"])

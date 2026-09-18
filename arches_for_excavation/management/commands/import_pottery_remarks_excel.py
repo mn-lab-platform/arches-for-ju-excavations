@@ -37,7 +37,7 @@ FORM_ID_NODE_ID = "25e31613-69ac-45ce-a6db-a15239de70a4"
 FRAGMENT_NODEGROUP_ID = "8f7a5ca4-9c49-405d-9a08-a8debb13a9ec"
 POTTERY_TYPE_NODE_ID = "3bc235a3-2240-4e94-b8af-f4c70ee13af0"
 CATEGORY_REMARKS_NODE_ID = "3c371503-9028-464a-8b85-53a43c853781"
-PAC_ENTITY_URL = "https://pac.cenagis.edu.pl/entity/"
+PAC_ENTITY_URL = "https://thesaurus.mn.cenagis.edu.pl/entity/"
 
 FORM_ID_HEADERS = ("Form ID", "Form_ID")
 REMARKS_HEADER = "Remarks (from Pottery Category Form)"
