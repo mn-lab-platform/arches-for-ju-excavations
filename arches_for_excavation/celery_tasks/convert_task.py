@@ -1,6 +1,7 @@
 from celery import shared_task
 from rasterio.shutil import copy
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -9,8 +10,9 @@ class ConversionError(Exception):
 
 @shared_task
 def convert_geotiff_to_cog(src_path, dst_path):
-    logger.info(f"[COG TASK] Converting {src_path} -> {dst_path}...")
-    print(f"Converting {src_path} -> {dst_path}...")
+    target_dir = os.path.dirname(dst_path)
+    os.makedirs(target_dir, exist_ok=True)
+
     try:
         copy(
             src_path,

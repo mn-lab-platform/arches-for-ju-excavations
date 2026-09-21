@@ -5,6 +5,8 @@ from django.contrib.auth.models import Group
 from guardian.shortcuts import assign_perm
 import uuid
 from .convert_task import convert_geotiff_to_cog
+
+
 class ConversionError(Exception):
     pass
 
@@ -15,19 +17,17 @@ def create_basemap(src_path, dst_path, basemap_metadata):
             result = convert_geotiff_to_cog.apply((src_path, dst_path))
             return register_basemap_in_db(basemap_metadata)
     except Exception as e:
-        logger.error(f"[COG TASK] Error during conversion: {e}", exc_info=True)
         print(f"Error during conversion: {e}")
         raise ConversionError(f"Failed to convert GeoTIFF to COG: {str(e)}")
 
 def register_basemap_in_db(basemap_metadata):
     is_public = basemap_metadata['ispublic']
-    print(f"Is basemap public? {is_public}")
 
     source = MapSource(
-        name=basemap_metadata['id'],
+        name=basemap_metadata['tus_id'],
         source={
             'type': 'raster',
-            'tiles': [f'/api/titiler/tiles/{basemap_metadata["id"]}/{{z}}/{{x}}/{{y}}'],
+            'tiles': [f'/api/titiler/tiles/{basemap_metadata["tus_id"]}/{{z}}/{{x}}/{{y}}'],
             'tileSize': 256,
             'bounds': basemap_metadata['bounds']
         }
@@ -35,13 +35,12 @@ def register_basemap_in_db(basemap_metadata):
     source.save()
     
     layer = MapLayer(
-        maplayerid=uuid.UUID(basemap_metadata['id']),
+        maplayerid=uuid.UUID(basemap_metadata['tus_id']),
         name=basemap_metadata['original_name'],
         layerdefinitions=[{
-            'id': basemap_metadata['id'],
+            'tus_id': basemap_metadata['tus_id'],
             'type': 'raster',
-            'source': basemap_metadata['id'],
-            'basemap_dir': basemap_metadata['sanitized_name'],
+            'source': basemap_metadata['tus_id'],
             'band_count': basemap_metadata['band_count']
         }],
         isoverlay=basemap_metadata['isoverlay'],
