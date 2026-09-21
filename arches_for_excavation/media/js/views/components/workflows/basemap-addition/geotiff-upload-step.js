@@ -2,9 +2,11 @@ define([
     'knockout',
     'templates/views/components/workflows/basemap-addition/geotiff-upload-step.htm',
     '../../../../services/basemap-service',
+    '../../../../services/tus-auth-service',
     'tus-js-client',
+    'arches',
     'bindings/dropzone'
-], function(ko, template, basemapServiceModule, tus) {
+], function(ko, template, basemapServiceModule, tusAuthService, tus, arches) {
     return ko.components.register('geotiff-upload-step', {
         viewModel: function(params) {
             const CELERY_STATES = {
@@ -17,6 +19,7 @@ define([
             const self = this;
             self.value = params.value;
 
+            const tusAuthServiceInstance = tusAuthService.default || tusAuthService;
             const basemapService = basemapServiceModule.default || basemapServiceModule;
 
             self.mode = ko.observable(params.mode);
@@ -278,13 +281,20 @@ define([
                 self.isPublic(isPublic);
             };
 
-            self.submitUpload = function() {
+            self.submitUpload = async function() {
+                const token = (await tusAuthServiceInstance.generateSecureToken()).token;
+                if (!token) {
+                    self.errorMessage('Failed to obtain a secure upload token. Please try again.');
+                    return;
+                }
+
                 if (self.dropzone.files.length > 0) {
                     const file = self.dropzone.files[0];
                     const upload = new tus.Upload(file, {
                         endpoint: 'http://localhost:1080/files',
                         retryDelays: [0, 3000, 5000, 10000, 20000],
                         metadata: {
+                            upload_token: token,
                             basemap_name: self.basemapName(),
                             basemap_sortorder: self.sortOrder(),
                             basemap_icon: self.selectedIcon(),
@@ -313,14 +323,14 @@ define([
 
                             const tusFileId = upload.url.split('/').pop();
                             console.log('Tus file ID:', tusFileId);
-                            // self.pollTask(tusFileId);
+                            self.pollTask(tusFileId);
                         }
                     });
 
                     upload.findPreviousUploads().then(function (previousUploads) {
                         // Found previous uploads so we select the first one.
                         if (previousUploads.length) {
-                        upload.resumeFromPreviousUpload(previousUploads[0])
+                            upload.resumeFromPreviousUpload(previousUploads[0])
                         }
 
                         // Start the upload
