@@ -12,7 +12,6 @@ def get_celery_task_status(request, task_id):
     response = {
         'task_id': task_id,
         'state': task.state,
-        'info': task.info if task.info else None
     }
     
     # When task succeeds, result contains the return value
@@ -27,6 +26,6 @@ def get_celery_task_status(request, task_id):
         }
         response['error'] = str(task.result)
     else:
-        response['info'] = task.info
+        response['info'] = task.info if isinstance(task.info, (dict, str, int, float, list)) else str(task.info)
     
     return JsonResponse(response)

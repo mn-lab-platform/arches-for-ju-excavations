@@ -18,11 +18,13 @@ def execute_basemap_cleanup(maplayer_id, layer_definitions):
         return
 
     layer_definition = (layer_definitions or [{}])[0]
-    source_name = layer_definition.get("source")
 
-    original_file = os.path.join(BASE_PATH, maplayer_id)
-    original_info_file = os.path.join(BASE_PATH, f"{maplayer_id}.info")
-    cog_file = os.path.join(BASE_PATH, "maplayers", f"{maplayer_id}.tif")
+    source_name = layer_definition.get("source")
+    tus_id = layer_definition.get("tus_id")
+
+    original_file = os.path.join(BASE_PATH, tus_id)
+    original_info_file = os.path.join(BASE_PATH, f"{tus_id}.info")
+    cog_file = os.path.join(BASE_PATH, "maplayers", f"{tus_id}.tif")
 
     for file in [original_file, original_info_file, cog_file]:
         if os.path.exists(file):
