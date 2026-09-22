@@ -76,6 +76,11 @@ def tus_webhook(request):
 
         if event_type == 'pre-create':
             return JsonResponse({'status': 'success', 'message': 'Upload authorized'})
+        
+        source_file_path = os.path.join(MEDIA_BASE, tus_id)
+
+        if not _raster_is_geotiff(source_file_path):
+            return JsonResponse({'error': 'Uploaded file is not a valid GeoTIFF'}, status=400)
 
         maplayer_metadata = {
             'original_name': metadata.get('basemap_name', 'Untitled Basemap'),

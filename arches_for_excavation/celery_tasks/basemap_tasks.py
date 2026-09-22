@@ -38,6 +38,7 @@ def register_basemap_in_db(basemap_metadata):
         maplayerid=uuid.UUID(basemap_metadata['tus_id']),
         name=basemap_metadata['original_name'],
         layerdefinitions=[{
+            'id': basemap_metadata['tus_id'],
             'tus_id': basemap_metadata['tus_id'],
             'type': 'raster',
             'source': basemap_metadata['tus_id'],
