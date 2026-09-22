@@ -234,17 +234,18 @@ define([
 
             self.pollTask = function(taskId) {
                 basemapService.getCeleryTaskStatus(taskId).then(response => {
-                    const { _, state, info } = response;
-                    console.log(response);
+                    const { task_id, state, result } = response;
+                    console.log('Task status response:', response);
                     
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
                         self.errorMessage('');
                         self.successMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} created successfully!`);
-                        self.value(info);
+                        console.log('Task completed successfully with result:', result);
+                        self.value(result);
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
-                        self.errorMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} processing failed: ${info}`);
+                        self.errorMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} processing failed: ${response.error || 'Unknown error'}`);
                     } else if (state === CELERY_STATES.revoked) {
                         self.infoMessage('');
                         self.errorMessage('Processing was cancelled (Revoked).');
@@ -293,6 +294,7 @@ define([
                     const upload = new tus.Upload(file, {
                         endpoint: 'http://localhost:1080/files',
                         retryDelays: [0, 3000, 5000, 10000, 20000],
+                        removeFingerprintOnSuccess: true,
                         metadata: {
                             upload_token: token,
                             basemap_name: self.basemapName(),
@@ -303,8 +305,24 @@ define([
                             basemap_isoverlay: self.isOverlay()
                         },
                         onError: function(error) {
+                            let errorMessage = error.message || 'An error occurred during the upload.';
+                            
+                            if (error.originalResponse) {
+                                const rawBody = error.originalResponse.getBody();
+
+                                try {
+                                    const data = JSON.parse(rawBody);
+                                    if (data.error) {
+                                        errorMessage = data.error;
+                                    }
+                                } catch (parseError) {
+                                    if (rawBody && rawBody.trim().length > 0) {
+                                        errorMessage = rawBody.trim();
+                                    }
+                                }
+                            }
                             console.error('Upload failed:', error);
-                            self.errorMessage(`Upload failed: ${error}`);
+                            self.errorMessage(`Upload failed: ${errorMessage}`);
                             self.infoMessage('');
                             self.successMessage('');
                             self.canSubmit(true);
