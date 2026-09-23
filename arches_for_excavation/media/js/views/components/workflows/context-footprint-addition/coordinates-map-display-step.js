@@ -465,16 +465,17 @@ define([
                         
                         const defaultBasemap = {
                             source_info: {
-                                name: 'osm-standard',
-                                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                                name: 'opentopo-basemap',
+                                tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'],
                                 tileSize: 256,
                                 type: 'raster',
-                                maxzoom: 19
+                                maxzoom: 19,
+                                attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | DEM: SRTM, Sonny | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
                             },
                             layer_info: {
                                 name: 'Default Basemap',
-                                id: 'osm-standard-layer',
-                                source: 'osm-standard',
+                                id: 'opentopo-basemap-layer',
+                                source: 'opentopo-basemap',
                                 type: 'raster'
                             }
                         };

@@ -7,16 +7,17 @@ export class BasemapControl {
     constructor(options) {
         const defaultBasemap = {
             source_info: {
-                name: 'osm-standard',
-                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                name: 'opentopo-standard',
+                tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'],
                 tileSize: 256,
                 bounds: null,
-                type: 'raster'
+                type: 'raster',
+                attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | DEM: SRTM, Sonny | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
             },
             layer_info: {
                 name: 'Default Basemap',
-                id: 'osm-standard-layer',
-                source: 'osm-standard',
+                id: 'opentopo-standard-layer',
+                source: 'opentopo-standard',
                 sortorder: -1,
                 icon: 'fa fa-home'
             }
