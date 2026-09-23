@@ -38,6 +38,7 @@ from .views.crs import search_epsg, get_epsg_proj4, transform_coordinates
 # from .views.bone_iiif import bone_iiif_image, bone_iiif_info, bone_inventory_example_csv
 from .views.tusd_webhook import tus_webhook
 from .views.tusd_auth import generate_tus_token
+from .views.tusd_patch_metadata import patch_tusd_metadata
 
 urlpatterns = [
     # project-level urls
@@ -94,4 +95,5 @@ urlpatterns = [
     path('api/crs/transform', transform_coordinates, name='crs_transform'),
     path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
     path("api/tus/generate-token", generate_tus_token, name="generate_tus_token"),
+    path("api/tus/patch-metadata", patch_tusd_metadata, name="patch_tus_metadata"),
 ]
