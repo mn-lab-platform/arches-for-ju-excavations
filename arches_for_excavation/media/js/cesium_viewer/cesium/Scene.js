@@ -17,7 +17,8 @@ export class Scene {
                     icon: 'fa fa-home'
                 },
                 source_info: {
-                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png']
+                    tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'],
+                    credit: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | DEM: SRTM, Sonny | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
                 }
             }
         ];
@@ -37,6 +38,7 @@ export class Scene {
             const layer = this.widget.scene.imageryLayers.addImageryProvider(
                     new UrlTemplateImageryProvider({
                         url: b.source_info.tiles[0],
+                        credit: b.source_info.credit || ''
                     })
                 )
             layer.show = index === 0;
