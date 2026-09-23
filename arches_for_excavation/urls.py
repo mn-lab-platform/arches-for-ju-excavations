@@ -36,6 +36,7 @@ from .views.resource_mapping_editor import ResourceMappingGraphsView, ResourceMa
 from .views.displayname_search import DisplayNameSearchView
 from .views.tusd_webhook import tus_webhook
 from .views.tusd_auth import generate_tus_token
+from .views.tusd_patch_metadata import patch_tusd_metadata
 
 urlpatterns = [
     # project-level urls
@@ -88,4 +89,5 @@ urlpatterns = [
     path("api/resources-by-displayname", DisplayNameSearchView.as_view(), name="resources_by_displayname"),
     path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
     path("api/tus/generate-token", generate_tus_token, name="generate_tus_token"),
+    path("api/tus/patch-metadata", patch_tusd_metadata, name="patch_tus_metadata"),
 ]

@@ -93,6 +93,7 @@ def tus_webhook(request):
             'authorized_group': 'Restricted Basemap Access', # IMPORTANT: hardcoded group with basemap viewing rights,
             'bounds': None,
             'center_coordinates': None,
+            'band_count': None,
             'tus_id': tus_id, # Use the TUS ID as the unique identifier for the basemap, it is also the name of the file in the mounted volume
         }
 
