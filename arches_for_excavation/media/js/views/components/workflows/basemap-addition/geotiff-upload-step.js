@@ -2,11 +2,11 @@ define([
     'knockout',
     'templates/views/components/workflows/basemap-addition/geotiff-upload-step.htm',
     '../../../../services/basemap-service',
-    '../../../../services/tus-auth-service',
+    '../../../../services/tus-service',
     'tus-js-client',
     'arches',
     'bindings/dropzone'
-], function(ko, template, basemapServiceModule, tusAuthService, tus, arches) {
+], function(ko, template, basemapServiceModule, tusService, tus, arches) {
     return ko.components.register('geotiff-upload-step', {
         viewModel: function(params) {
             const CELERY_STATES = {
@@ -19,18 +19,22 @@ define([
             const self = this;
             self.value = params.value;
 
-            const tusAuthServiceInstance = tusAuthService.default || tusAuthService;
+            const tusServiceInstance = tusService.default || tusService;
             const basemapService = basemapServiceModule.default || basemapServiceModule;
 
             self.mode = ko.observable(params.mode);
             self.submitLabel = ko.pureComputed(function() {
                 return self.mode() === 'overlay' ? 'Create a new Overlay' : 'Create a new Basemap';
             });
+
+            self.currentUpload = null;
+
             self.basemapName = ko.observable('');
             self.sortOrder = ko.observable(0);
             self.isPublic = ko.observable(true);
             self.isOverlay = ko.observable(self.mode() === 'overlay');
 
+            self.loading = ko.observable(false);
             self.errorMessage = ko.observable(null);
             self.infoMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
@@ -194,6 +198,28 @@ define([
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
                         self.errorMessage('');
+                        self.successMessage('');
+                        if (self.currentUpload) {
+                            self.currentUpload.abort(false);
+                            self.currentUpload = null;
+                        }
+
+                        const checker = new tus.Upload(file, { endpoint: 'http://localhost:1080/files' });
+                        checker.findPreviousUploads().then(function (previousUploads) {
+                            if (previousUploads.length) {
+                                const oldMetadata = previousUploads[0].metadata;
+                                if (oldMetadata) {
+                                    self.basemapName(oldMetadata.basemap_name || '');
+                                    self.sortOrder(oldMetadata.basemap_sortorder || 0);
+                                    self.selectedIcon(oldMetadata.basemap_icon || 'fa fa-map');
+
+                                    self.loading(false);
+                                    self.infoMessage('This file has an unfinished upload. It will continue from where it left off. We auto-filled your original settings.');
+                                }
+                            }
+
+                        })
+
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
                             thumbnailElement.style.display = 'none';
@@ -214,8 +240,13 @@ define([
                         self.errorMessage(null);
                         self.successMessage(null);
                         self.infoMessage(null);
+                        self.loading(false);
                         self.basemapName('');
                         self.sortOrder(0);
+                        if (self.currentUpload) {
+                            self.currentUpload.abort(true);
+                            self.currentUpload = null;
+                        }
                     });
 
                     dz.on('dragover', function() {
@@ -235,26 +266,30 @@ define([
             self.pollTask = function(taskId) {
                 basemapService.getCeleryTaskStatus(taskId).then(response => {
                     const { task_id, state, result } = response;
-                    console.log('Task status response:', response);
                     
                     if (state === CELERY_STATES.success) {
                         self.infoMessage('');
+                        self.loading(false);
                         self.errorMessage('');
                         self.successMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} created successfully!`);
                         console.log('Task completed successfully with result:', result);
                         self.value(result);
                     } else if (state === CELERY_STATES.failure) {
                         self.infoMessage('');
+                        self.loading(false);
                         self.errorMessage(`${self.isOverlay() ? 'Overlay' : 'Basemap'} processing failed: ${response.error || 'Unknown error'}`);
                     } else if (state === CELERY_STATES.revoked) {
                         self.infoMessage('');
+                        self.loading(false);
                         self.errorMessage('Processing was cancelled (Revoked).');
                     } else {
+                        self.loading(true);
                         self.infoMessage(`We are processing your ${self.isOverlay() ? 'Overlay' : 'Basemap'} on our servers. Please wait...`);
                         setTimeout(() => self.pollTask(taskId), 2000);
                     }
                 }).catch(err => {
                     self.infoMessage('');
+                    self.loading(false);
                     self.successMessage('');
                     self.errorMessage(`Error checking task status: ${err.message}`);
                 });
@@ -283,7 +318,7 @@ define([
             };
 
             self.submitUpload = async function() {
-                const token = (await tusAuthServiceInstance.generateSecureToken()).token;
+                const token = (await tusServiceInstance.generateSecureToken()).token;
                 if (!token) {
                     self.errorMessage('Failed to obtain a secure upload token. Please try again.');
                     return;
@@ -305,6 +340,7 @@ define([
                             basemap_isoverlay: self.isOverlay()
                         },
                         onError: function(error) {
+                            self.currentUpload = null;
                             let errorMessage = error.message || 'An error occurred during the upload.';
                             
                             if (error.originalResponse) {
@@ -324,34 +360,55 @@ define([
                             console.error('Upload failed:', error);
                             self.errorMessage(`Upload failed: ${errorMessage}`);
                             self.infoMessage('');
+                            self.loading(false);
                             self.successMessage('');
                             self.canSubmit(true);
                         },
                         onProgress: function(bytesUploaded, bytesTotal) {
-                            const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                            const percentage = Math.floor((bytesUploaded / bytesTotal) * 100);
+                            self.loading(true);
                             self.infoMessage(`Uploading basemap GEOTIFF file...  ${percentage}%`);
                         },
                         onSuccess: function() {
+                            self.currentUpload = null;
                             console.log('Upload successful');
 
+                            self.loading(true);
                             self.infoMessage('Upload completed successfully. We are processing your file in the background...');
                             self.errorMessage('');
                             self.successMessage('');
                             self.canSubmit(false);
 
                             const tusFileId = upload.url.split('/').pop();
-                            console.log('Tus file ID:', tusFileId);
                             self.pollTask(tusFileId);
+                            
                         }
                     });
+                    self.currentUpload = upload;
 
-                    upload.findPreviousUploads().then(function (previousUploads) {
-                        // Found previous uploads so we select the first one.
+                    upload.findPreviousUploads().then(async function (previousUploads) {
                         if (previousUploads.length) {
+                            const newMetadata = {
+                                upload_token: token,
+                                basemap_name: self.basemapName(),
+                                basemap_sortorder: self.sortOrder(),
+                                basemap_icon: self.selectedIcon(),
+                                basemap_ispublic: self.isPublic(),
+                                basemap_isoverlay: self.isOverlay()
+                            };
+
+                            const tusFileId = previousUploads[0].uploadUrl.split('/').pop();
+                            try {
+                                await tusServiceInstance.patchTusMetadata(tusFileId, newMetadata);
+                            } catch (patchErr) {
+                                console.error("Failed to sync new metadata, proceeding with old metadata:", patchErr);
+                                self.errorMessage('Failed to sync new metadata with the server. Proceeding with previous metadata.');
+                                self.infoMessage('');
+                                self.successMessage('');
+                            }
                             upload.resumeFromPreviousUpload(previousUploads[0])
                         }
 
-                        // Start the upload
                         upload.start()
                     })
 
