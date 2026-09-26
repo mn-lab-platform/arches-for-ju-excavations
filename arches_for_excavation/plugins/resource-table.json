@@ -1,0 +1,10 @@
+{
+  "pluginid": "d9b4f1f3-6b4c-4c0b-b3a2-3f4d5e6f7081",
+  "name": "Resource Table",
+  "icon": "fa fa-table",
+  "component": "views/components/plugins/resource-table",
+  "componentname": "resource-table",
+  "config": {"show": true},
+  "slug": "resource-table",
+  "sortorder": 2
+}

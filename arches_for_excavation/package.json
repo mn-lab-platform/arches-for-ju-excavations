@@ -20,7 +20,8 @@
         "vitest": "vitest --run --coverage"
     },
     "dependencies": {
-        "arches": "archesproject/arches#stable/8.0.3"
+        "arches": "archesproject/arches#stable/8.0.3",
+        "jspdf": "^2.5.2"
     },
     "devDependencies": {
         "arches-dev-dependencies": "archesproject/arches-dev-dependencies#stable/8.0.0"

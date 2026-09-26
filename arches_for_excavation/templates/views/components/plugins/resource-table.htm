@@ -1,0 +1,709 @@
+<section class="resource-table-plugin" data-bind="css: { 'resource-table-plugin--table-mode': tableBuilt }">
+    <header class="resource-table-plugin__header">
+        <div>
+            <h2>Resource table</h2>
+            <p>Select a resource model and the fields to display.</p>
+        </div>
+        <div class="resource-table-plugin__model-actions">
+            <select class="resource-table-plugin__model-select" data-bind="value: selectedModelId, options: models, optionsText: 'name', optionsValue: 'graph_id', optionsCaption: 'Select resource model'"></select>
+            <button class="resource-table-plugin__primary-action" type="button" data-bind="click: buildTable, enable: selectedColumnIds().length">Build table</button>
+        </div>
+    </header>
+
+    <p class="resource-table-plugin__message" data-bind="visible: loading">Loading...</p>
+    <p class="resource-table-plugin__error" data-bind="visible: error, text: error"></p>
+
+    <section class="resource-table-plugin__builder" data-bind="visible: availableColumns().length && !tableBuilt()">
+        <h3>Columns</h3>
+        <div class="resource-table-plugin__columns" data-bind="foreach: visibleColumnTree">
+            <!-- ko if: selectable -->
+            <button class="resource-table-plugin__column-option" type="button" data-bind="
+                click: function(data) { $component.toggleColumn(data); },
+                css: {
+                    'resource-table-plugin__column-option--selected': $component.isColumnSelected(node_id),
+                    'resource-table-plugin__column-option--required': $component.isColumnRequired($data)
+                },
+                style: { 'padding-left': (10 + depth * 24) + 'px' },
+                attr: {
+                    role: 'checkbox',
+                    'aria-checked': String($component.isColumnSelected(node_id)),
+                    'aria-disabled': $component.isColumnRequired($data) ? 'true' : undefined,
+                    title: $component.isColumnRequired($data) ? 'Selected because a child field is selected' : undefined
+                }
+            ">
+                <span class="resource-table-plugin__checkbox" aria-hidden="true"></span>
+                <span class="resource-table-plugin__column-copy">
+                    <strong data-bind="text: label"></strong>
+                    <small data-bind="text: datatype"></small>
+                </span>
+            </button>
+            <!-- /ko -->
+            <!-- ko ifnot: selectable -->
+            <div class="resource-table-plugin__column-option resource-table-plugin__column-option--group" data-bind="
+                css: {
+                    'resource-table-plugin__column-option--group-selected': $component.groupSelectionState($data) === 'all',
+                    'resource-table-plugin__column-option--group-partial': $component.groupSelectionState($data) === 'partial'
+                },
+                style: { 'padding-left': (10 + depth * 24) + 'px' }
+            ">
+                <button class="resource-table-plugin__group-select" type="button" data-bind="
+                    click: function(data) { $component.toggleGroupSelection(data); },
+                    css: {
+                        'resource-table-plugin__group-select--selected': $component.groupSelectionState($data) === 'all',
+                        'resource-table-plugin__group-select--partial': $component.groupSelectionState($data) === 'partial'
+                    },
+                    attr: {
+                        role: 'checkbox',
+                        'aria-checked': $component.groupSelectionState($data) === 'partial' ? 'mixed' : String($component.groupSelectionState($data) === 'all'),
+                        'aria-label': $component.groupSelectionLabel($data),
+                        title: $component.groupSelectionLabel($data)
+                    }
+                "><span class="resource-table-plugin__checkbox" aria-hidden="true"></span></button>
+                <button class="resource-table-plugin__tree-button" type="button" data-bind="
+                    click: function(data, event) { $component.toggleGroup(data, event); },
+                    attr: {
+                        'aria-expanded': String(!$component.isNodeCollapsed(node_id)),
+                        'aria-label': $component.isNodeCollapsed(node_id) ? 'Expand group' : 'Collapse group'
+                    }
+                "><span class="resource-table-plugin__tree-toggle" data-bind="css: { 'resource-table-plugin__tree-toggle--collapsed': $component.isNodeCollapsed(node_id) }" aria-hidden="true"></span></button>
+                <span class="resource-table-plugin__column-copy">
+                    <strong data-bind="text: label"></strong>
+                    <small data-bind="text: datatype"></small>
+                </span>
+            </div>
+            <!-- /ko -->
+        </div>
+    </section>
+
+    <section class="resource-table-plugin__table-view" data-bind="visible: tableBuilt">
+        <div class="resource-table-plugin__toolbar">
+            <button type="button" data-bind="click: editColumns">Choose columns</button>
+            <div class="resource-table-plugin__actions">
+                <button type="button" data-bind="click: loadTable">Apply filters</button>
+                <button type="button" data-bind="click: exportCsv, enable: rows().length">Export CSV</button>
+                <button type="button" data-bind="click: exportPdf, enable: rows().length">Export PDF</button>
+            </div>
+        </div>
+        <div class="resource-table-plugin__top-scroll" data-bind="event: { scroll: $component.syncTopScroll }" aria-label="Horizontal table scroll">
+            <div class="resource-table-plugin__top-scroll-track" data-bind="style: { width: tableWidth() + 'px' }"></div>
+        </div>
+        <div class="resource-table-plugin__grid" data-bind="event: { scroll: $component.syncGridScroll }">
+            <table data-bind="style: { width: tableWidth() + 'px' }">
+                <colgroup data-bind="foreach: selectedColumns">
+                    <col data-bind="style: { width: $component.columnWidth(node_id) }">
+                </colgroup>
+                <thead>
+                    <tr class="resource-table-plugin__sort-row" data-bind="foreach: selectedColumns">
+                        <th data-bind="css: { 'resource-table-plugin__sorted-column': $component.isSortActive(node_id) }">
+                            <button class="resource-table-plugin__sort-button" type="button" data-bind="
+                                click: $component.toggleSort,
+                                attr: { 'aria-label': $component.sortAriaLabel($data), title: $component.sortAriaLabel($data) },
+                                css: { 'resource-table-plugin__sort-button--active': $component.isSortActive(node_id) }
+                            ">
+                                <span class="resource-table-plugin__sort-label" data-bind="text: label"></span>
+                                <span class="resource-table-plugin__sort-indicator" data-bind="text: $component.sortIndicator(node_id)" aria-hidden="true"></span>
+                            </button>
+                            <span class="resource-table-plugin__resize-handle" data-bind="
+                                event: {
+                                    mousedown: function(data, event) { $component.startColumnResize(data, event); },
+                                    keydown: function(data, event) { return $component.resizeColumnWithKeyboard(data, event); }
+                                },
+                                attr: {
+                                    role: 'separator',
+                                    tabindex: '0',
+                                    'aria-orientation': 'vertical',
+                                    'aria-label': 'Resize ' + label,
+                                    'aria-valuemin': '100',
+                                    'aria-valuemax': '800',
+                                    'aria-valuenow': $component.columnWidthValue(node_id)
+                                }
+                            "></span>
+                        </th>
+                    </tr>
+                    <tr class="resource-table-plugin__filter-row" data-bind="foreach: selectedColumns">
+                        <th>
+                            <div class="resource-table-plugin__column-filter-control">
+                                <select class="resource-table-plugin__filter-mode" data-bind="
+                                    value: $component.columnFilterMode(node_id),
+                                    attr: { 'aria-label': 'Filter condition for ' + label }
+                                ">
+                                    <option value="contains">Contains</option>
+                                    <option value="equals">Equals</option>
+                                    <option value="not-contains">Not contains</option>
+                                    <option value="empty">Is empty</option>
+                                    <option value="not-empty">Not empty</option>
+                                </select>
+                                <input class="resource-table-plugin__column-filter" type="search" data-bind="
+                                    value: $component.columnFilter(node_id),
+                                    valueUpdate: 'input',
+                                    visible: ['empty', 'not-empty'].indexOf($component.columnFilterMode(node_id)()) === -1,
+                                    attr: { placeholder: 'Value', 'aria-label': 'Filter value for ' + label },
+                                    event: { keyup: function(data, event) { if (event.key === 'Enter') $component.loadTable(); } }
+                                ">
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: rows">
+                    <tr data-bind="foreach: $parent.selectedColumns">
+                        <td data-bind="attr: { title: $parent[node_id] }">
+                            <!-- ko if: $data.is_resource_link -->
+                            <a class="resource-table-plugin__resource-link" target="_blank" rel="noopener" data-bind="text: $parent.resource_name, attr: { href: $parent.resource_url }"></a>
+                            <!-- /ko -->
+                            <!-- ko ifnot: $data.is_resource_link -->
+                            <span data-bind="text: $parent[node_id]"></span>
+                            <!-- /ko -->
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody data-bind="visible: !rows().length && !loading()">
+                    <tr><td data-bind="attr: { colspan: selectedColumns().length || 1 }">No resources found.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+<style>
+.resource-table-plugin {
+    --table-ink: #243447;
+    --table-muted: #6b7b8c;
+    --table-line: #d9e1e8;
+    --table-soft: #f5f8fa;
+    --table-accent: #2878a8;
+    color: var(--table-ink);
+    box-sizing: border-box;
+    max-width: none;
+    padding: clamp(18px, 3vw, 32px);
+    width: 100%;
+}
+
+.resource-table-plugin__header,
+.resource-table-plugin__toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.resource-table-plugin__header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 5px;
+}
+
+.resource-table-plugin__header p {
+    color: var(--table-muted);
+    margin: 0;
+}
+
+.resource-table-plugin__model-select,
+.resource-table-plugin button {
+    background: #fff;
+    border: 1px solid #bdcbd6;
+    border-radius: 4px;
+    color: var(--table-ink);
+    min-height: 34px;
+    padding: 7px 10px;
+}
+
+.resource-table-plugin__model-select {
+    max-width: 100%;
+    min-width: 230px;
+}
+
+.resource-table-plugin__model-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.resource-table-plugin__builder {
+    background: var(--table-soft);
+    border: 1px solid var(--table-line);
+    border-radius: 6px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 118px);
+    margin-top: 22px;
+    overflow: hidden;
+    padding: 16px;
+    width: 100%;
+}
+
+.resource-table-plugin__builder h3 {
+    font-size: 16px;
+    margin: 0;
+}
+
+.resource-table-plugin__columns {
+    background: #fff;
+    border: 1px solid var(--table-line);
+    border-radius: 4px;
+    margin: 12px 0 16px;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 8px 4px 4px;
+}
+
+.resource-table-plugin__builder > .resource-table-plugin__primary-action {
+    align-self: flex-start;
+}
+
+.resource-table-plugin button.resource-table-plugin__column-option {
+    appearance: none;
+    align-items: flex-start;
+    background: #fff;
+    border: 0;
+    border-bottom: 1px solid #e8edf1;
+    border-radius: 0;
+    color: var(--table-ink);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: 10px;
+    min-width: 0;
+    min-height: 38px;
+    padding-bottom: 8px;
+    padding-right: 10px;
+    padding-top: 8px;
+    text-align: left;
+    transition: border-color .15s ease, background-color .15s ease;
+    width: 100%;
+}
+
+.resource-table-plugin button.resource-table-plugin__column-option:hover,
+.resource-table-plugin button.resource-table-plugin__column-option:focus-visible,
+.resource-table-plugin button.resource-table-plugin__column-option--selected {
+    background: #edf6fb;
+    border-color: var(--table-accent);
+    color: var(--table-ink);
+}
+
+.resource-table-plugin button.resource-table-plugin__column-option:focus-visible {
+    outline: 2px solid var(--table-accent);
+    outline-offset: -2px;
+}
+
+.resource-table-plugin__checkbox {
+    background: #fff;
+    border: 1px solid #8fa4b3;
+    border-radius: 3px;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    height: 16px;
+    margin-top: 1px;
+    position: relative;
+    width: 16px;
+}
+
+.resource-table-plugin__column-option--selected .resource-table-plugin__checkbox {
+    background: var(--table-accent);
+    border-color: var(--table-accent);
+}
+
+.resource-table-plugin__column-option--selected .resource-table-plugin__checkbox::after {
+    border-bottom: 2px solid #fff;
+    border-right: 2px solid #fff;
+    content: '';
+    height: 8px;
+    left: 5px;
+    position: absolute;
+    top: 2px;
+    transform: rotate(45deg);
+    width: 4px;
+}
+
+.resource-table-plugin button.resource-table-plugin__column-option--required {
+    cursor: not-allowed;
+}
+
+.resource-table-plugin__column-option--required .resource-table-plugin__checkbox {
+    box-shadow: 0 0 0 2px rgba(40, 120, 168, .18);
+}
+
+.resource-table-plugin .resource-table-plugin__column-option--group {
+    align-items: flex-start;
+    background: #edf2f6;
+    border-bottom: 1px solid #d5dfe7;
+    color: var(--table-ink);
+    display: flex;
+    gap: 8px;
+    min-height: 38px;
+    padding-bottom: 8px;
+    padding-right: 10px;
+    padding-top: 8px;
+}
+
+.resource-table-plugin .resource-table-plugin__column-option--group-selected,
+.resource-table-plugin .resource-table-plugin__column-option--group-partial {
+    background: #e4f1f8;
+    border-bottom-color: var(--table-accent);
+}
+
+.resource-table-plugin__column-option--group strong {
+    font-weight: 650;
+}
+
+.resource-table-plugin button.resource-table-plugin__group-select,
+.resource-table-plugin button.resource-table-plugin__tree-button {
+    align-items: flex-start;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    display: flex;
+    flex: 0 0 16px;
+    min-height: 16px;
+    padding: 0;
+}
+
+.resource-table-plugin button.resource-table-plugin__group-select {
+    margin-top: 1px;
+}
+
+.resource-table-plugin__group-select--selected .resource-table-plugin__checkbox {
+    background: var(--table-accent);
+    border-color: var(--table-accent);
+}
+
+.resource-table-plugin__group-select--selected .resource-table-plugin__checkbox::after {
+    border-bottom: 2px solid #fff;
+    border-right: 2px solid #fff;
+    content: '';
+    height: 8px;
+    left: 5px;
+    position: absolute;
+    top: 2px;
+    transform: rotate(45deg);
+    width: 4px;
+}
+
+.resource-table-plugin__group-select--partial .resource-table-plugin__checkbox {
+    background: var(--table-accent);
+    border-color: var(--table-accent);
+}
+
+.resource-table-plugin__group-select--partial .resource-table-plugin__checkbox::after {
+    background: #fff;
+    content: '';
+    height: 2px;
+    left: 3px;
+    position: absolute;
+    top: 6px;
+    width: 8px;
+}
+
+.resource-table-plugin__tree-toggle {
+    flex: 0 0 16px;
+    height: 16px;
+    position: relative;
+    width: 16px;
+}
+
+.resource-table-plugin__tree-toggle::before {
+    border-bottom: 2px solid #60798a;
+    border-right: 2px solid #60798a;
+    content: '';
+    height: 7px;
+    left: 3px;
+    position: absolute;
+    top: 2px;
+    transform: rotate(45deg);
+    transition: transform .15s ease, top .15s ease;
+    width: 7px;
+}
+
+.resource-table-plugin__tree-toggle--collapsed::before {
+    top: 3px;
+    transform: rotate(-45deg);
+}
+
+.resource-table-plugin__column-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.resource-table-plugin__column-copy strong {
+    font-size: 13px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.resource-table-plugin__columns small {
+    color: var(--table-muted);
+    font-size: 11px;
+}
+
+.resource-table-plugin button {
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.resource-table-plugin button:hover:not(:disabled) {
+    border-color: var(--table-accent);
+    color: var(--table-accent);
+}
+
+.resource-table-plugin button:disabled {
+    cursor: not-allowed;
+    opacity: .5;
+}
+
+.resource-table-plugin__primary-action {
+    background: var(--table-accent) !important;
+    border-color: var(--table-accent) !important;
+    color: #fff !important;
+}
+
+.resource-table-plugin__toolbar {
+    background: #edf2f6;
+    border-bottom: 1px solid var(--table-line);
+    margin-top: 22px;
+    padding: 10px 0;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.resource-table-plugin__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.resource-table-plugin__top-scroll {
+    box-sizing: border-box;
+    height: 18px;
+    margin-top: 14px;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
+    width: 100%;
+}
+
+.resource-table-plugin__top-scroll-track {
+    height: 1px;
+}
+
+.resource-table-plugin__grid {
+    border: 1px solid var(--table-line);
+    box-sizing: border-box;
+    margin-top: 0;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-x: contain;
+    width: 100%;
+}
+
+.resource-table-plugin--table-mode {
+    max-width: none;
+    min-height: calc(100vh - 42px);
+    padding: clamp(18px, 3vw, 32px);
+}
+
+.resource-table-plugin--table-mode .resource-table-plugin__table-view {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 120px);
+    min-width: 0;
+    width: 100%;
+}
+
+.resource-table-plugin--table-mode .resource-table-plugin__grid {
+    flex: 0 1 auto;
+    height: calc(100vh - 180px);
+    max-height: calc(100vh - 180px);
+    min-height: 280px;
+}
+
+.resource-table-plugin table {
+    border-collapse: collapse;
+    min-width: 100%;
+    table-layout: fixed;
+}
+
+.resource-table-plugin th,
+.resource-table-plugin td {
+    border-bottom: 1px solid var(--table-line);
+    padding: 9px 10px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resource-table-plugin th {
+    background: var(--table-soft);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.resource-table-plugin__sort-row th {
+    top: 0;
+}
+
+.resource-table-plugin__filter-row th {
+    padding: 5px 8px;
+    top: 43px;
+    z-index: 2;
+}
+
+.resource-table-plugin__column-filter-control {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+}
+
+.resource-table-plugin__filter-mode,
+.resource-table-plugin__column-filter {
+    background: #fff;
+    border: 1px solid #bdcbd6;
+    border-radius: 3px;
+    box-sizing: border-box;
+    color: var(--table-ink);
+    min-height: 30px;
+    min-width: 0;
+    padding: 5px 7px;
+}
+
+.resource-table-plugin__filter-mode {
+    flex: 0 1 94px;
+    max-width: 94px;
+}
+
+.resource-table-plugin__column-filter {
+    flex: 1 1 90px;
+    width: 100%;
+}
+
+.resource-table-plugin__filter-mode:focus,
+.resource-table-plugin__column-filter:focus {
+    border-color: var(--table-accent);
+    outline: 2px solid rgba(40, 120, 168, .2);
+}
+
+.resource-table-plugin__resource-link {
+    color: var(--table-accent);
+    text-decoration: underline;
+}
+
+.resource-table-plugin__resize-handle {
+    bottom: 0;
+    cursor: col-resize;
+    position: absolute;
+    right: -4px;
+    top: 0;
+    touch-action: none;
+    width: 8px;
+    z-index: 3;
+}
+
+.resource-table-plugin__resize-handle::after {
+    background: transparent;
+    bottom: 3px;
+    content: '';
+    left: 3px;
+    position: absolute;
+    top: 3px;
+    width: 2px;
+}
+
+.resource-table-plugin__resize-handle:hover::after,
+.resource-table-plugin__resize-handle:focus-visible::after {
+    background: var(--table-accent);
+}
+
+.resource-table-plugin th button {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resource-table-plugin th button {
+    background: transparent;
+    border: 0;
+    font-weight: 600;
+    padding: 2px;
+}
+
+.resource-table-plugin th.resource-table-plugin__sorted-column {
+    background: #e4f1f8;
+}
+
+.resource-table-plugin th button.resource-table-plugin__sort-button {
+    align-items: center;
+    color: var(--table-ink);
+    display: flex;
+    gap: 7px;
+    justify-content: space-between;
+    text-align: left;
+    width: 100%;
+}
+
+.resource-table-plugin th button.resource-table-plugin__sort-button--active {
+    color: var(--table-accent);
+}
+
+.resource-table-plugin__sort-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resource-table-plugin__sort-indicator {
+    color: #60798a;
+    flex: 0 0 auto;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.resource-table-plugin__sort-button--active .resource-table-plugin__sort-indicator {
+    color: var(--table-accent);
+    font-weight: 700;
+}
+
+.resource-table-plugin__message { color: var(--table-muted); }
+.resource-table-plugin__error { color: #a32626; }
+
+@media (max-width: 720px) {
+    .resource-table-plugin__header,
+    .resource-table-plugin__toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .resource-table-plugin__model-select {
+        max-width: none;
+        width: 100%;
+    }
+
+    .resource-table-plugin__columns {
+        max-height: none;
+    }
+
+    .resource-table-plugin__builder {
+        height: calc(100vh - 96px);
+    }
+
+    .resource-table-plugin__actions {
+        width: 100%;
+    }
+
+    .resource-table-plugin__actions button {
+        flex: 1 1 auto;
+    }
+}
+</style>
