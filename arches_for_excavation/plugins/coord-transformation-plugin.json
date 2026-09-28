@@ -1,0 +1,12 @@
+{
+  "pluginid": "fff241b1-7479-4708-b343-056be67d17e3",
+  "name": "Coordinates Transformation Plugin",
+  "icon": "fa fa-crosshairs",
+  "component": "views/components/plugins/coord-transformation-plugin",
+  "componentname": "coord-transformation-plugin",
+  "config": { 
+    "show": true
+  },
+  "slug": "coord-transformation-plugin",
+  "sortorder": 2
+}
