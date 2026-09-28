@@ -15,6 +15,16 @@ define([
         }
 
         self.graphIds = toArray(params.graphIds || params.graphids || params.graphId || params.graphid);
+        // Optional ID (or IDs) of a resource model whose Configuration defines
+        // which resource models may be related to it. For example, passing the
+        // IIIF resource-model ID makes this step list only models enabled for
+        // IIIF in Arches' Resource Model Configuration panel.
+        self.relatedResourceModelIds = toArray(
+            params.relatedResourceModelIds ||
+            params.relatedResourceModelId ||
+            params.relatableResourceModelIds ||
+            params.relatableResourceModelId
+        );
         self.searchPlaceholder = params.searchPlaceholder || 'Search resources...';
         self.multiple = params.multiple || false;
 
@@ -32,6 +42,7 @@ define([
 
         self.availableResources = self.allResources;
         self.resultLimit = 100;
+        self._relatedGraphIdsPromise = null;
 
         self.searchText.subscribe(function(newValue) {
             self.loadResources(newValue);
@@ -93,11 +104,55 @@ define([
             }
         };
 
+        self.getConfiguredGraphIds = function() {
+            if (self._relatedGraphIdsPromise) {
+                return self._relatedGraphIdsPromise;
+            }
+
+            self._relatedGraphIdsPromise = Promise.all(
+                self.relatedResourceModelIds.map(function(resourceModelId) {
+                    return resourceService.getRelatableGraphIds(resourceModelId);
+                })
+            ).then(function(results) {
+                const graphIds = results.reduce(function(ids, result) {
+                    return ids.concat(result);
+                }, []).map(String);
+                return Array.from(new Set(graphIds));
+            });
+
+            return self._relatedGraphIdsPromise;
+        };
+
+        self.getEffectiveGraphIds = function() {
+            if (self.relatedResourceModelIds.length === 0) {
+                return Promise.resolve(self.graphIds);
+            }
+
+            return self.getConfiguredGraphIds().then(function(configuredGraphIds) {
+                // When both options are provided, graphIds is an additional
+                // narrowing filter; it can never broaden the configuration.
+                if (self.graphIds.length > 0) {
+                    return configuredGraphIds.filter(function(graphId) {
+                        return self.graphIds.indexOf(graphId) !== -1;
+                    });
+                }
+                return configuredGraphIds;
+            });
+        };
+
         self.loadResources = function(searchTerm = '') {
             self.loading(true);
             self.error('');
 
-            resourceService.getAll(self.graphIds, searchTerm, self.resultLimit)
+            self.getEffectiveGraphIds()
+                .then(function(graphIds) {
+                    // An explicitly configured model with no allowed related
+                    // models must not fall back to an unfiltered resource list.
+                    if (self.relatedResourceModelIds.length > 0 && graphIds.length === 0) {
+                        return { results: { hits: { hits: [] } } };
+                    }
+                    return resourceService.getAll(graphIds, searchTerm, self.resultLimit);
+                })
                 .then(function(data) {
                     const hits = (((data || {}).results || {}).hits || {}).hits || [];
                     const rows = hits.map(function(hit) { return hit._source; });

@@ -50,6 +50,22 @@ const getAll = (graphIds = null, searchTerm = '', limit = 100) => {
     });
 };
 
+const getRelatableGraphIds = (resourceModelId) => {
+    const url = '/resource/related/relatable?graphid=' + encodeURIComponent(resourceModelId);
+
+    return fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Accept': 'application/json'
+        }
+    }).then(resp => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    });
+};
+
 const getAllRelatedTo = (resourceId) => {
     const url = `/resource/related/${resourceId}`;
     return fetch(url, {
@@ -95,6 +111,7 @@ const getResourcesSimple = (graphIds) => {
 export default {
     getOne: getOne,
     getAll: getAll,
+    getRelatableGraphIds: getRelatableGraphIds,
     getAllRelatedTo: getAllRelatedTo,
     deleteOne: deleteOne,
     getResourcesSimple: getResourcesSimple,
