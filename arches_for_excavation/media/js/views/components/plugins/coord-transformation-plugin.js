@@ -76,21 +76,19 @@ export default ko.components.register('coord-transformation-plugin', {
       return self._searchCrs('output', event);
     };
 
-    self._getProj4Definition = async function(code) {
-      const response = await fetch(`/api/crs/proj4/${encodeURIComponent(code)}`, {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || `Unable to load CRS ${code}.`);
-      return data.proj4;
+    self._getCsrfToken = function() {
+      const cookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+      return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
     };
 
-    self._transformCoordinates = function(text, fromDefinition, toDefinition) {
+    self._transformCoordinates = async function(text, fromCode, toCode) {
       const delimiter = coordLogic.detectDelimiter(text);
       if (!delimiter) throw new Error('Coordinates must use a consistent delimiter.');
 
-      return text.split('\n').map(line => {
+      const lines = text.split('\n');
+      const coordinates = lines.filter(line => line.trim()).map(line => {
         if (!line.trim()) return line;
 
         const parts = line.trim().split(delimiter);
@@ -106,15 +104,35 @@ export default ko.components.register('coord-transformation-plugin', {
           throw new Error('Coordinate values must be numbers.');
         }
 
-        const [transformedX, transformedY] = proj4(
-          fromDefinition,
-          toDefinition,
-          [x, y]
-        );
+        return { parts, hasLabel, offset, x, y };
+      });
+      const response = await fetch('/api/crs/transform', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRFToken': self._getCsrfToken(),
+        },
+        body: JSON.stringify({
+          source: fromCode,
+          target: toCode,
+          coordinates: coordinates.map(({ x, y }) => [x, y]),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to transform coordinates.');
+
+      let coordinateIndex = 0;
+      return lines.map(line => {
+        if (!line.trim()) return line;
+
+        const { parts, hasLabel, offset } = coordinates[coordinateIndex];
+        const [transformedX, transformedY] = data.coordinates[coordinateIndex++];
         const transformedParts = hasLabel ? [parts[0]] : [];
         transformedParts.push(
-          transformedX.toFixed(5),
-          transformedY.toFixed(5),
+          transformedX.toFixed(10),
+          transformedY.toFixed(10),
           parts[offset + 2]
         );
         return transformedParts.join(delimiter);
@@ -123,14 +141,10 @@ export default ko.components.register('coord-transformation-plugin', {
 
     self.computeAndDisplay = async function() {
       try {
-        const [inputDefinition, outputDefinition] = await Promise.all([
-          self._getProj4Definition(self.inputCrsCode()),
-          self._getProj4Definition(self.outputCrsCode()),
-        ]);
-        const transformedText = self._transformCoordinates(
+        const transformedText = await self._transformCoordinates(
           self.coordinatesText(),
-          inputDefinition,
-          outputDefinition
+          self.inputCrsCode(),
+          self.outputCrsCode()
         );
         self.coordinatesText(transformedText);
         self._processAndUpdateCoordUI();
