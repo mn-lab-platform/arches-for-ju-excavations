@@ -186,6 +186,15 @@
         margin-top: 10px;
     }
 
+    .resource-type-filter {
+        margin: -8px 0 18px;
+    }
+
+    .resource-type-filter .dropdown-menu {
+        max-height: 260px;
+        overflow-y: auto;
+    }
+
 </style>
 
 <div class="workflow-step resource-selection-step">
@@ -206,6 +215,38 @@
                           attr: { placeholder: searchPlaceholder }"
                placeholder="Search resources...">
         <i class="fa fa-search resource-search-icon"></i>
+    </div>
+
+    <!-- Resource Type Filter -->
+    <div class="resource-type-filter" data-bind="visible: resourceTypes().length > 1">
+        <div class="btn-group btn-group-xs">
+            <button class="btn btn-primary btn-active-primary dropdown-toggle search-btn"
+                    data-toggle="dropdown"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="resource-type-filter-contents">
+                <span data-bind="text: selectedResourceTypeName"></span>
+                <i class="dropdown-caret fa fa-caret-down" aria-hidden="true"></i>
+            </button>
+            <ul id="resource-type-filter-contents" class="dropdown-menu dropdown-menu-left">
+                <li>
+                    <a href="#"
+                       data-bind="click: selectResourceType.bind($data, null),
+                                  css: { active: !selectedResourceTypeId() }">
+                        All resource types
+                    </a>
+                </li>
+                <!-- ko foreach: resourceTypes -->
+                <li>
+                    <a href="#"
+                       data-bind="text: name,
+                                  click: $parent.selectResourceType.bind($parent, $data),
+                                  css: { active: $parent.selectedResourceTypeId() === id }">
+                    </a>
+                </li>
+                <!-- /ko -->
+            </ul>
+        </div>
     </div>
     
     <!-- Error Message -->

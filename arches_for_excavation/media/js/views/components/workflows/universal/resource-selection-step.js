@@ -15,22 +15,19 @@ define([
         }
 
         self.graphIds = toArray(params.graphIds || params.graphids || params.graphId || params.graphid);
-        // Optional ID (or IDs) of a resource model whose Configuration defines
+        // Optional ID of a resource model whose Configuration defines
         // which resource models may be related to it. For example, passing the
         // IIIF resource-model ID makes this step list only models enabled for
         // IIIF in Arches' Resource Model Configuration panel.
-        self.relatedResourceModelIds = toArray(
-            params.relatedResourceModelIds ||
-            params.relatedResourceModelId ||
-            params.relatableResourceModelIds ||
-            params.relatableResourceModelId
-        );
+        self.relationConfigModelId = params.relationConfigModelId;
         self.searchPlaceholder = params.searchPlaceholder || 'Search resources...';
         self.multiple = params.multiple || false;
 
         self.searchText = ko.observable('').extend({ 
             rateLimit: { timeout: 300, method: "notifyWhenChangesStop" } 
         });
+        self.resourceTypes = ko.observableArray([]);
+        self.selectedResourceTypeId = ko.observable(null);
         
         self.allResources = ko.observableArray([]);
         self.loading = ko.observable(false);
@@ -59,6 +56,17 @@ define([
                 return resource ? resource.name : selectedId;
             }
             return '';
+        });
+
+        self.selectedResourceTypeName = ko.pureComputed(function() {
+            const selectedId = self.selectedResourceTypeId();
+            if (!selectedId) {
+                return 'Resource Type';
+            }
+            const selectedType = self.resourceTypes().find(function(type) {
+                return type.id === selectedId;
+            });
+            return selectedType ? selectedType.name : 'Resource Type';
         });
 
         self.isSelected = function(resource) {
@@ -109,35 +117,51 @@ define([
                 return self._relatedGraphIdsPromise;
             }
 
-            self._relatedGraphIdsPromise = Promise.all(
-                self.relatedResourceModelIds.map(function(resourceModelId) {
-                    return resourceService.getRelatableGraphIds(resourceModelId);
-                })
-            ).then(function(results) {
-                const graphIds = results.reduce(function(ids, result) {
-                    return ids.concat(result);
-                }, []).map(String);
-                return Array.from(new Set(graphIds));
-            });
+            self._relatedGraphIdsPromise = resourceService
+                .getRelatableGraphIds(self.relationConfigModelId)
+                .then(function(graphIds) {
+                    return graphIds.map(String);
+                });
 
             return self._relatedGraphIdsPromise;
         };
 
         self.getEffectiveGraphIds = function() {
-            if (self.relatedResourceModelIds.length === 0) {
+            if (!self.relationConfigModelId) {
                 return Promise.resolve(self.graphIds);
             }
 
             return self.getConfiguredGraphIds().then(function(configuredGraphIds) {
-                // When both options are provided, graphIds is an additional
-                // narrowing filter; it can never broaden the configuration.
-                if (self.graphIds.length > 0) {
-                    return configuredGraphIds.filter(function(graphId) {
-                        return self.graphIds.indexOf(graphId) !== -1;
-                    });
-                }
-                return configuredGraphIds;
+                return Array.from(new Set(self.graphIds.concat(configuredGraphIds)));
             });
+        };
+
+        self.updateResourceTypes = function(graphIds) {
+            const graphModels = (arches.default && arches.default.resources) || [];
+            const ids = graphIds.length > 0 || self.relationConfigModelId
+                ? graphIds
+                : graphModels.map(function(graph) { return graph.graphid; });
+            const resourceTypes = ids.map(function(id) {
+                const graph = graphModels.find(function(model) {
+                    return model.graphid === id;
+                });
+                return graph ? { id: graph.graphid, name: graph.name } : null;
+            }).filter(Boolean).sort(function(a, b) {
+                return a.name.localeCompare(b.name);
+            });
+
+            self.resourceTypes(resourceTypes);
+            if (self.selectedResourceTypeId() && !resourceTypes.some(function(type) {
+                return type.id === self.selectedResourceTypeId();
+            })) {
+                self.selectedResourceTypeId(null);
+            }
+        };
+
+        self.selectResourceType = function(resourceType) {
+            self.selectedResourceTypeId(resourceType ? resourceType.id : null);
+            self.loadResources(self.searchText());
+            return false;
         };
 
         self.loadResources = function(searchTerm = '') {
@@ -146,12 +170,18 @@ define([
 
             self.getEffectiveGraphIds()
                 .then(function(graphIds) {
+                    self.updateResourceTypes(graphIds);
                     // An explicitly configured model with no allowed related
                     // models must not fall back to an unfiltered resource list.
-                    if (self.relatedResourceModelIds.length > 0 && graphIds.length === 0) {
+                    if (self.relationConfigModelId && graphIds.length === 0) {
                         return { results: { hits: { hits: [] } } };
                     }
-                    return resourceService.getAll(graphIds, searchTerm, self.resultLimit);
+                    const selectedGraphId = self.selectedResourceTypeId();
+                    return resourceService.getAll(
+                        selectedGraphId ? [selectedGraphId] : graphIds,
+                        searchTerm,
+                        self.resultLimit
+                    );
                 })
                 .then(function(data) {
                     const hits = (((data || {}).results || {}).hits || {}).hits || [];
