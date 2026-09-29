@@ -35,6 +35,7 @@ from .views.ontology_usage import OntologyUsageModelGraphView, OntologyUsageMode
 from .views.resource_mapping_editor import ResourceMappingGraphsView, ResourceMappingMigrateView, ResourceMappingSuggestView
 from .views.displayname_search import DisplayNameSearchView
 from .views.resource_table import ResourceTableColumnsView, ResourceTableCsvView, ResourceTableDataView, ResourceTableModelsView
+from .views.crs import search_epsg, get_epsg_proj4
 # from .views.bone_iiif import bone_iiif_image, bone_iiif_info, bone_inventory_example_csv
 
 urlpatterns = [
@@ -111,4 +112,6 @@ urlpatterns = [
     path("api/resource-table/models/<uuid:graph_id>/columns", ResourceTableColumnsView.as_view(), name="resource_table_columns"),
     path("api/resource-table/data", ResourceTableDataView.as_view(), name="resource_table_data"),
     path("api/resource-table/csv", ResourceTableCsvView.as_view(), name="resource_table_csv"),
+    path("api/crs/search", search_epsg, name="search_epsg"),
+    path("api/crs/proj4/<str:code>", get_epsg_proj4, name="get_epsg_proj4"),
 ]
