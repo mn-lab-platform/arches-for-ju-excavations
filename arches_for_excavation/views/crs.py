@@ -1,8 +1,9 @@
+import json
 from uuid import UUID
 
 from django.http import JsonResponse
 from arches.app.models.resource import Resource
-from pyproj import CRS
+from pyproj import CRS, Transformer
 from pyproj.database import query_crs_info
 from pyproj.exceptions import CRSError
 
@@ -83,3 +84,52 @@ def get_epsg_proj4(request, code):
         return JsonResponse({"error": f"Invalid EPSG code: {code}. Error: {str(e)}"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+def transform_coordinates(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST is required."}, status=405)
+
+    try:
+        payload = json.loads(request.body)
+        source_code = str(payload["source"])
+        target_code = str(payload["target"])
+        coordinates = payload["coordinates"]
+
+        def resolve_crs(code):
+            try:
+                resource_id = UUID(code)
+            except ValueError:
+                resource_id = None
+
+            if resource_id:
+                resource = Resource.objects.filter(
+                    resourceinstanceid=resource_id,
+                    graph_id="855343ec-9d7c-4947-970c-e80b6cfacc4f",
+                ).first()
+                if resource:
+                    definition = get_crs_definition(resource, CRSShorthands.WKT2)
+                    if not definition:
+                        definition = get_crs_definition(resource, CRSShorthands.PROJ4)
+                    if definition:
+                        return CRS.from_user_input(definition)
+
+            return CRS.from_user_input(code)
+
+        transformer = Transformer.from_crs(
+            resolve_crs(source_code),
+            resolve_crs(target_code),
+            always_xy=True,
+        )
+        transformed = [
+            transformer.transform(float(x), float(y))
+            for x, y in coordinates
+        ]
+        return JsonResponse({"coordinates": transformed})
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        return JsonResponse(
+            {"error": f"Invalid coordinate transformation request: {error}"},
+            status=400,
+        )
+    except Exception as error:
+        return JsonResponse({"error": str(error)}, status=400)
