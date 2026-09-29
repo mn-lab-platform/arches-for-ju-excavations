@@ -37,7 +37,7 @@ function processCoordinates(text) {
         return { 
             allValid: false, 
             errorLineIndices: allLines.map((_, index) => index), 
-            htmlLines: '', 
+            htmlLines: allLines.map(line => line + '<span title="Line contains error" class="error-indicator visible"><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="red"/></svg></span>').join('\n'), 
             delimiterError: true 
         };
     }
