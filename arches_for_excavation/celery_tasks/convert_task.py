@@ -16,10 +16,11 @@ def convert_geotiff_to_cog(src_path, dst_path):
             src_path,
             dst_path,
             driver='COG',      
-            compress='JPEG',
+            compress='ZSTD',
             overview_resampling='BILINEAR',
             blocksize=256,
-            bigtiff='YES'
+            bigtiff='YES',
+            predictor="YES"
         )
         logger.info("[COG TASK] Conversion Complete.")
         print("Conversion Complete.")
