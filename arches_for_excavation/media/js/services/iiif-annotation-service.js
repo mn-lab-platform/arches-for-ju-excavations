@@ -94,30 +94,6 @@ define([
         return [];
     }
 
-    function parseGraphNodes(graphPayload) {
-        if (graphPayload && graphPayload.graph && Array.isArray(graphPayload.graph.nodes)) return graphPayload.graph.nodes;
-        if (graphPayload && Array.isArray(graphPayload.nodes)) return graphPayload.nodes;
-        if (graphPayload && graphPayload.data && Array.isArray(graphPayload.data.nodes)) return graphPayload.data.nodes;
-        return [];
-    }
-
-    function hydrateCardsWithNodes(graphPayload) {
-        var cards = parseGraphCards(graphPayload);
-        var nodes = parseGraphNodes(graphPayload);
-
-        return cards.map(function(card) {
-            if (card && Array.isArray(card.nodes) && card.nodes.length) return card;
-
-            var cardNodeGroupId = card && (card.nodegroup_id || card.nodegroupid);
-            var cardNodes = nodes.filter(function(node) {
-                var nodeGroupId = node && (node.nodegroup_id || node.nodeGroupId);
-                return cardNodeGroupId && nodeGroupId === cardNodeGroupId;
-            });
-
-            return Object.assign({}, card, { nodes: cardNodes });
-        });
-    }
-
     function fetchResourceName(resourceId) {
         if (!resourceService || typeof resourceService.getOne !== 'function') {
             return Promise.resolve(resourceId);
@@ -241,78 +217,6 @@ define([
         }));
     }
 
-    function clearRelatedResourcesCache(resourceIds) {
-        (Array.isArray(resourceIds) ? resourceIds : [resourceIds]).forEach(function(resourceId) {
-            if (!resourceId) return;
-            delete relatedResourcesCache[resourceId];
-        });
-    }
-
-    function getTilesForResource(resourceId) {
-        if (!resourceId || !tileService || typeof tileService.getAllForResource !== 'function') {
-            return Promise.resolve([]);
-        }
-
-        return tileService.getAllForResource(resourceId).then(function(payload) {
-            return (payload && Array.isArray(payload.tiles)) ? payload.tiles : [];
-        });
-    }
-
-    function buildTilePayload(nodeGroupId, nodeId, resourceId, tileId, value, parentTileId) {
-        var data = {};
-        data[nodeId] = value;
-
-        return {
-            tileid: tileId || '',
-            nodegroup_id: nodeGroupId,
-            parenttile_id: parentTileId || null,
-            resourceinstance_id: resourceId,
-            sortorder: 0,
-            tiles: {},
-            data: data
-        };
-    }
-
-    function normalizeRelationEntry(entry) {
-        if (!entry || typeof entry !== 'object') return null;
-
-        var resourceId = entry.resourceId || entry.resourceid || null;
-        if (!resourceId) return null;
-
-        return {
-            resourceId: resourceId,
-            ontologyProperty: entry.ontologyProperty || '',
-            inverseOntologyProperty: entry.inverseOntologyProperty || '',
-            resourceXresourceId: entry.resourceXresourceId || ''
-        };
-    }
-
-    function mergeRelationValues(existingValues, relationValues) {
-        var merged = [];
-        var seen = {};
-
-        function addEntry(entry) {
-            var normalized = normalizeRelationEntry(entry);
-            if (!normalized) return;
-
-            var key = [
-                normalized.resourceId,
-                normalized.ontologyProperty,
-                normalized.inverseOntologyProperty,
-                normalized.resourceXresourceId
-            ].join('|');
-
-            if (seen[key]) return;
-            seen[key] = true;
-            merged.push(normalized);
-        }
-
-        (Array.isArray(existingValues) ? existingValues : []).forEach(addEntry);
-        (Array.isArray(relationValues) ? relationValues : []).forEach(addEntry);
-
-        return merged;
-    }
-
     function ensureManifestOverride(resourceId, manifest) {
         if (manifestOverrideCache[resourceId]) return Promise.resolve();
 
@@ -327,7 +231,7 @@ define([
         });
     }
 
-    function createAnnotationResource(annotation, hostResourceId) {
+    function createAnnotationResource(annotation, hostResourceId, targetResourceId) {
         var resourceId = iiifAdditionUtils.uuidv4();
         var chain = Promise.resolve();
 
@@ -365,12 +269,13 @@ define([
                 var groupData = {};
                 groupData[ANNOTATION_NODE_IDS.geometry] = JSON.stringify(annotation.geometry || annotation.localGeometry || null);
                 groupData[ANNOTATION_NODE_IDS.color] = annotation.color || '#64ff64';
-                groupData[ANNOTATION_NODE_IDS.hostLink] = [{
-                    resourceId: hostResourceId,
-                    ontologyProperty: "",
-                    inverseOntologyProperty: "",
-                    resourceXresourceId: ""
-                }];
+                var relatedResourceIds = [hostResourceId];
+                if (targetResourceId && targetResourceId !== hostResourceId) {
+                    relatedResourceIds.push(targetResourceId);
+                }
+                groupData[ANNOTATION_NODE_IDS.hostLink] = relatedResourceIds.map(function(resourceId) {
+                    return iiifAnnotationUtils.buildResourceLinkValue(resourceId);
+                });
 
                 return tileService.createOne({
                     tileid: '',
@@ -473,194 +378,6 @@ define([
         });
     }
 
-    function checkGraphForRelatedResourceNode(graphId) {
-        var url = iiifAnnotationUtils.baseRoot() + 'graphs/' + encodeURIComponent(graphId) + '?cards=true';
-
-        console.log('[iiif-annotation-service] checkGraphForRelatedResourceNode:start', {
-            graphId: graphId,
-            url: url
-        });
-
-        return requestJson(url, { method: 'GET' })
-            .then(function(graphData) {
-                var rawCards = parseGraphCards(graphData);
-                var rawNodes = parseGraphNodes(graphData);
-                var cards = hydrateCardsWithNodes(graphData);
-                var candidateNodes = [];
-
-                console.log('[iiif-annotation-service] checkGraphForRelatedResourceNode:payload-shape', {
-                    graphId: graphId,
-                    rawCardCount: rawCards.length,
-                    rawNodeCount: rawNodes.length,
-                    hydratedCardNodeCounts: cards.map(function(card) {
-                        return {
-                            cardId: card && (card.cardid || card.card_id || card.cardId) || null,
-                            cardName: card && card.name || null,
-                            nodeCount: card && Array.isArray(card.nodes) ? card.nodes.length : 0
-                        };
-                    })
-                });
-
-                function isAnnotationGraphCandidate(graph) {
-                    var name = (graph && graph.name) ? graph.name.toLowerCase() : '';
-                    return (
-                        name.indexOf('annotation') >= 0 ||
-                        name.indexOf('iiif') >= 0 ||
-                        graph.graphid === '96e396f9-3fb8-47bf-b14c-189e9c1dee97' ||
-                        graph.graphid === 'ddd13240-8e2b-414f-a652-abab00a02015'
-                    );
-                }
-
-                for (var i = 0; i < cards.length; i++) {
-                    var card = cards[i];
-                    var nodes = (card && Array.isArray(card.nodes)) ? card.nodes : [];
-
-                    for (var j = 0; j < nodes.length; j++) {
-                        var node = nodes[j];
-                        if (node.datatype === 'resource-instance-list' || node.datatype === 'resource-instance') {
-                            var config = node.config || {};
-                            var allowedGraphs = Array.isArray(config.graphs) ? config.graphs : [];
-
-                            candidateNodes.push({
-                                node: node,
-                                card: card,
-                                allowedGraphs: allowedGraphs,
-                                canLinkToAnnotations: allowedGraphs.some(isAnnotationGraphCandidate)
-                            });
-                        }
-                    }
-                }
-
-                if (!candidateNodes.length) {
-                    console.warn('[iiif-annotation-service] checkGraphForRelatedResourceNode:no-related-node', {
-                        graphId: graphId,
-                        cardCount: cards.length,
-                        rawNodeCount: rawNodes.length
-                    });
-                    return {
-                        hasRelatedNode: false,
-                        canLinkToAnnotations: false
-                    };
-                }
-
-                var selectedCandidate = candidateNodes.find(function(candidate) {
-                    return candidate.canLinkToAnnotations;
-                }) || candidateNodes[0];
-
-                var relatedNode = selectedCandidate.node;
-                var relatedCard = selectedCandidate.card;
-                var allowedGraphs = selectedCandidate.allowedGraphs;
-                var canLinkToAnnotations = selectedCandidate.canLinkToAnnotations;
-
-                var summary = {
-                    hasRelatedNode: true,
-                    nodeId: relatedNode.nodeid,
-                    nodeGroupId: relatedNode.nodegroup_id,
-                    name: relatedNode.name,
-                    cardId: relatedCard && (relatedCard.cardid || relatedCard.card_id || relatedCard.cardId) || null,
-                    cardNodeGroupId: relatedCard && (relatedCard.nodegroup_id || relatedCard.nodegroupid) || null,
-                    canLinkToAnnotations: canLinkToAnnotations,
-                    allowedGraphs: allowedGraphs,
-                    candidateCount: candidateNodes.length
-                };
-
-                console.log('[iiif-annotation-service] checkGraphForRelatedResourceNode:success', summary);
-                return summary;
-            })
-            .catch(function(error) {
-                console.error('[iiif-annotation-service] Error checking graph structure:', error);
-                return {
-                    hasRelatedNode: false,
-                    canLinkToAnnotations: false,
-                    error: error.message
-                };
-            });
-    }
-
-    function addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo) {
-        var relationValue = annotationResourceIds.map(function(annotationResourceId) {
-            return iiifAnnotationUtils.buildResourceLinkValue(annotationResourceId);
-        });
-        var nodeId = targetResourceInfo && (targetResourceInfo.nodeId || targetResourceInfo.nodeGroupId);
-        var nodeGroupId = targetResourceInfo && targetResourceInfo.nodeGroupId;
-
-        console.log('[iiif-annotation-service] addAnnotationsToTargetResource:start', {
-            targetResourceId: targetResourceId,
-            annotationResourceIds: annotationResourceIds,
-            targetResourceInfo: targetResourceInfo,
-            relationValue: relationValue
-        });
-
-        if (!targetResourceId) {
-            return Promise.reject(new Error('Missing target resource id for relation save.'));
-        }
-
-        if (!nodeId || !nodeGroupId) {
-            return Promise.reject(new Error('Missing target node information for relation save.'));
-        }
-
-        return getTilesForResource(targetResourceId)
-            .then(function(tiles) {
-                var existingTile = (Array.isArray(tiles) ? tiles : []).find(function(tile) {
-                    var tileNodeGroupId = tile && (tile.nodegroup_id || tile.nodegroup);
-                    return tileNodeGroupId === nodeGroupId;
-                }) || null;
-
-                var existingValues = [];
-                if (existingTile && existingTile.data) {
-                    if (Array.isArray(existingTile.data[nodeId])) {
-                        existingValues = existingTile.data[nodeId];
-                    } else if (Array.isArray(existingTile.data[nodeGroupId])) {
-                        existingValues = existingTile.data[nodeGroupId];
-                    }
-                }
-
-                var mergedRelationValue = mergeRelationValues(existingValues, relationValue);
-                var payload = buildTilePayload(
-                    nodeGroupId,
-                    nodeId,
-                    targetResourceId,
-                    existingTile && existingTile.tileid,
-                    mergedRelationValue,
-                    existingTile && (existingTile.parenttile_id || existingTile.parenttile)
-                );
-
-                console.log('[iiif-annotation-service] addAnnotationsToTargetResource:tile-payload', {
-                    existingTile: existingTile,
-                    payload: payload
-                });
-
-                if (existingTile && tileService && typeof tileService.updateOne === 'function') {
-                    return tileService.updateOne(payload);
-                }
-
-                if (tileService && typeof tileService.createOne === 'function') {
-                    return tileService.createOne(payload);
-                }
-
-                throw new Error('tileService is not available for relation save.');
-            })
-            .then(function(response) {
-                clearRelatedResourcesCache([targetResourceId].concat(annotationResourceIds || []));
-                console.log('[iiif-annotation-service] addAnnotationsToTargetResource:success', {
-                    targetResourceId: targetResourceId,
-                    annotationResourceIds: annotationResourceIds,
-                    response: response
-                });
-                return response;
-            })
-            .catch(function(error) {
-                console.error('[iiif-annotation-service] addAnnotationsToTargetResource:error', {
-                    targetResourceId: targetResourceId,
-                    annotationResourceIds: annotationResourceIds,
-                    targetResourceInfo: targetResourceInfo,
-                    message: error && error.message ? error.message : String(error),
-                    error: error
-                });
-                throw error;
-            });
-    }
-
     return {
         loadHostResource: loadHostResource,
         deleteAnnotation: deleteAnnotation,
@@ -668,8 +385,6 @@ define([
         fetchResourceReference: fetchResourceReference,
         enrichAnnotationsWithLinkedResources: enrichAnnotationsWithLinkedResources,
         upsertAnnotation: upsertAnnotation,
-        createAnnotationResource: createAnnotationResource,
-        checkGraphForRelatedResourceNode: checkGraphForRelatedResourceNode,
-        addAnnotationsToTargetResource: addAnnotationsToTargetResource
+        createAnnotationResource: createAnnotationResource
     };
 });

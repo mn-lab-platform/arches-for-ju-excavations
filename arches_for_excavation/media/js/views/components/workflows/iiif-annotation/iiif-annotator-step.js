@@ -392,47 +392,12 @@ define([
             return !!self.targetGraphId() && !!self.riValue();
         });
 
-        function checkTargetGraphStructure() {
-            var selectedGraphId = self.targetGraphId();
-
-            console.log('[iiif-annotator-step] checkTargetGraphStructure:start', {
-                selectedGraphId: selectedGraphId,
-                targetResourceId: self.riValue()
-            });
-
-            if (!selectedGraphId) {
-                return Promise.resolve({
-                    hasRelatedNode: false,
-                    error: 'No graph ID available'
-                });
-            }
-
-            return iiifAnnotationService.checkGraphForRelatedResourceNode(selectedGraphId)
-                .then(function(graphInfo) {
-                    var result = Object.assign({}, graphInfo, {
-                        resourceGraphId: selectedGraphId,
-                        resourceId: self.riValue()
-                    });
-
-                    console.log('[iiif-annotator-step] checkTargetGraphStructure:result', result);
-                    return result;
-                });
-        }
-
         self.updateManifestOnServer = function(annotationData, digitalResourceId, sourceManifest) {
             return iiifAnnotationService.upsertAnnotation(annotationData, digitalResourceId, sourceManifest);
         };
 
-        self.createAnnotationResource = function(annotation, hostResourceId) {
-            return iiifAnnotationService.createAnnotationResource(annotation, hostResourceId);
-        };
-
-        self.addAnnotationsToTargetResource = function(targetResourceId, annotationResourceIds, targetResourceInfo) {
-            return iiifAnnotationService.addAnnotationsToTargetResource(
-                targetResourceId,
-                annotationResourceIds,
-                targetResourceInfo
-            );
+        self.createAnnotationResource = function(annotation, hostResourceId, targetResourceId) {
+            return iiifAnnotationService.createAnnotationResource(annotation, hostResourceId, targetResourceId);
         };
 
         self.saveAnnotationsOnly = function() {
@@ -465,7 +430,7 @@ define([
             });
         };
 
-        self.saveAnnotationsWithTargetResource = function(targetResourceId, targetResourceInfo) {
+        self.saveAnnotationsWithTargetResource = function(targetResourceId) {
             var annotations = self.newAnnotations() || [];
             var hostResourceId = self.hostResourceId();
             var sourceManifest = self.manifest() || null;
@@ -473,35 +438,16 @@ define([
             console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:start', {
                 hostResourceId: hostResourceId,
                 targetResourceId: targetResourceId,
-                targetResourceInfo: targetResourceInfo,
                 annotationCount: annotations.length
             });
 
             return Promise.all(annotations.map(function(annotation) {
-                return self.createAnnotationResource(annotation, hostResourceId);
+                return self.createAnnotationResource(annotation, hostResourceId, targetResourceId);
             }))
                 .then(function(annotationResourceIds) {
                     console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:created-annotation-resources', {
                         annotationResourceIds: annotationResourceIds
                     });
-
-                    if (targetResourceInfo.hasRelatedNode) {
-                        console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:linking-to-target-resource', {
-                            targetResourceId: targetResourceId,
-                            annotationResourceIds: annotationResourceIds
-                        });
-
-                        return self.addAnnotationsToTargetResource(targetResourceId, annotationResourceIds, targetResourceInfo)
-                            .then(function() {
-                                console.log('[iiif-annotator-step] saveAnnotationsWithTargetResource:linked-to-target-resource', {
-                                    targetResourceId: targetResourceId,
-                                    annotationResourceIds: annotationResourceIds
-                                });
-                                return annotationResourceIds;
-                            });
-                    }
-
-                    console.warn('[iiif-annotator-step] saveAnnotationsWithTargetResource:no-related-node-found', targetResourceInfo);
                     return annotationResourceIds;
                 })
                 .then(function(annotationResourceIds) {
@@ -566,9 +512,7 @@ define([
                 : Promise.resolve(null);
 
             var savePromise = (self.outputMode() === 'annotation-and-resource')
-                ? checkTargetGraphStructure().then(function(targetInfo) {
-                    return self.saveAnnotationsWithTargetResource(self.riValue(), targetInfo);
-                })
+                ? self.saveAnnotationsWithTargetResource(self.riValue())
                 : self.saveAnnotationsOnly();
 
             return Promise.all([savePromise, targetResourcePromise])
