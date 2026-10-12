@@ -4,7 +4,7 @@ from django.conf.urls.i18n import i18n_patterns
 from django.urls import include, path
 from .views.model_3d import Model3DView
 from .views.cesium_plugin import Models3DAccessView
-from .views.basemap import BasemapUploadView, BasemapCheckView, BasemapAccessView
+from .views.basemap import BasemapCheckView, BasemapAccessView
 from .views.local_coordinate_system import LocalCoordinateSystemDefineView, LocalCoordinateSystemDownloadView, LocalCoordinateSystemAssignToResourcesView
 from .views.tile_proxy import titiler_tile_proxy
 from .views.celery_utils import get_celery_task_status
@@ -37,6 +37,9 @@ from .views.displayname_search import DisplayNameSearchView
 from .views.resource_table import ResourceTableColumnsView, ResourceTableCsvView, ResourceTableDataView, ResourceTableModelsView
 from .views.crs import search_epsg, get_epsg_proj4, transform_coordinates
 # from .views.bone_iiif import bone_iiif_image, bone_iiif_info, bone_inventory_example_csv
+from .views.tusd_webhook import tus_webhook
+from .views.tusd_auth import generate_tus_token
+from .views.tusd_patch_metadata import patch_tusd_metadata
 
 urlpatterns = [
     # project-level urls
@@ -44,7 +47,6 @@ urlpatterns = [
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
     path('api/model-3d/all/access', Models3DAccessView.as_view(), name='model_3d_access'),
     path('api/model-matrix/generate', GenerateModelMatrixView.as_view(), name='generate_model_matrix'),
-    path('api/basemap/upload', BasemapUploadView.as_view(), name='basemaps'),
     path('api/basemap/check-name', BasemapCheckView.as_view(), name='basemap_check_name'),
     path('api/basemap/access-info', BasemapAccessView.as_view(), name='basemap_access_info'),
     path('api/local-coordinate-system/define', LocalCoordinateSystemDefineView.as_view(), name='local_coordinate_system_define'),
@@ -115,4 +117,7 @@ urlpatterns = [
     path("api/crs/search", search_epsg, name="search_epsg"),
     path("api/crs/proj4/<str:code>", get_epsg_proj4, name="get_epsg_proj4"),
     path('api/crs/transform', transform_coordinates, name='crs_transform'),
+    path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
+    path("api/tus/generate-token", generate_tus_token, name="generate_tus_token"),
+    path("api/tus/patch-metadata", patch_tusd_metadata, name="patch_tus_metadata"),
 ]

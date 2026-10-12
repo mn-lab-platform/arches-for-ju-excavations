@@ -8,25 +8,27 @@ from django.dispatch import receiver
 from django.db import transaction
 from arches.app.models.models import MapLayer, MapSource
 
+BASE_PATH = os.path.join(settings.MEDIA_ROOT, settings.UPLOADED_FILES_DIR)
+
 def execute_basemap_cleanup(maplayer_id, layer_definitions):
     """Handles file and source deletion after the MapLayer deletion commits."""
+
+    if not maplayer_id or not layer_definitions:
+        print(f"Skipping cleanup: maplayer_id={maplayer_id}, layer_definition={layer_definition}")
+        return
+
     layer_definition = (layer_definitions or [{}])[0]
 
-    basemap_dir = layer_definition.get("basemap_dir")
     source_name = layer_definition.get("source")
+    tus_id = layer_definition.get("tus_id")
 
-    if basemap_dir:
-        basemap_root = os.path.abspath(
-            os.path.join(
-                settings.MEDIA_ROOT,
-                settings.UPLOADED_FILES_DIR,
-                "basemaps",
-            )
-        )
-        directory = os.path.abspath(os.path.join(basemap_root, basemap_dir))
+    original_file = os.path.join(BASE_PATH, tus_id)
+    original_info_file = os.path.join(BASE_PATH, f"{tus_id}.info")
+    cog_file = os.path.join(BASE_PATH, "maplayers", f"{tus_id}.tif")
 
-        if directory.startswith(basemap_root + os.sep):
-            shutil.rmtree(directory, ignore_errors=True)
+    for file in [original_file, original_info_file, cog_file]:
+        if os.path.exists(file):
+            os.remove(file)
 
     if source_name:
         MapSource.objects.filter(name=source_name).delete()
