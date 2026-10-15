@@ -1,42 +1,76 @@
 <style>
 .coord-transformation-plugin-container {
+    --color-primary: #009ACA;
+    --color-primary-hover: #007A9E;
+    --color-text-primary: #0F172A;
+    --color-text-muted: #475569;
+    --color-text-light: #FFFFFF;
+    --color-surface-primary: #FFFFFF;
+    --color-surface-muted: #F1F5F9;
+    --color-border: #e2e8f0;
+
     width: 100%;
     height: 100%;
     
+    background-color: var(--color-surface-primary);
+    color: var(--color-text-primary);
+
     display: grid;
     grid-template-columns: 50% 1fr;
-    grid-template-rows: 55% 1fr;
+    grid-template-rows: 65% 1fr;
 }
 
-.coord-transformation-plugin-container .text-input-container {
+.coord-transformation-plugin-container .text-source-container {
     grid-column: 1;
     grid-row: 1 / span 2;
 
     padding: 1rem;
 }
 
-.coord-transformation-plugin-container .map-container {
+.coord-transformation-plugin-container #map-container {
     grid-column: 2;
 
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .coord-transformation-plugin-container .crs-controls-container {
     grid-column: 2;
 }
 
-.text-input-container {
+.text-source-container {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-
-    border-right: 1px solid #ddd;
 }
 
-.text-input-container .coord-status-container {
+.coord-status-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.coord-status-message-container {
+    color: var(--color-text-muted);
+}
+
+.coord-controls-container {
+    display: flex;
+    gap: 1rem;
+}
+
+.coord-control-button {
+    background-color: transparent;
+    border: none;
+
+    cursor: pointer;
+
+    color: var(--color-primary);
+    font-size: 18px;
+    transition: color 0.15s ease;
+}
+
+.coord-control-button:hover {
+    color: var(--color-primary-hover);
 }
 
 .editable-textarea {
@@ -57,7 +91,9 @@
     word-wrap: break-word;
 
     outline: none;
-    border: 1px solid #ccc;
+    background-color: var(--color-surface-primary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
 }
 
 .crs-controls-container {
@@ -80,77 +116,147 @@
     flex: 1;
     flex-direction: column;
     gap: 0.35rem;
+    color: var(--color-text-muted);
+}
+
+.crs-autocomplete-container {
+    position: relative;
+    width: 100%;
 }
 
 .crs-menu input {
     width: 100%;
     padding: 0.5rem;
+    color: var(--color-text-primary);
+    background-color: var(--color-surface-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
 }
 
-.map-container {
+.crs-autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: var(--color-surface-primary);
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+
+.crs-autocomplete-dropdown:empty {
+    display: none;
+}
+
+.crs-autocomplete-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 0.8em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-surface-muted);
+}
+
+.crs-autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.crs-autocomplete-item:hover {
+    background-color: var(--color-surface-muted);
+    color: var(--color-primary);
+}
+
+.crs-autocomplete-item:nth-child(n+6) {
+    display: none;
+}
+
+#map-container {
     width: 100%;
     height: 100%;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
+#compute-crs-button {
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+#compute-crs-button:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+}
+
+#compute-crs-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 </style>
+
 <div class="coord-transformation-plugin-container">
-    <div class="text-input-container">
+    <div class="text-source-container">
         <div class="coord-status-container">
             <div class="coord-status-message-container">
                 <span data-bind="text: statusMessage"></span>
             </div>
             <div class="coord-controls-container">
-                <button data-bind="click: resetCoordinates">
+                <button class="coord-control-button" data-bind="click: resetCoordinates" title="Reset coordinates to default">
                     <i class="fa fa-home"></i>
                 </button>
-                <button data-bind="click: reorderCoordinates">
+                <button class="coord-control-button" data-bind="click: reorderCoordinates" title="Reorder XY coordinates">
                     <i class="fa fa-exchange"></i>
                 </button>
-                <button data-bind="click: copyCoordinatesToClipboard">
+                <button class="coord-control-button" data-bind="click: copyCoordinatesToClipboard" title="Copy coordinates to clipboard">
                     <i class="fa fa-copy"></i>
                 </button>
             </div>
         </div>
         <div class="editable-textarea" 
              contenteditable="plaintext-only" 
-             data-bind="html: coordinatesHtml, event: { input: handleCoordinatesInput }">
+             data-bind="html: coordinatesHtml, event: { input: handleCoordinatessource }">
         </div>
     </div>
 
-    <div class="map-container">
-        <h3>Map view in progress</h3>
-    </div>
+    <div id="map-container"></div>
 
     <div class="crs-controls-container">
-        <button class="compute-crs-button" data-bind="click: computeAndDisplay, enable: canCompute">
+        <button id="compute-crs-button" data-bind="click: computeAndDisplay, enable: canCompute">
             Compute & Display
         </button>
         <div class="crs-menu-container">
             <div class="crs-menu">
-                <label for="input-crs">Input CRS</label>
-                <input id="input-crs"
-                       type="search"
-                       list="input-crs-options"
-                       placeholder="Search CRS..."
-                       data-bind="value: inputCrsName, event: { input: searchInputCrs }">
-                <datalist id="input-crs-options" data-bind="foreach: inputCrsOptions">
-                    <option data-bind="attr: { value: is_local ? name : `${name} (EPSG:${code})`, 'data-code': code }"></option>
-                </datalist>
+                <label for="source-crs">Source CRS</label>
+                <div class="crs-autocomplete-container">
+                    <input id="source-crs"
+                           type="search"
+                           placeholder="Search CRS..."
+                           autocomplete="off"
+                           data-bind="value: sourceCrsName, valueUpdate: 'input', event: { input: searchSourceCrs }">
+                    <div class="crs-autocomplete-dropdown" data-bind="foreach: sourceCrsOptions">
+                        <div class="crs-autocomplete-item" 
+                             data-bind="text: is_local ? name : `${name} (EPSG:${code})`, attr: { 'data-code': code }, click: $parent.selectSourceCrs">
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="crs-menu">
-                <label for="output-crs">Output CRS</label>
-                <input id="output-crs"
-                       type="search"
-                       list="output-crs-options"
-                       placeholder="Search CRS..."
-                       data-bind="value: outputCrsName, event: { input: searchOutputCrs }">
-                <datalist id="output-crs-options" data-bind="foreach: outputCrsOptions">
-                    <option data-bind="attr: { value: is_local ? name : `${name} (EPSG:${code})`, 'data-code': code }"></option>
-                </datalist>
+                <label for="target-crs">Target CRS</label>
+                <div class="crs-autocomplete-container">
+                    <input id="target-crs"
+                           type="search"
+                           placeholder="Search CRS..."
+                           autocomplete="off"
+                           data-bind="value: targetCrsName, valueUpdate: 'input', event: { input: searchTargetCrs }">
+                    <div class="crs-autocomplete-dropdown" data-bind="foreach: targetCrsOptions">
+                        <div class="crs-autocomplete-item" 
+                             data-bind="text: is_local ? name : `${name} (EPSG:${code})`, attr: { 'data-code': code }, click: $parent.selectTargetCrs">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

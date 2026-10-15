@@ -1,7 +1,10 @@
+import 'maplibre-gl/dist/maplibre-gl.css';
+
 import ko from 'knockout';
-import proj4 from 'proj4';
 import viewerTemplate from 'templates/views/components/plugins/coord-transformation-plugin.htm';
-import coordLogic from '../../../coord-transformation-plugin/src/index.js';
+import utils from '../../../coord-transformation-plugin/src/utils.js';
+import { searchDefinitionsByQuery, transformCoordinates } from '../../../coord-transformation-plugin/src/api/crsService.js';
+import { Map } from 'maplibre-gl';
 
 export default ko.components.register('coord-transformation-plugin', {
     viewModel: function(params) {
@@ -14,77 +17,93 @@ export default ko.components.register('coord-transformation-plugin', {
 
     self.coordinatesValid = ko.observable(false);
 
-    self.inputCrsName = ko.observable('');
-    self.outputCrsName = ko.observable('');
-    self.inputCrsCode = ko.observable(null);
-    self.outputCrsCode = ko.observable(null);
-    self.inputCrsOptions = ko.observableArray([]);
-    self.outputCrsOptions = ko.observableArray([]);
+    self.sourceCrsName = ko.observable('');
+    self.targetCrsName = ko.observable('');
+    self.sourceCrsCode = ko.observable(null);
+    self.targetCrsCode = ko.observable(null);
+    self.sourceCrsOptions = ko.observableArray([]);
+    self.targetCrsOptions = ko.observableArray([]);
+    self.sourceCrsSuggestions = ko.pureComputed(function() {
+      return self.sourceCrsOptions().slice(0, 5);
+    });
+    self.targetCrsSuggestions = ko.pureComputed(function() {
+      return self.targetCrsOptions().slice(0, 5);
+    });
 
     self.canCompute = ko.computed(function() {
       return self.coordinatesValid()
-        && self.inputCrsCode()
-        && self.outputCrsCode();
+        && self.sourceCrsCode()
+        && self.targetCrsCode();
+    });
+
+    self.map = new Map({
+      container: 'map-container',
+      style: 'https://demotiles.maplibre.org/style.json',
+      zoom: 6,
+      maxZoom: 25
     });
 
     let debounceTimeout = null;
-    const crsSearchSequences = { input: 0, output: 0 };
+    const crsSearchSequences = { source: 0, target: 0 };
 
-    self._setSelectedCrsCode = function(type, event) {
-      const selectedOption = Array.from(event.target.list.options).find(
-        option => option.value === event.target.value
-      );
-      const code = selectedOption ? selectedOption.dataset.code : null;
+    self._setSelectedCrsCode = function(type, crs) {
+      const name = crs.is_local ? crs.name : `${crs.name} (EPSG:${crs.code})`;
 
-      if (type === 'input') {
-        self.inputCrsCode(code);
+      if (type === 'source') {
+        self.sourceCrsName(name);
+        self.sourceCrsCode(crs.code);
+        self.sourceCrsOptions([]);
       } else {
-        self.outputCrsCode(code);
+        self.targetCrsName(name);
+        self.targetCrsCode(crs.code);
+        self.targetCrsOptions([]);
       }
     };
 
     self._searchCrs = async function(type, event) {
-      self._setSelectedCrsCode(type, event);
       const query = event.target.value.trim();
       const sequence = ++crsSearchSequences[type];
 
+      if (type === 'source') {
+        self.sourceCrsCode(null);
+      } else {
+        self.targetCrsCode(null);
+      }
+
       if (query.length < 2) {
-        (type === 'input' ? self.inputCrsOptions : self.outputCrsOptions)([]);
+        (type === 'source' ? self.sourceCrsOptions : self.targetCrsOptions)([]);
         return;
       }
 
       try {
-        const response = await fetch(`/api/crs/search?q=${encodeURIComponent(query)}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Unable to search CRS definitions.');
+        const data = await searchDefinitionsByQuery(query);
+
         if (sequence !== crsSearchSequences[type]) return;
 
-        (type === 'input' ? self.inputCrsOptions : self.outputCrsOptions)(data.results || []);
+        (type === 'source' ? self.sourceCrsOptions : self.targetCrsOptions)(data.results || []);
       } catch (error) {
         console.error('Unable to search CRS definitions.', error);
       }
     };
 
-    self.searchInputCrs = function(data, event) {
-      return self._searchCrs('input', event);
+    self.searchSourceCrs = function(data, event) {
+      return self._searchCrs('source', event);
     };
 
-    self.searchOutputCrs = function(data, event) {
-      return self._searchCrs('output', event);
+    self.searchTargetCrs = function(data, event) {
+      return self._searchCrs('target', event);
     };
 
-    self._getCsrfToken = function() {
-      const cookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('csrftoken='));
-      return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+    self.selectSourceCrs = function(crs) {
+      self._setSelectedCrsCode('source', crs);
+    };
+
+    self.selectTargetCrs = function(crs) {
+      self._setSelectedCrsCode('target', crs);
     };
 
     self._transformCoordinates = async function(text, fromCode, toCode) {
-      const delimiter = coordLogic.detectDelimiter(text);
+      const delimiter = utils.detectDelimiter(text);
       if (!delimiter) throw new Error('Coordinates must use a consistent delimiter.');
 
       const lines = text.split('\n');
@@ -106,22 +125,8 @@ export default ko.components.register('coord-transformation-plugin', {
 
         return { parts, hasLabel, offset, x, y };
       });
-      const response = await fetch('/api/crs/transform', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-CSRFToken': self._getCsrfToken(),
-        },
-        body: JSON.stringify({
-          source: fromCode,
-          target: toCode,
-          coordinates: coordinates.map(({ x, y }) => [x, y]),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Unable to transform coordinates.');
+
+      const data = await transformCoordinates(fromCode, toCode, coordinates.map(c => [c.x, c.y]));
 
       let coordinateIndex = 0;
       return lines.map(line => {
@@ -143,8 +148,8 @@ export default ko.components.register('coord-transformation-plugin', {
       try {
         const transformedText = await self._transformCoordinates(
           self.coordinatesText(),
-          self.inputCrsCode(),
-          self.outputCrsCode()
+          self.sourceCrsCode(),
+          self.targetCrsCode()
         );
         self.coordinatesText(transformedText);
         self._processAndUpdateCoordUI();
@@ -153,7 +158,7 @@ export default ko.components.register('coord-transformation-plugin', {
       }
     };
     
-    self.handleCoordinatesInput = function(data, event) {
+    self.handleCoordinatessource = function(data, event) {
         self.editorElement = event.target;
         const text = event.target.innerText.replace(/\u00A0/g, ' ');
         self.coordinatesText(text);
@@ -166,8 +171,8 @@ export default ko.components.register('coord-transformation-plugin', {
 
     self._processAndUpdateCoordUI = function() {
       const text = self.coordinatesText();
-      const cursorIndex = coordLogic.getCursorIndex(self.editorElement);
-      const result = coordLogic.processCoordinates(text);
+      const cursorIndex = utils.getCursorIndex(self.editorElement);
+      const result = utils.processCoordinates(text);
       console.log('Processing coordinates result:', result);
   
       if (result.isEmpty) {
@@ -188,7 +193,6 @@ export default ko.components.register('coord-transformation-plugin', {
       }
       else {
         self.statusMessage('Some lines contain invalid format. Please correct them to proceed.');
-        console.log('Some lines contain invalid format. Please correct them to proceed.');
         self.coordinatesValid(false);
       }
   
@@ -197,13 +201,13 @@ export default ko.components.register('coord-transformation-plugin', {
   
       if (cursorIndex >= 0) {
         setTimeout(() => {
-            coordLogic.setCursorIndex(self.editorElement, cursorIndex);
+            utils.setCursorIndex(self.editorElement, cursorIndex);
         }, 0);
       }
     };
 
     self.reorderCoordinates = function() {
-        const newText = coordLogic.reorderCoordinatesLogic(self.coordinatesText(), coordLogic.detectDelimiter(self.coordinatesText()));
+        const newText = utils.reorderCoordinatesLogic(self.coordinatesText(), utils.detectDelimiter(self.coordinatesText()));
         self.coordinatesText(newText);
         self._processAndUpdateCoordUI();
     };
