@@ -108,11 +108,14 @@ def transform_coordinates(request):
                     graph_id="855343ec-9d7c-4947-970c-e80b6cfacc4f",
                 ).first()
                 if resource:
-                    definition = get_crs_definition(resource, CRSShorthands.WKT2)
-                    if not definition:
-                        definition = get_crs_definition(resource, CRSShorthands.PROJ4)
-                    if definition:
-                        return CRS.from_user_input(definition)
+                    for definition_type in CRSShorthands.ALL:
+                        definition = get_crs_definition(resource, definition_type)
+                        if not definition:
+                            continue
+                        try:
+                            return CRS.from_user_input(definition)
+                        except CRSError:
+                            continue
 
             return CRS.from_user_input(code)
 
