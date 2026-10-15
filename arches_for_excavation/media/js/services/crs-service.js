@@ -34,7 +34,49 @@ const assignCRSToResources = (payload) => {
     });
 };
 
+const searchDefinitionsByQuery = (query) => {
+    const url = `/api/crs/search?q=${encodeURIComponent(query)}`;
+    return fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    }).then(resp => {
+        if (!resp.ok) {
+            return resp.text().then(text => {
+                throw new Error(`HTTP ${resp.status}: ${text}`);
+            });
+        }
+        return resp.json();
+    });
+};
+
+const transformCoordinates = (sourceCRS, targetCRS, coordinates) => {
+    const url = '/api/crs/transform';
+    const payload = {
+        source: sourceCRS,
+        target: targetCRS,
+        coordinates: coordinates
+    }
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+    }).then(resp => {
+        if (!resp.ok) {
+            return resp.text().then(text => {
+                throw new Error(`HTTP ${resp.status}: ${text}`);
+            });
+        }
+        return resp.json();
+    });
+};
+
 export default {
     defineCRSFromTwoPoints,
-    assignCRSToResources
+    assignCRSToResources,
+    searchDefinitionsByQuery,
+    transformCoordinates
 };
