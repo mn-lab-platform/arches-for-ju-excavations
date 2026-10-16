@@ -32,7 +32,6 @@ from .views.iiif_thumbnail import IiifThumbnailView
 from .views.cesium_plugin import Models3DAccessView
 from .views.cidoc_periodic_table import CidocPeriodicTableDataView
 from .views.ontology_usage import OntologyUsageModelGraphView, OntologyUsageModelLayoutView, OntologyUsageModelsView
-from .views.resource_mapping_editor import ResourceMappingGraphsView, ResourceMappingMigrateView, ResourceMappingSuggestView
 from .views.displayname_search import DisplayNameSearchView
 from .views.resource_table import ResourceTableColumnsView, ResourceTableCsvView, ResourceTableDataView, ResourceTableModelsView
 from .views.crs import search_epsg, get_epsg_proj4, transform_coordinates
@@ -61,26 +60,6 @@ urlpatterns = [
     path("iiif/image/<str:image_id>/<path:iiif_request>", iiif_image_service, name="iiif-image-service-request"),
     path("iiif/image/<str:image_id>", iiif_image_service, name="iiif-image-service"),
     path("iiif/api/iiif/titiler-proxy", titiler_iiif_proxy, name="titiler-iiif-proxy"),
-    # path(
-    #     "iiif/bone-inventory/<str:image_id>/info.json",
-    #     bone_iiif_info,
-    #     name="bone-iiif-image-info",
-    # ),
-    # path(
-    #     "iiif/bone-inventory/<str:image_id>/<str:region>/<str:size>/<str:rotation>/<str:quality>.<str:image_format>",
-    #     bone_iiif_image,
-    #     name="bone-iiif-image-request",
-    # ),
-    # path(
-    #     "iiif/bone-inventory/<str:image_id>",
-    #     bone_iiif_info,
-    #     name="bone-iiif-image-service",
-    # ),
-    # path(
-    #     "api/bone-inventory/example.csv",
-    #     bone_inventory_example_csv,
-    #     name="bone-inventory-example-csv",
-    # ),
     path("api/iiif/dem/pixel-value", dem_pixel_value, name="dem_pixel_value"),
     path("api/iiif/geotiff-manifest/edit/<uuid:resource_id>", ManifestEditView.as_view(), name="manifest_edit"),
     path("api/iiif/photo-upload", PhotoUploadView.as_view(), name="iiif-photo-upload"),
@@ -104,9 +83,6 @@ urlpatterns = [
     path("api/ontology-usage/models", OntologyUsageModelsView.as_view(), name="ontology_usage_models"),
     path("api/ontology-usage/models/<str:graph_id>", OntologyUsageModelGraphView.as_view(), name="ontology_usage_model_graph"),
     path("api/ontology-usage/models/<str:graph_id>/layout", OntologyUsageModelLayoutView.as_view(), name="ontology_usage_model_layout"),
-    path("api/resource-mapping/graphs", ResourceMappingGraphsView.as_view(), name="resource_mapping_graphs"),
-    path("api/resource-mapping/suggest", ResourceMappingSuggestView.as_view(), name="resource_mapping_suggest"),
-    path("api/resource-mapping/migrate", ResourceMappingMigrateView.as_view(), name="resource_mapping_migrate"),
     path("api/resources-by-displayname", DisplayNameSearchView.as_view(), name="resources_by_displayname"),
     path("api/resource-table/models", ResourceTableModelsView.as_view(), name="resource_table_models"),
     path("api/resource-table/models/<uuid:graph_id>/columns", ResourceTableColumnsView.as_view(), name="resource_table_columns"),
