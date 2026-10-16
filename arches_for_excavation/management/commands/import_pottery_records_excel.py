@@ -69,6 +69,14 @@ MULTIPLE_MORPHOLOGY_NORMALIZATIONS = {
     "everted flat": "everted, flat",
 }
 
+# This node is a single ``concept`` in the current record models, so a source
+# cell containing two preservation states cannot be stored as two structured
+# values. Preserve the reviewed compound wording in Comment instead of
+# choosing one state arbitrarily or reporting it as an unknown concept.
+COMMENT_ONLY_STATE_OF_PRESERVATION_VALUES = frozenset({
+    "burnt, eroded",
+})
+
 MULTIPLE_VESSEL_FORM_NORMALIZATIONS = {
     "amphora jug": "Amphora, Jug",
     "jug amphora": "Jug, Amphora",
@@ -658,6 +666,15 @@ class Command(BaseCommand):
                 )
                 if self._has_uncertainty_marker(source_value):
                     source_notes.append(f"{FIELD_HEADERS[key][0]}: {source_value}")
+            if (
+                key == "stateOfPreservation"
+                and normalize_dictionary_label(raw_value)
+                in COMMENT_ONLY_STATE_OF_PRESERVATION_VALUES
+                and get_node_datatype(node_ids[key]) != "concept-list"
+            ):
+                source_notes.append(f"{FIELD_HEADERS[key][0]}: {source_value}")
+                record[key] = ""
+                continue
             record[key] = self._concept_values(
                 key, raw_value, dictionaries[key], node_ids[key], config, source, totals,
             )
@@ -678,7 +695,7 @@ class Command(BaseCommand):
                 if chronology_normalization.get("preserve_in_comment"):
                     source_notes.append(f"{FIELD_HEADERS['chronology'][0]}: {source_chronology}")
 
-        record["chronology"] = CollectionImportCommand._period_values(
+        record["chronology"] = self._period_values(
             chronology_value, unknown_periods,
         )
         for value in unknown_periods:
@@ -717,6 +734,50 @@ class Command(BaseCommand):
             return tuple(sorted((start, end)))
         # EDTF uses astronomical year numbering: 1 BCE is year 0.
         return tuple(sorted((1 - start, 1 - end)))
+
+    @staticmethod
+    def _period_values(raw_value, unknown_values):
+        """Resolve chronology, preserving the longest available transitions.
+
+        The shared parser first gets the complete cell, so a transition such
+        as ``Late Classical / Early Hellenistic`` remains one concept. If a
+        longer slash expression is not itself a concept, segment it from left
+        to right using the longest available labels. This handles a transition
+        followed by another period without blindly splitting the transition.
+        """
+        initial_unknown = []
+        resolved = CollectionImportCommand._period_values(
+            raw_value, initial_unknown,
+        )
+        if not initial_unknown:
+            return resolved
+
+        parts = [
+            clean_cell(part)
+            for part in re.split(r"\s*/\s*", clean_cell(raw_value))
+            if clean_cell(part)
+        ]
+        if len(parts) < 2:
+            unknown_values.extend(initial_unknown)
+            return resolved
+
+        segmented = []
+        start = 0
+        while start < len(parts):
+            match = None
+            for end in range(len(parts), start, -1):
+                label = " / ".join(parts[start:end])
+                value_id = CollectionImportCommand._resolve_period_label(label)
+                if value_id:
+                    match = (end, value_id)
+                    break
+            if match is None:
+                unknown_values.extend(initial_unknown)
+                return resolved
+            start, value_id = match
+            segmented.append(value_id)
+
+        return list(dict.fromkeys(segmented))
 
     @classmethod
     def _special_chronology(cls, raw_value):

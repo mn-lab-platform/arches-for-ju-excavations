@@ -11,7 +11,7 @@ VESSEL_PART_ALIASES = {
     "R": "Rim",
     "H": "Handle",
     "B": "Base",
-    "W": "Wall",
+    "W": "wall",
 }
 
 

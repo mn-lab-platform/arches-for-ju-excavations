@@ -77,6 +77,7 @@ class Command(ResourceRelationCommand):
 
         totals = Counter()
         pending = []
+        node = Node.objects.get(nodeid=O_CONTEXT_TRENCH_NODE_ID)
         tiles = Tile.objects.filter(
             resourceinstance_id__in=context_ids,
             data__has_key=O_CONTEXT_TRENCH_NODE_ID,
@@ -122,6 +123,26 @@ class Command(ResourceRelationCommand):
                         )
 
                 converted_resource_id = converted.get("resourceId")
+                # The UUID in Tile.data can already be correct while its
+                # ResourceXResource row is missing. Arches renders Related
+                # Resources from the latter, so queue these tiles for a sync.
+                if converted_resource_id and (
+                    not converted.get("resourceXresourceId")
+                    or not self._resource_x_resource_present(
+                        media_resource=tile.resourceinstance,
+                        context_resource_id=converted_resource_id,
+                        tile=tile,
+                        node=node,
+                        relation=converted,
+                    )
+                ):
+                    tile_changed = True
+                    totals["resource_x_resource_to_sync"] += 1
+                    if verbose:
+                        self.stdout.write(
+                            "  ResourceXResource missing or stale for (O) Context "
+                            f"{tile.resourceinstance_id} -> {converted_resource_id}"
+                        )
                 if converted_resource_id and converted_resource_id in seen_resource_ids:
                     tile_changed = True
                     totals["duplicates_removed"] += 1
@@ -136,7 +157,6 @@ class Command(ResourceRelationCommand):
         totals["tiles_to_update"] = len(pending)
         ctx = transaction.atomic() if do_apply else nullcontext()
         with ctx:
-            node = Node.objects.get(nodeid=O_CONTEXT_TRENCH_NODE_ID)
             for tile, relation_values in pending:
                 if not do_apply:
                     continue
@@ -181,6 +201,7 @@ class Command(ResourceRelationCommand):
             "missing_target_trench",
             "duplicates_removed",
             "invalid_relation_values",
+            "resource_x_resource_to_sync",
             "tiles_to_update",
             "tiles_updated",
             "stale_rows_removed",

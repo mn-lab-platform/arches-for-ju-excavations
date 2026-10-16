@@ -26,8 +26,11 @@ LAMP_FILE_RE = re.compile(r"(?:^|[_-])L(?:[_-]|$)", re.IGNORECASE)
 POTTERY_FRAGMENT_NODEGROUP_ID = "8f7a5ca4-9c49-405d-9a08-a8debb13a9ec"
 POTTERY_TYPE_NODE_ID = "3bc235a3-2240-4e94-b8af-f4c70ee13af0"
 CATEGORY_REMARKS_NODE_ID = "3c371503-9028-464a-8b85-53a43c853781"
-PAC_ENTITY_URL = "https://pac.cenagis.edu.pl/entity/"
-RECORD_TYPE_CATEGORY_QIDS = {"table-ware": "Q937", "lamp": "Q924"}
+PAC_ENTITY_URL = "https://thesaurus.mn.cenagis.edu.pl/entity/"
+RECORD_TYPE_CATEGORY_QIDS = {"table-ware": "Q937", "lamp": "Q697"}
+VESSEL_PART_QID_OVERRIDES = {
+    "wall": "Q1487",
+}
 CORE_HEADERS = {
     "Project", "Trench", "Context", "p_no", "SUBCATEGORY", "FORM",
     "VESSEL_PART", "CHRONOLOGY", "PROVENANCE",
@@ -327,7 +330,20 @@ class Command(RecordsCommand):
             self.stdout.write(f"  {source}: would create {record_type} fragment with category Remarks")
             totals["category_fragments_would_create"] += 1
         return totals
+    def _preferred_value_id_for_pac_qid(self, qid):
+        values = Value.objects.filter(
+            concept__legacyoid=f"{PAC_ENTITY_URL}{qid}",
+            valuetype_id="prefLabel",
+        ).order_by("language_id")
 
+        value = values.filter(language_id="en").first() or values.first()
+
+        if value is None:
+            raise CommandError(
+                f"Local PAC concept {qid} was not found."
+            )
+
+        return str(value.valueid)
     def _concept_values(self, key, raw_value, dictionary, node_id, config, source, totals):
         raw_value = clean_cell(raw_value)
         if key == "type" and get_node_datatype(node_id) == "concept-list" and "/" in raw_value:
@@ -362,13 +378,48 @@ class Command(RecordsCommand):
             return []
 
         if get_node_datatype(node_id) == "concept-list" and key != "type":
-            separator = r"\s*(?:\+|/|\?\s+)\s*" if key == "vesselPart" else r"\s*(?:\+|/)\s*"
-            values = [value for value in re.split(separator, raw_value) if value]
+            separator = (
+                r"\s*(?:\+|/|\?\s+)\s*"
+                if key == "vesselPart"
+                else r"\s*(?:\+|/)\s*"
+            )
+
+            values = [
+                value
+                for value in re.split(separator, raw_value)
+                if value
+            ]
+
             resolved = []
+
             for value in values:
-                resolved.extend(super()._concept_values(
-                    key, self._non_uncertainty_value(value), dictionary, node_id, config, source, totals,
-                ))
+                value = self._non_uncertainty_value(value)
+
+                if key == "vesselPart":
+                    override_qid = VESSEL_PART_QID_OVERRIDES.get(
+                        value.casefold()
+                    )
+
+                    if override_qid:
+                        resolved.append(
+                            self._preferred_value_id_for_pac_qid(
+                                override_qid
+                            )
+                        )
+                        continue
+
+                resolved.extend(
+                    super()._concept_values(
+                        key,
+                        value,
+                        dictionary,
+                        node_id,
+                        config,
+                        source,
+                        totals,
+                    )
+                )
+
             return list(dict.fromkeys(resolved))
         return super()._concept_values(key, raw_value, dictionary, node_id, config, source, totals)
 

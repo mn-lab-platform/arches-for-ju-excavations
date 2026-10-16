@@ -29,7 +29,11 @@ from arches_for_excavation.management.commands.import_collection_excel import (
     CONTEXT_NODE_ID,
     FORM_ID_NODEGROUP_ID,
 )
-from arches_for_excavation.utils.pottery.common import clean_cell, localized_string
+from arches_for_excavation.utils.pottery.common import (
+    clean_cell,
+    localized_string,
+    normalize_tile_value,
+)
 
 
 POTTERY_GRAPH_ID = "32a4c0b9-ab8c-47a0-a42f-99cd3ad392fe"
@@ -38,7 +42,6 @@ FRAGMENT_NODEGROUP_ID = "8f7a5ca4-9c49-405d-9a08-a8debb13a9ec"
 POTTERY_TYPE_NODE_ID = "3bc235a3-2240-4e94-b8af-f4c70ee13af0"
 CATEGORY_REMARKS_NODE_ID = "3c371503-9028-464a-8b85-53a43c853781"
 PAC_ENTITY_URL = "https://thesaurus.mn.cenagis.edu.pl/entity/"
-
 FORM_ID_HEADERS = ("Form ID", "Form_ID")
 REMARKS_HEADER = "Remarks (from Pottery Category Form)"
 
@@ -50,7 +53,7 @@ CATEGORY_TYPES = {
     "KW": "Q970",
     "PW": "Q938",
     "SV": "Q971",
-    "L": "Q924",
+    "L": "Q697",
 }
 MAIN_REMARKS_HEADERS = {
     f"{category}_Remarks_from_Pottery_Category_Form": category
@@ -145,7 +148,7 @@ class Command(BaseCommand):
             "would_create_fragments",
             "missing_fragments",
             "duplicate_rows",
-            "conflicting_rows",
+            "appended_rows",
             "errors",
         ):
             self.stdout.write(f"  {key}: {totals[key]}")
@@ -329,18 +332,15 @@ class Command(BaseCommand):
         prior = self.seen_rows.get(row_key)
         source = f"{path.name}:{sheet_name}:{row_number}"
         if prior:
-            if prior["remarks"] == remarks:
+            if remarks in prior["remarks"]:
                 totals["duplicate_rows"] += 1
                 return totals
-            totals["conflicting_rows"] += 1
-            self.stderr.write(
-                self.style.ERROR(
-                    f"  {source}: conflicting {category} remarks for {form_id}; "
-                    f"first encountered at {prior['source']}."
-                )
-            )
-            return totals
-        self.seen_rows[row_key] = {"remarks": remarks, "source": source}
+            # A category can occur in several source rows. Preserve all
+            # distinct remarks rather than treating later rows as conflicts.
+            prior["remarks"].add(remarks)
+            totals["appended_rows"] += 1
+        else:
+            self.seen_rows[row_key] = {"remarks": {remarks}, "source": source}
 
         resource_ids = self._collection_ids_for_context(context_label)
         if not resource_ids:
@@ -380,18 +380,25 @@ class Command(BaseCommand):
             return totals
 
         fragment = fragments[0]
-        new_value = localized_string(remarks)
-        if fragment.data.get(CATEGORY_REMARKS_NODE_ID) == new_value:
+        existing = clean_cell(
+            normalize_tile_value(fragment.data.get(CATEGORY_REMARKS_NODE_ID))
+        )
+        # A remark may be repeated by multiple source rows or in a rerun of
+        # the importer. It should remain a single entry in the category tile.
+        if remarks in {line.strip() for line in existing.splitlines() if line.strip()}:
             totals["unchanged"] += 1
             return totals
+        new_remarks = f"{existing}\n{remarks}" if existing else remarks
+        new_value = localized_string(new_remarks)
 
         if self.apply:
             with transaction.atomic():
+                fragment.data = dict(fragment.data or {})
                 fragment.data[CATEGORY_REMARKS_NODE_ID] = new_value
                 fragment.save()
-            self.stdout.write(f"  {source}: updated {form_id} ({category})")
+            self.stdout.write(f"  {source}: appended {form_id} ({category})")
         else:
-            self.stdout.write(f"  {source}: would update {form_id} ({category})")
+            self.stdout.write(f"  {source}: would append {form_id} ({category})")
         totals["updated"] += 1
         return totals
 

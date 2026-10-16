@@ -12,9 +12,10 @@ from arches_for_excavation.utils.pottery.common import clean_cell
 
 
 LABEL_VALUE_TYPES = ("prefLabel", "altLabel", "hiddenLabel")
-PAC_SPARQL_ENDPOINT = "https://pac.cenagis.edu.pl/wiki/sparql"
-PAC_CHRONOLOGY_SCHEME_LEGACYOID = "https://pac.cenagis.edu.pl/entity/Q454"
-PAC_ENTITY_BASE_URL = "https://pac.cenagis.edu.pl/entity/"
+PAC_SPARQL_ENDPOINT = "https://thesaurus.mn.cenagis.edu.pl/sparql"
+PAC_CHRONOLOGY_SCHEME_LEGACYOID = "https://thesaurus.mn.cenagis.edu.pl/entity/Q454"
+PAC_ENTITY_BASE_URL = "https://thesaurus.mn.cenagis.edu.pl/entity/"
+MN_ENTITY_BASE_URL = "https://thesaurus.mn.cenagis.edu.pl/entity/"
 PAC_REQUEST_TIMEOUT_SECONDS = 10
 
 
@@ -29,7 +30,11 @@ class DictionaryIndex:
 
 
 def normalize_dictionary_label(value):
-    return re.sub(r"\s+", " ", clean_cell(value)).casefold()
+    normalized = re.sub(r"\s+", " ", clean_cell(value)).casefold()
+    # Source sheets commonly contain ``A.F. 2`` while the thesaurus uses
+    # ``A.F.2`` (and likewise for N.F.). This is a narrow punctuation
+    # normalization, not fuzzy matching.
+    return re.sub(r"(?<=\.)\s+(?=\d)", "", normalized)
 
 
 def is_uuid(value):
@@ -85,6 +90,15 @@ def _resolve_dictionary_concept(dictionary):
     concept = Concept.objects.filter(legacyoid=dictionary).first()
     if concept:
         return concept
+
+    entity_match = re.fullmatch(r"https://[^/]+/entity/(Q\d+)", dictionary)
+    if entity_match:
+        qid = entity_match.group(1)
+        concept = Concept.objects.filter(
+            legacyoid__in=(f"{PAC_ENTITY_BASE_URL}{qid}", f"{MN_ENTITY_BASE_URL}{qid}"),
+        ).first()
+        if concept:
+            return concept
 
     collection = _get_concept_by_label(dictionary, "Collection")
     if collection:
@@ -175,8 +189,8 @@ def _find_pac_chronology_qid(label):
     # backslashes that could otherwise change the query.
     sparql_literal = json.dumps(normalized_label)
     query = f"""
-PREFIX wd: <https://pac.cenagis.edu.pl/entity/>
-PREFIX wdt: <https://pac.cenagis.edu.pl/prop/direct/>
+PREFIX wd: <https://thesaurus.mn.cenagis.edu.pl/entity/>
+PREFIX wdt: <https://thesaurus.mn.cenagis.edu.pl/prop/direct/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
 SELECT DISTINCT ?concept WHERE {{
@@ -200,14 +214,20 @@ LIMIT 2
         return ""
 
     concept_url = bindings[0].get("concept", {}).get("value", "")
-    match = re.fullmatch(r"https://pac\.cenagis\.edu\.pl/entity/(Q\d+)", concept_url)
+    match = re.fullmatch(
+        r"https://(?:pac|thesaurus\.mn)\.cenagis\.edu\.pl/entity/(Q\d+)",
+        concept_url,
+    )
     return match.group(1) if match else ""
 
 
 def _local_value_id_for_pac_qid(period_id, allowed_value_ids):
     """Return the English preferred Arches value for a PAC Q identifier."""
     values = Value.objects.filter(
-        concept__legacyoid=f"{PAC_ENTITY_BASE_URL}{period_id}",
+        concept__legacyoid__in=(
+            f"{PAC_ENTITY_BASE_URL}{period_id}",
+            f"{MN_ENTITY_BASE_URL}{period_id}",
+        ),
         valuetype_id="prefLabel",
     ).order_by("language_id")
 
@@ -270,7 +290,9 @@ def get_dictionary_index(dictionary):
         concept_id=str(dictionary_concept.conceptid),
         legacyoid=dictionary_concept.legacyoid or "",
         values_by_label=values_by_label,
-        value_ids=frozenset(values_by_label.values()),
+        # Include ambiguous labels in membership so an explicit QID alias can
+        # still select that concept safely.
+        value_ids=frozenset(preferred_value_ids.values()),
         ambiguous_labels=frozenset(ambiguous_labels),
     )
 
@@ -283,6 +305,16 @@ def resolve_dictionary_value(dictionary, value):
 
     dictionary_index = get_dictionary_index(dictionary)
 
+
+    # Resolve stable thesaurus aliases to this database's local Value UUID and
+    # verify membership in the requested dictionary.
+    entity_match = re.fullmatch(r"https://[^/]+/entity/(Q\d+)", raw)
+    if entity_match:
+        value_id = _local_value_id_for_pac_qid(
+            entity_match.group(1), dictionary_index.value_ids,
+        )
+        if value_id:
+            return value_id
     if is_uuid(raw):
         value_id = str(UUID(raw))
         if value_id in dictionary_index.value_ids:
@@ -298,7 +330,10 @@ def resolve_dictionary_value(dictionary, value):
     # The PAC RDF import used here contains the preferred labels but may not
     # include its skos:altLabel values. Excel files can therefore use e.g.
     # "MH", while Arches still stores the canonical "Middle Hellenistic".
-    if dictionary_index.legacyoid != PAC_CHRONOLOGY_SCHEME_LEGACYOID:
+    if dictionary_index.legacyoid not in (
+        PAC_CHRONOLOGY_SCHEME_LEGACYOID,
+        f"{MN_ENTITY_BASE_URL}Q454",
+    ):
         return ""
 
     try:
