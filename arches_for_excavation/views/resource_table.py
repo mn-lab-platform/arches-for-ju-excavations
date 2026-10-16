@@ -7,12 +7,16 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views import View
 from arches.app.models.models import Edge, Graph, Node, Resource, Value
 from arches.app.utils import permission_backend
+from arches_search.utils.search.compiler import SearchCompiler
+from arches_search.utils.search.types import SearchPayload
+from arches_search.utils.search.validation import validate_search_payload
 
 
 def localized_label(value):
@@ -388,7 +392,7 @@ def repeating_ancestor_tile(tile, nodegroup_id, tiles_by_id):
     return None
 
 
-def resource_rows(request, graph_id, columns, table_columns):
+def resource_rows(request, graph_id, columns, table_columns, resources_queryset=None):
     node_ids = [column["node_id"] for column in columns]
     columns_by_id = {column["node_id"]: column for column in columns}
     compound_columns_by_nodegroup = {
@@ -401,10 +405,10 @@ def resource_rows(request, graph_id, columns, table_columns):
         for column in compound_columns_by_nodegroup.values()
         for field in column["fields"]
     }
+    if resources_queryset is None:
+        resources_queryset = accessible_resources(request, graph_id)
     resources = list(
-        accessible_resources(request, graph_id)
-        .order_by("resourceinstanceid")
-        .prefetch_related("tilemodel_set")
+        resources_queryset.order_by("resourceinstanceid").prefetch_related("tilemodel_set")
     )
     values_by_resource = []
     concept_ids = set()
@@ -578,7 +582,27 @@ class ResourceTableDataView(View):
             if not columns:
                 return JsonResponse({"error": "Select at least one column."}, status=400)
             table_columns = build_table_columns(columns)
-            rows = resource_rows(request, graph_id, columns, table_columns)
+            resources_queryset = accessible_resources(request, graph_id)
+            search_query = payload.get("search_query")
+            if search_query is not None:
+                graph = Graph.objects.get(graphid=graph_id)
+                if (
+                    not isinstance(search_query, dict)
+                    or search_query.get("graph_slug") != graph.slug
+                ):
+                    raise ValueError("Search filter must use the selected resource model.")
+                search_payload = SearchPayload(
+                    graph_slugs=[graph.slug],
+                    term_search=None,
+                    advanced_search_queries=[search_query],
+                )
+                validate_search_payload(search_payload)
+                resources_queryset = SearchCompiler(
+                    search_payload, request.user, pre_filter=resources_queryset
+                ).compile().results
+            rows = resource_rows(
+                request, graph_id, columns, table_columns, resources_queryset
+            )
             rows = filter_and_sort_rows(
                 rows,
                 table_columns,
@@ -591,6 +615,8 @@ class ResourceTableDataView(View):
             return JsonResponse({"error": str(error)}, status=404)
         except (ValueError, json.JSONDecodeError) as error:
             return JsonResponse({"error": str(error)}, status=400)
+        except ValidationError as error:
+            return JsonResponse({"error": error.messages}, status=400)
 
 
 class ResourceTableCsvView(ResourceTableDataView):

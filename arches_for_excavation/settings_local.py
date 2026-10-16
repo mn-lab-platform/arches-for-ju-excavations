@@ -85,6 +85,24 @@ if USER_SECRET_KEY:
     SECRET_KEY = USER_SECRET_KEY
 
 STATIC_ROOT = "/static_root"
+from . import settings as base_settings
+
+MAILERS = {
+    **getattr(base_settings, "MAILERS", {}),
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": get_optional_env_variable("EMAIL_HOST") or "smtp.gmail.com",
+            "port": int(get_optional_env_variable("EMAIL_PORT") or "587"),
+            "username": get_optional_env_variable("EMAIL_HOST_USER") or "xxxx@xxx.com",
+            "password": get_optional_env_variable("EMAIL_PASSWORD") or "xxxx",
+            "use_tls": (get_optional_env_variable("EMAIL_USE_TLS") or "false").lower()
+            in ("true", "1", "t"),
+            "use_ssl": (get_optional_env_variable("EMAIL_USE_SSL") or "false").lower()
+            in ("true", "1", "t"),
+        },
+    },
+}
 
 LANGUAGE_CODE = 'en'
 # Added for v7 internationalization demo

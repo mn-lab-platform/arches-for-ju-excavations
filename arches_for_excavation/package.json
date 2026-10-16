@@ -20,11 +20,13 @@
         "vitest": "vitest --run --coverage"
     },
     "dependencies": {
-        "arches": "archesproject/arches#stable/8.0.3",
+        "arches": "archesproject/arches#dev/8.2.x",
+        "arches-modular-reports": "archesproject/arches-modular-reports#dev/2.1.x",
+        "arches-search": "archesproject/arches-search#main",
         "jspdf": "^2.5.2"
     },
     "devDependencies": {
-        "arches-dev-dependencies": "archesproject/arches-dev-dependencies#stable/8.0.0"
+        "arches-dev-dependencies": "archesproject/arches-dev-dependencies#dev/8.2.x"
     },
     "nodeModulesPaths": {
     },

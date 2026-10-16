@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import _ from 'underscore';
 import ko from 'knockout';
+import koMapping from 'knockout-mapping';
 import arches from 'arches';
 import ReportViewModel from 'viewmodels/report';
 import 'bindings/chosen';
@@ -8,6 +9,9 @@ import 'bindings/chosen';
 export function setupTabbedReport(viewModel, params, tabsConfig) {
     params.configKeys = ['tabs', 'activeTabIndex'];
     ReportViewModel.apply(viewModel, [params]);
+
+    // Arches 8.2's tabbed.htm binds this ID on the tab panel and its controls.
+    viewModel.tabpanelId = 'report-tabpanel-' + Math.random().toString(16).slice(2);
 
     if (!ko.isObservable(viewModel.activeTabIndex)) {
         viewModel.activeTabIndex = ko.observable(Number(viewModel.activeTabIndex) || 0);
@@ -20,7 +24,7 @@ export function setupTabbedReport(viewModel, params, tabsConfig) {
     
     viewModel.icons = ko.observableArray([]);
 
-    if (!self.summary) {
+    if (!viewModel.summary) {
         $.ajax({
             type: "GET",
             url: arches.urls.icons})

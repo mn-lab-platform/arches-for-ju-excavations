@@ -2,6 +2,101 @@ import ko from 'knockout';
 import { jsPDF } from 'jspdf';
 import template from 'templates/views/components/plugins/resource-table.htm';
 import { getColumns, getModels, getTable } from 'services/resource-table-api';
+import { createVueApplication } from '@/arches_vue_components/application';
+import AdvancedSearch from '@/arches_for_excavation/search_overrides/AdvancedSearch.vue';
+import searchTheme from '@/arches_search/default_theme.ts';
+
+const filterTheme = {
+    ...searchTheme,
+    zIndex: { modal: 22000, overlay: 21000, menu: 21000, tooltip: 22000 },
+};
+
+ko.bindingHandlers.resourceTableGridViewport = {
+    init(element) {
+        const plugin = element.closest('.resource-table-plugin');
+        let frame = null;
+        const measure = () => {
+            if (frame !== null) cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                frame = null;
+                if (!element.isConnected || !plugin.classList.contains('resource-table-plugin--table-mode')) return;
+                const availableHeight = window.innerHeight - element.getBoundingClientRect().top - 16;
+                element.style.height = `${Math.max(0, Math.floor(availableHeight))}px`;
+            });
+        };
+        element.resourceTableMeasure = measure;
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+        if (observer) {
+            observer.observe(plugin.querySelector('.resource-table-plugin__header'));
+            observer.observe(plugin.querySelector('.resource-table-plugin__toolbar'));
+        }
+        window.addEventListener('resize', measure);
+        ko.utils.domNodeDisposal.addDisposeCallback(element, () => {
+            if (frame !== null) cancelAnimationFrame(frame);
+            if (observer) observer.disconnect();
+            window.removeEventListener('resize', measure);
+        });
+        measure();
+    },
+    update(element, valueAccessor) {
+        if (ko.unwrap(valueAccessor())) element.resourceTableMeasure();
+    },
+};
+
+ko.bindingHandlers.resourceTableSearchMount = {
+    init(element, valueAccessor) {
+        const table = valueAccessor();
+        let disposed = false;
+        let vueApp = null;
+        const previousOverflow = document.body.style.overflow;
+        const previousFocus = document.activeElement;
+        document.body.style.overflow = 'hidden';
+
+        const closeOnEscape = (event) => {
+            if (event.key !== 'Escape' || event.defaultPrevented) return;
+            const dialog = event.target instanceof Element ? event.target.closest('[role="dialog"]') : null;
+            if (dialog && !dialog.classList.contains('resource-table-search-overlay')) return;
+            event.preventDefault();
+            table.closeSearch();
+        };
+        document.addEventListener('keydown', closeOnEscape);
+        const returnButton = element.closest('.resource-table-search-overlay').querySelector('button:last-of-type');
+        if (returnButton) returnButton.focus();
+
+        createVueApplication({
+            component: AdvancedSearch,
+            themeConfiguration: filterTheme,
+            initialProps: {
+                query: table.searchDraftQuery() || table.searchQuery() || undefined,
+                allowedRootGraphIds: [table.selectedModelId()],
+                preferredGraphId: table.selectedModelId(),
+                onSearchApplied: (query, total) => table.setPendingSearch(query, total),
+                onQueryChanged: (query) => table.setSearchDraft(query),
+            },
+        }).then((app) => {
+            if (disposed) {
+                app.unmount();
+                return;
+            }
+            vueApp = app;
+            vueApp.mount(element);
+        }).catch((error) => {
+            if (!disposed) {
+                table.error(`Could not open advanced search: ${error.message}`);
+                table.closeSearch();
+            }
+        });
+
+        ko.utils.domNodeDisposal.addDisposeCallback(element, () => {
+            disposed = true;
+            if (vueApp) vueApp.unmount();
+            document.removeEventListener('keydown', closeOnEscape);
+            document.body.style.overflow = previousOverflow;
+            if (previousFocus && previousFocus.isConnected && previousFocus.focus) previousFocus.focus();
+        });
+        return { controlsDescendantBindings: true };
+    },
+};
 
 export default ko.components.register('resource-table', {
     viewModel: function() {
@@ -18,6 +113,43 @@ export default ko.components.register('resource-table', {
         self.collapsedNodeIds = ko.observableArray([]);
         self.loading = ko.observable(false);
         self.error = ko.observable('');
+        self.searchOpen = ko.observable(false);
+        self.searchQuery = ko.observable(null);
+        self.searchDraftQuery = ko.observable(null);
+        self.pendingSearchQuery = ko.observable(null);
+        self.pendingSearchTotal = ko.observable(null);
+        self.openSearch = () => {
+            if (!self.selectedModelId()) return;
+            self.clearPendingSearch();
+            self.searchOpen(true);
+        };
+        self.closeSearch = () => self.searchOpen(false);
+        self.setSearchDraft = (query) => {
+            self.searchDraftQuery(JSON.parse(JSON.stringify(query)));
+            self.clearPendingSearch();
+        };
+        self.setPendingSearch = (query, total) => {
+            const savedQuery = JSON.parse(JSON.stringify(query));
+            self.searchDraftQuery(savedQuery);
+            self.pendingSearchQuery(savedQuery);
+            self.pendingSearchTotal(total);
+        };
+        self.clearPendingSearch = () => {
+            self.pendingSearchQuery(null);
+            self.pendingSearchTotal(null);
+        };
+        self.applyAdvancedSearch = () => {
+            if (!self.pendingSearchQuery()) return;
+            self.searchQuery(self.pendingSearchQuery());
+            self.closeSearch();
+            if (self.tableBuilt()) self.buildTable();
+        };
+        self.removeAdvancedSearch = () => {
+            self.searchQuery(null);
+            self.searchDraftQuery(null);
+            self.clearPendingSearch();
+            if (self.tableBuilt()) self.buildTable();
+        };
         self.columnFilters = {};
         self.columnFilterModes = {};
         self.sortBy = ko.observable('');
@@ -262,6 +394,10 @@ export default ko.components.register('resource-table', {
         };
 
         self.selectedModelId.subscribe((graphId) => {
+            self.closeSearch();
+            self.searchQuery(null);
+            self.searchDraftQuery(null);
+            self.clearPendingSearch();
             self.availableColumns([]);
             self.selectedColumnIds([]);
             self.rows([]);
@@ -327,6 +463,7 @@ export default ko.components.register('resource-table', {
             getTable({
                 graphId: self.selectedModelId(),
                 columns: self.selectedColumnIds(),
+                searchQuery: self.searchQuery(),
             })
                 .then((data) => {
                     self.tableColumns(data.columns || []);

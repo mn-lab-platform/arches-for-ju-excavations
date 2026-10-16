@@ -37,6 +37,7 @@ function tablePayload(state) {
     return {
         graph_id: state.graphId,
         columns: state.columns,
+        search_query: state.searchQuery || null,
         filters: state.filters || {},
         sort_by: state.sortBy || '',
         sort_direction: state.sortDirection || 'asc',

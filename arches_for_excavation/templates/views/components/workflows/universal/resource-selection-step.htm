@@ -195,6 +195,56 @@
         overflow-y: auto;
     }
 
+    .advanced-search-toggle {
+        margin-bottom: 16px;
+    }
+
+    .resource-picker-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 20000;
+        display: flex;
+        flex-direction: column;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        max-width: none;
+        margin: 0;
+        background: #16171b;
+    }
+
+    .resource-picker-overlay-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex: 0 0 auto;
+        min-height: 56px;
+        padding: 10px 20px;
+        color: #fff;
+        background: #24262c;
+    }
+
+    .resource-picker-overlay-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .resource-picker-overlay-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .resource-picker-overlay-body {
+        --resource-picker-height: 100%;
+        --resource-picker-min-height: 0;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
 </style>
 
 <div class="workflow-step resource-selection-step">
@@ -206,9 +256,26 @@
             <div data-bind="text: selectedResourceName"></div>
         </div>
     </div>
+
+    <button type="button" class="btn btn-sm btn-primary advanced-search-toggle"
+            data-bind="click: toggleAdvancedSearch">Advanced search</button>
+
+    <!-- ko if: advancedOpen -->
+    <div class="resource-picker-overlay" role="dialog" aria-modal="true" aria-label="Advanced resource search">
+        <div class="resource-picker-overlay-header">
+            <span class="resource-picker-overlay-title">Advanced resource search</span>
+            <div class="resource-picker-overlay-actions">
+                <span data-bind="text: selectedResourceIds().length + ' selected'"></span>
+                <button type="button" class="btn btn-primary"
+                        data-bind="click: toggleAdvancedSearch">Return to workflow</button>
+            </div>
+        </div>
+        <div class="resource-picker-overlay-body" data-bind="resourcePickerMount: $data"></div>
+    </div>
+    <!-- /ko -->
     
     <!-- Search Box -->
-    <div class="resource-search-container">
+    <div class="resource-search-container" data-bind="visible: !advancedOpen()">
         <input type="text" 
                class="resource-search-input"
                data-bind="textInput: searchText, 
@@ -218,7 +285,7 @@
     </div>
 
     <!-- Resource Type Filter -->
-    <div class="resource-type-filter" data-bind="visible: resourceTypes().length > 1">
+    <div class="resource-type-filter" data-bind="visible: !advancedOpen() && resourceTypes().length > 1">
         <div class="btn-group btn-group-xs">
             <button class="btn btn-primary btn-active-primary dropdown-toggle search-btn"
                     data-toggle="dropdown"
@@ -263,12 +330,13 @@
         <div>Loading resources...</div>
     </div>
     
-    <div class="count-select-all-container">
+    <div class="count-select-all-container" data-bind="visible: !advancedOpen()">
         <!-- Resource Count -->
         <div class="resource-count" data-bind="visible: !loading() && availableResources().length > 0">
-            <span data-bind="text: availableResources().length"></span> 
-            <span data-bind="text: availableResources().length === 1 ? 'resource' : 'resources'"></span>
-            <span data-bind="visible: searchText().trim()"> found</span>
+            <span data-bind="text: availableResources().length"></span>
+            <span data-bind="visible: totalResults() > availableResources().length"> of <span data-bind="text: totalResults"></span></span>
+            <span data-bind="text: totalResults() === 1 ? 'resource' : 'resources'"></span>
+            <span data-bind="visible: advancedOpen() || searchText().trim()"> found</span>
         </div>
         
         <!-- Select All Button -->
@@ -278,7 +346,7 @@
     </div>
     
     <!-- Resource Grid -->
-    <div class="resource-grid" data-bind="visible: !loading() && availableResources().length > 0">
+    <div class="resource-grid" data-bind="visible: !advancedOpen() && !loading() && availableResources().length > 0">
         <!-- ko foreach: availableResources -->
         <div class="resource-card" 
              data-bind="click: $parent.selectResource.bind($parent, $data),
@@ -298,24 +366,25 @@
         <!-- /ko -->
     </div>
 
-    <div class="resource-search-hint" data-bind="visible: !loading() && availableResources().length === resultLimit && !error()">
+    <div class="resource-search-hint" data-bind="visible: !advancedOpen() && !loading() && totalResults() > availableResources().length && !error()">
         <p style="margin: 0;">
-            Didn't find the resource you were looking for? It might be because there are more than <span data-bind="text: resultLimit"></span> results.
+            More results match this search. Refine the filters to find the resource you need.
         </p>
-        <button id="try-search-button" type="button" class="btn btn-sm btn-primary">Try using the searchbar to find it</button>
+        <button id="try-search-button" type="button" class="btn btn-sm btn-primary"
+                data-bind="visible: !advancedOpen()">Try using the searchbar to find it</button>
     </div>
     
     <!-- Empty State -->
     <div class="resource-empty" 
-         data-bind="visible: !loading() && availableResources().length === 0 && !error()">
+         data-bind="visible: !advancedOpen() && !loading() && availableResources().length === 0 && !error()">
         <div>
             <i class="fa fa-inbox"></i>
         </div>
-        <div data-bind="text: searchText().trim().length === 1 ? 'The search term is too short' : 'No resources found'"></div>
-        <div style="font-size: 12px; margin-top: 8px;" data-bind="visible: searchText().trim()">
+        <div data-bind="text: !advancedOpen() && searchText().trim().length === 1 ? 'The search term is too short' : 'No resources found'"></div>
+        <div style="font-size: 12px; margin-top: 8px;" data-bind="visible: !advancedOpen() && searchText().trim()">
             Try adjusting your search term
         </div>
-        <div style="font-size: 12px; margin-top: 8px;" data-bind="visible: !searchText().trim()">
+        <div style="font-size: 12px; margin-top: 8px;" data-bind="visible: !advancedOpen() && !searchText().trim()">
             No resources available for this type
         </div>
     </div>

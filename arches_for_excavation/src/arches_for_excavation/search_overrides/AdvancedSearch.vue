@@ -1,0 +1,346 @@
+<!-- Based on arches-search 0.1.0a20 AdvancedSearch.vue; keep in sync when updating the dependency. -->
+<script setup lang="ts">
+import { provide, ref, watch, watchEffect } from "vue";
+
+import { useGettext } from "vue3-gettext";
+
+import Message from "openvue/message";
+import Skeleton from "openvue/skeleton";
+
+import AdvancedSearchFooter from "@/arches_search/AdvancedSearch/components/AdvancedSearchFooter.vue";
+import PayloadAnalyzer from "@/arches_search/AdvancedSearch/components/PayloadAnalyzer/PayloadAnalyzer.vue";
+import PayloadBuilder from "@/arches_search/AdvancedSearch/components/PayloadBuilder/PayloadBuilder.vue";
+import ResizablePanels from "@/arches_search/AdvancedSearch/components/ResizablePanels.vue";
+import SearchResults from "./SearchResults.vue";
+
+import {
+    getAdvancedSearchFacets,
+    getGraphs,
+    getNodesForGraphId as fetchNodesForGraphId,
+    getRelatableNodesTreeForGraphId as fetchRelatableNodesTreeForGraphId,
+    getRelatableNodesTreeForGraphPair as fetchRelatableNodesTreeForGraphPair,
+    getSearchResults,
+} from "@/arches_search/AdvancedSearch/api.ts";
+
+import { getFromCache } from "@/arches_search/AdvancedSearch/utils/async-cache.ts";
+import { makeEmptyGroupPayload } from "@/arches_search/AdvancedSearch/utils/advanced-search-payload-builder.ts";
+
+import type {
+    AdvancedSearchFacet,
+    GraphModel,
+    GroupPayload,
+    SearchResults as SearchResultsPayload,
+} from "@/arches_search/AdvancedSearch/types.ts";
+
+const { $gettext } = useGettext();
+
+const props = defineProps<{
+    // No default: absence means "no initial query", which keeps searchPayload
+    // undefined below (gates performSearch() and hides the PayloadAnalyzer).
+    query?: GroupPayload;
+    allowedRootGraphIds?: string[];
+    preferredGraphId?: string | null;
+}>();
+
+const emit = defineEmits<{
+    (event: "results", results: SearchResultsPayload | null): void;
+    (event: "search-applied", query: GroupPayload, total: number): void;
+    (event: "query-changed", query: GroupPayload): void;
+}>();
+
+const isLoading = ref(true);
+const isSearching = ref(false);
+const loadError = ref<Error | null>(null);
+const searchError = ref<Error | null>(null);
+
+const searchPayload = ref<GroupPayload | undefined>(props.query);
+
+const datatypesToAdvancedSearchFacets = ref<
+    Record<string, AdvancedSearchFacet[]>
+>({});
+
+const graphs = ref<GraphModel[]>([]);
+const graphIdToNodeCache = ref({});
+const graphIdToRelatableNodesTreeCache = ref({});
+const graphIdPairToRelatableNodesTreeCache = ref({});
+
+const searchResults = ref<SearchResultsPayload | null>(null);
+const searchResultsInstanceKey = ref(0);
+const searchFilterText = ref("");
+const shouldShowPayloadAnalyzer = ref(false);
+
+provide("datatypesToAdvancedSearchFacets", datatypesToAdvancedSearchFacets);
+provide("graphs", graphs);
+provide("getNodesForGraphId", getNodesForGraphId);
+provide("getRelatableNodesTreeForGraphId", getRelatableNodesTreeForGraphId);
+provide("getRelatableNodesTreeForGraphPair", getRelatableNodesTreeForGraphPair);
+
+watchEffect(async () => {
+    try {
+        isLoading.value = true;
+        await Promise.all([fetchGraphs(), fetchFacets()]);
+    } catch (error) {
+        loadError.value = error as Error;
+    } finally {
+        isLoading.value = false;
+    }
+});
+
+async function getNodesForGraphId(graphId: string) {
+    return await getFromCache(graphIdToNodeCache, graphId, async () => {
+        const nodesMap = await fetchNodesForGraphId(graphId);
+        return Object.values(nodesMap);
+    });
+}
+
+async function getRelatableNodesTreeForGraphId(graphId: string) {
+    return await getFromCache(graphIdToRelatableNodesTreeCache, graphId, () =>
+        fetchRelatableNodesTreeForGraphId(graphId),
+    );
+}
+
+async function getRelatableNodesTreeForGraphPair(
+    graphId: string,
+    otherGraphId: string,
+) {
+    return await getFromCache(
+        graphIdPairToRelatableNodesTreeCache,
+        `${graphId}::${otherGraphId}`,
+        () => fetchRelatableNodesTreeForGraphPair(graphId, otherGraphId),
+    );
+}
+
+async function fetchFacets() {
+    const facets: AdvancedSearchFacet[] = await getAdvancedSearchFacets();
+    datatypesToAdvancedSearchFacets.value = facets.reduce<
+        Record<string, AdvancedSearchFacet[]>
+    >((facetsByDatatype, facet) => {
+        facetsByDatatype[facet.datatype_id] = [
+            ...(facetsByDatatype[facet.datatype_id] ?? []),
+            facet,
+        ];
+        return facetsByDatatype;
+    }, {});
+}
+
+async function fetchGraphs() {
+    graphs.value = await getGraphs();
+    if (!searchPayload.value && props.allowedRootGraphIds?.length) {
+        const allowed = graphs.value.filter((graph) =>
+            props.allowedRootGraphIds!.includes(graph.graphid),
+        );
+        const preferred = allowed.find(
+            (graph) => graph.graphid === props.preferredGraphId,
+        );
+        const initial = preferred ?? allowed[0];
+        if (initial) {
+            searchPayload.value = {
+                ...makeEmptyGroupPayload(),
+                graph_slug: initial.slug,
+            };
+        }
+    }
+}
+
+watch(searchResults, (results) => emit("results", results));
+
+function isAllowedRootGraph(payload: GroupPayload): boolean {
+    if (!props.allowedRootGraphIds) return true;
+    return graphs.value.some(
+        (graph) =>
+            graph.slug === payload.graph_slug &&
+            props.allowedRootGraphIds!.includes(graph.graphid),
+    );
+}
+
+async function performSearch(pageNumberToLoad?: number) {
+    if (!searchPayload.value) {
+        searchError.value = new Error(
+            $gettext("Cannot perform search: no search query defined."),
+        );
+        return;
+    }
+
+    if (!isAllowedRootGraph(searchPayload.value)) {
+        searchError.value = new Error(
+            $gettext("This resource model is not available here."),
+        );
+        return;
+    }
+
+    try {
+        searchError.value = null;
+        isSearching.value = true;
+        const submittedQuery = searchPayload.value;
+
+        const response = await getSearchResults(submittedQuery, {
+            page: pageNumberToLoad,
+        });
+        if (searchPayload.value !== submittedQuery) return;
+
+        if (pageNumberToLoad !== undefined && searchResults.value) {
+            searchResults.value = {
+                ...searchResults.value,
+                ...response,
+                resources: [
+                    ...searchResults.value.resources,
+                    ...response.resources,
+                ],
+            };
+        } else {
+            searchResultsInstanceKey.value += 1;
+            searchResults.value = response;
+            emit("search-applied", submittedQuery, response.pagination.total_results);
+        }
+    } catch (error) {
+        searchError.value = error as Error;
+        searchResults.value = null;
+    } finally {
+        isSearching.value = false;
+    }
+}
+
+function onUpdateSearchPayload(payload: GroupPayload) {
+    searchPayload.value = payload;
+    searchResults.value = null;
+    emit("query-changed", payload);
+    searchError.value = isAllowedRootGraph(payload)
+        ? null
+        : new Error($gettext("This resource model is not available here."));
+}
+
+function onDescribe() {
+    shouldShowPayloadAnalyzer.value = true;
+}
+
+function onUpdateFilterText(text: string) {
+    searchFilterText.value = text;
+}
+
+function onUpdatePayloadAnalyzerVisible(visible: boolean) {
+    shouldShowPayloadAnalyzer.value = visible;
+}
+
+function onRequestPage(nextPageNumber: number) {
+    void performSearch(nextPageNumber);
+}
+</script>
+
+<template>
+    <div class="advanced-search">
+        <Skeleton
+            v-if="isLoading"
+            class="loading-skeleton"
+        />
+
+        <Message
+            v-else-if="loadError"
+            severity="error"
+        >
+            {{ loadError.message }}
+        </Message>
+
+        <template v-else>
+            <ResizablePanels>
+                <template #top>
+                    <PayloadBuilder
+                        :model-value="searchPayload"
+                        :is-searching="isSearching"
+                        :total-results="
+                            searchResults?.pagination.total_results ?? null
+                        "
+                        @update:model-value="onUpdateSearchPayload"
+                        @search="performSearch"
+                        @describe="onDescribe"
+                    />
+                </template>
+
+                <template #bottom>
+                    <Message
+                        v-if="searchError"
+                        severity="error"
+                        class="search-error"
+                    >
+                        {{ searchError.message }}
+                    </Message>
+
+                    <SearchResults
+                        v-else-if="searchResults"
+                        :key="searchResultsInstanceKey"
+                        :results="searchResults"
+                        :is-searching="isSearching"
+                        :filter-text="searchFilterText"
+                        :graph-models="graphs"
+                        @request-page="onRequestPage"
+                    >
+                        <template v-if="$slots['result-action']" #result-action="slotProps">
+                            <slot name="result-action" v-bind="slotProps" />
+                        </template>
+                    </SearchResults>
+                </template>
+            </ResizablePanels>
+
+            <AdvancedSearchFooter
+                :filter-text="searchFilterText"
+                :search-results="searchResults"
+                @update:filter-text="onUpdateFilterText"
+            />
+
+            <PayloadAnalyzer
+                v-if="searchPayload"
+                :datatypes-to-advanced-search-facets="
+                    datatypesToAdvancedSearchFacets
+                "
+                :graphs="graphs"
+                :payload="searchPayload"
+                :visible="shouldShowPayloadAnalyzer"
+                @update:visible="onUpdatePayloadAnalyzerVisible"
+            />
+        </template>
+    </div>
+</template>
+
+<style scoped>
+.advanced-search {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--p-content-background);
+    color: var(--p-text-color);
+    overflow: hidden;
+}
+
+.loading-skeleton {
+    height: 100%;
+}
+
+.search-error {
+    margin: 1rem;
+}
+
+:deep(.p-card-body) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 1rem;
+}
+
+:deep(.p-inputtext),
+:deep(.p-button),
+:deep(.p-select),
+:deep(.p-select-label),
+:deep(.p-select-option),
+:deep(.p-select-filter-input),
+:deep(.p-selectbutton .p-button),
+:deep(.p-tag),
+:deep(.p-message),
+:deep(.p-dropdown),
+:deep(.p-dropdown-label),
+:deep(.p-togglebutton-label),
+:deep(.p-button-icon),
+:deep(.p-treeselect),
+:deep(.p-dropdown-item) {
+    font-size: 1.2rem;
+}
+</style>

@@ -6,6 +6,9 @@
         </div>
         <div class="resource-table-plugin__model-actions">
             <select class="resource-table-plugin__model-select" data-bind="value: selectedModelId, options: models, optionsText: 'name', optionsValue: 'graph_id', optionsCaption: 'Select resource model'"></select>
+            <button type="button" data-bind="click: openSearch, enable: selectedModelId">Filter...</button>
+            <span class="resource-table-plugin__active-search" data-bind="visible: searchQuery">Advanced filter active</span>
+            <button type="button" data-bind="visible: searchQuery, click: removeAdvancedSearch">Clear filter</button>
             <button class="resource-table-plugin__primary-action" type="button" data-bind="click: buildTable, enable: selectedColumnIds().length">Build table</button>
         </div>
     </header>
@@ -87,7 +90,7 @@
         <div class="resource-table-plugin__top-scroll" data-bind="event: { scroll: $component.syncTopScroll }" aria-label="Horizontal table scroll">
             <div class="resource-table-plugin__top-scroll-track" data-bind="style: { width: tableWidth() + 'px' }"></div>
         </div>
-        <div class="resource-table-plugin__grid" data-bind="event: { scroll: $component.syncGridScroll }">
+        <div class="resource-table-plugin__grid" data-bind="resourceTableGridViewport: tableBuilt, event: { scroll: $component.syncGridScroll }">
             <table data-bind="style: { width: tableWidth() + 'px' }">
                 <colgroup data-bind="foreach: selectedColumns">
                     <col data-bind="style: { width: $component.columnWidth(node_id) }">
@@ -162,9 +165,58 @@
             </table>
         </div>
     </section>
+    <!-- ko if: searchOpen -->
+    <div class="resource-table-search-overlay" role="dialog" aria-modal="true" aria-label="Advanced table filter">
+        <header class="resource-table-search-overlay__header">
+            <strong>Filter table resources</strong>
+            <div class="resource-table-search-overlay__actions">
+                <span data-bind="visible: pendingSearchTotal() !== null, text: pendingSearchTotal() + ' matching resources'"></span>
+                <button type="button" data-bind="click: applyAdvancedSearch, enable: pendingSearchQuery">Apply to table</button>
+                <button type="button" data-bind="click: closeSearch">Return to table</button>
+            </div>
+        </header>
+        <div class="resource-table-search-overlay__content" data-bind="resourceTableSearchMount: $data"></div>
+    </div>
+    <!-- /ko -->
 </section>
 
 <style>
+.resource-table-search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: flex;
+    flex-direction: column;
+    background: #17171b;
+    color: #fff;
+}
+
+.resource-table-search-overlay__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .75rem 1rem;
+    background: #25252a;
+}
+
+.resource-table-search-overlay__actions {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.resource-table-search-overlay__content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.resource-table-plugin__active-search {
+    color: #227c75;
+    font-weight: 600;
+}
+
 .resource-table-plugin {
     --table-ink: #243447;
     --table-muted: #6b7b8c;
@@ -199,7 +251,10 @@
 }
 
 .resource-table-plugin__model-select,
-.resource-table-plugin button {
+.resource-table-plugin__header button,
+.resource-table-plugin__builder button,
+.resource-table-plugin__table-view button,
+.resource-table-search-overlay__header button {
     background: #fff;
     border: 1px solid #bdcbd6;
     border-radius: 4px;
@@ -441,17 +496,26 @@
     font-size: 11px;
 }
 
-.resource-table-plugin button {
+.resource-table-plugin__header button,
+.resource-table-plugin__builder button,
+.resource-table-plugin__table-view button,
+.resource-table-search-overlay__header button {
     cursor: pointer;
     font-size: 12px;
 }
 
-.resource-table-plugin button:hover:not(:disabled) {
+.resource-table-plugin__header button:hover:not(:disabled),
+.resource-table-plugin__builder button:hover:not(:disabled),
+.resource-table-plugin__table-view button:hover:not(:disabled),
+.resource-table-search-overlay__header button:hover:not(:disabled) {
     border-color: var(--table-accent);
     color: var(--table-accent);
 }
 
-.resource-table-plugin button:disabled {
+.resource-table-plugin__header button:disabled,
+.resource-table-plugin__builder button:disabled,
+.resource-table-plugin__table-view button:disabled,
+.resource-table-search-overlay__header button:disabled {
     cursor: not-allowed;
     opacity: .5;
 }
@@ -521,10 +585,9 @@
 }
 
 .resource-table-plugin--table-mode .resource-table-plugin__grid {
-    flex: 0 1 auto;
-    height: calc(100vh - 180px);
-    max-height: calc(100vh - 180px);
-    min-height: 280px;
+    flex: 0 0 auto;
+    height: calc(100dvh - 260px);
+    min-height: 0;
 }
 
 .resource-table-plugin table {

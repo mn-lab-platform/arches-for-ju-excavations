@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import { EventBusInstance } from "../core/EventBus";
 import { events } from "../constants/events";
 import { PrintWarpedMapLayer } from "./iiif/PrintWarpedMapLayer";

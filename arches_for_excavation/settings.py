@@ -153,6 +153,13 @@ INSTALLED_APPS = (
     "pgtrigger",
     # "silk",
     "arches_for_excavation",  # Ensure the project is listed before any other arches applications
+    "rest_framework",
+    "arches_resource_sets",
+    "arches_search",
+    "arches_modular_reports",
+    "arches.extensions.querysets",
+    "arches.extensions.vue_components",
+    "arches.extensions.controlled_lists",
 )
 
 # Placing this last ensures any templates provided by Arches Applications
@@ -326,7 +333,9 @@ NOCAPTCHA = True
 # EMAIL_HOST_PASSWORD = 'xxxxxxx'
 # EMAIL_PORT = 587
 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL") or os.environ.get(
+    "EMAIL_HOST_USER", "xxxx@xxx.com"
+)
 
 CELERY_BROKER_URL = "" # RabbitMQ --> "amqp://guest:guest@localhost",  Redis --> "redis://localhost:6379/0"
 CELERY_ACCEPT_CONTENT = ['json']

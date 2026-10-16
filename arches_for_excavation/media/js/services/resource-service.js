@@ -50,6 +50,59 @@ const getAll = (graphIds = null, searchTerm = '', limit = 100) => {
     });
 };
 
+let searchGraphModelsPromise;
+
+const getSearchGraphModels = () => {
+    if (!searchGraphModelsPromise) {
+        searchGraphModelsPromise = fetch('/api/advanced-search/graph/models', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        }).then(resp => {
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            return resp.json();
+        }).catch(error => {
+            searchGraphModelsPromise = null;
+            throw error;
+        });
+    }
+    return searchGraphModelsPromise;
+};
+
+const searchResources = (graphSlugs, searchTerm = '', limit = 100, advancedSearchQueries = null) => {
+    const term = searchTerm.trim();
+    const body = {
+        graph_slugs: graphSlugs,
+        pagination: { page: 1, page_size: limit },
+        sort: [{ type: 'primary_name', direction: 'asc' }]
+    };
+
+    if (term) {
+        body.term_search = { terms: [term], max_hops: 0 };
+    }
+    if (advancedSearchQueries) {
+        body.advanced_search_queries = advancedSearchQueries;
+    }
+
+    return fetch('/api/search', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(body)
+    }).then(resp => {
+        if (!resp.ok) {
+            return resp.text().then(message => {
+                throw new Error(`HTTP ${resp.status}: ${message}`);
+            });
+        }
+        return resp.json();
+    });
+};
+
 const getRelatableGraphIds = (resourceModelId) => {
     const url = '/resource/related/relatable?graphid=' + encodeURIComponent(resourceModelId);
 
@@ -111,6 +164,8 @@ const getResourcesSimple = (graphIds) => {
 export default {
     getOne: getOne,
     getAll: getAll,
+    getSearchGraphModels: getSearchGraphModels,
+    searchResources: searchResources,
     getRelatableGraphIds: getRelatableGraphIds,
     getAllRelatedTo: getAllRelatedTo,
     deleteOne: deleteOne,

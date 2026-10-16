@@ -3,7 +3,8 @@ import tabbedReportTemplate from 'templates/views/report-templates/tabbed.htm';
 import { setupTabbedReport } from '../viewmodels/mixins/tab-report-setup';
 import 'views/components/custom/cesium-viewer';
 import 'views/components/iiif/iiif-map-viewer';
-import 'viewmodels/map-report';
+import 'views/components/widgets/reference-select';
+import 'reports/map';
 import resourceService from '../services/resource-service';
 
 export default ko.components.register('context-tabbed-report', {
