@@ -1,0 +1,10 @@
+{
+  "pluginid": "8b16a4d5-315f-49f5-adcb-0b2db9cba5b0",
+  "name": "Bone CSV Visualization Workflow",
+  "icon": "fa fa-male",
+  "component": "views/components/plugins/bone-csv-visualization-workflow",
+  "componentname": "bone-csv-visualization-workflow",
+  "config": { "show": false },
+  "slug": "bone-csv-visualization-workflow",
+  "sortorder": 0
+}

@@ -1,0 +1,228 @@
+<style>
+.bone-csv-workflow {
+    max-width: 1180px;
+}
+
+.bone-csv-toolbar {
+    align-items: center;
+    background: #f8fafc;
+    border: 1px dashed #9aa4b2;
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px;
+}
+
+.bone-csv-layout {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(300px, 520px) minmax(280px, 1fr);
+    margin-top: 18px;
+}
+
+.bone-csv-canvas {
+    background: #fff;
+    border: 1px solid #d7dde5;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.bone-csv-canvas svg {
+    display: block;
+    height: auto;
+    width: 100%;
+}
+
+.bone-csv-region {
+    cursor: pointer;
+    fill-opacity: 0.52;
+    stroke: #b22d00;
+    stroke-width: 4;
+    transition: fill-opacity 120ms ease, stroke-width 120ms ease;
+    vector-effect: non-scaling-stroke;
+}
+
+.bone-csv-region:hover,
+.bone-csv-region.is-active {
+    fill-opacity: 0.72;
+    stroke-width: 7;
+}
+
+.bone-csv-summary {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(3, minmax(90px, 1fr));
+    margin-bottom: 14px;
+}
+
+.bone-csv-stat {
+    background: #f8fafc;
+    border: 1px solid #d7dde5;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.bone-csv-stat strong {
+    display: block;
+    font-size: 20px;
+}
+
+.bone-csv-list {
+    max-height: 340px;
+    overflow: auto;
+}
+
+.bone-csv-record {
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+    padding: 9px 4px;
+}
+
+.bone-csv-record.is-active {
+    background: #fff3ed;
+}
+
+.bone-csv-supported code {
+    display: inline-block;
+    margin: 2px 4px 2px 0;
+}
+
+@media (max-width: 900px) {
+    .bone-csv-layout {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<section class="workflow-step bone-csv-workflow">
+    <h3>Bone inventory from CSV</h3>
+
+    <p class="text-muted">
+        Prototype format: <code>id</code>, <code>bone_id</code>, <code>description</code>.
+        Only CSV rows whose <code>bone_id</code> exists in the region map become annotations.
+    </p>
+
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+    <div data-bind="visible: successMessage" class="alert alert-success">
+        <span data-bind="text: successMessage"></span>
+    </div>
+
+    <div class="bone-csv-toolbar">
+        <label class="btn btn-primary">
+            <i class="fa fa-upload"></i>
+            Choose CSV
+            <input type="file"
+                   accept=".csv,text/csv"
+                   style="display:none"
+                   data-bind="event: { change: onFileSelected }">
+        </label>
+        <a class="btn btn-default" href="/api/bone-inventory/example.csv" download="bone-inventory-example.csv">
+            <i class="fa fa-download"></i>
+            Download example CSV
+        </a>
+        <span data-bind="text: fileName() || 'No file selected'"></span>
+    </div>
+
+    <div class="bone-csv-supported" style="margin-top: 12px;">
+        <strong>Temporary supported IDs:</strong>
+        <!-- ko foreach: supportedBones -->
+        <code data-bind="text: id, attr: { title: label }"></code>
+        <!-- /ko -->
+    </div>
+
+    <!-- ko if: hasResults -->
+    <div class="bone-csv-layout">
+        <div class="bone-csv-canvas">
+            <svg viewBox="0 0 771 1374" role="img" aria-label="Skeleton with annotations">
+                <image x="0" y="0" width="771" height="1374"
+                       preserveAspectRatio="xMidYMid meet"
+                       data-bind="attr: { href: imageUrl, 'xlink:href': imageUrl }"></image>
+                <g data-bind="foreach: annotations">
+                    <polygon class="bone-csv-region"
+                             tabindex="0"
+                             data-bind="
+                                attr: {
+                                    points: points,
+                                    fill: color,
+                                    'aria-label': label + (description ? ': ' + description : '')
+                                },
+                                css: { 'is-active': $parent.activeAnnotation() === $data },
+                                event: {
+                                    mouseenter: function() { $parent.setActiveAnnotation($data); },
+                                    focus: function() { $parent.setActiveAnnotation($data); }
+                                },
+                                click: function() { $parent.setActiveAnnotation($data); }
+                             ">
+                        <title data-bind="text: label + (description ? ': ' + description : '')"></title>
+                    </polygon>
+                </g>
+            </svg>
+        </div>
+
+        <div>
+            <div class="bone-csv-summary">
+                <div class="bone-csv-stat">
+                    <strong data-bind="text: rows().length"></strong>
+                    <span>CSV rows</span>
+                </div>
+                <div class="bone-csv-stat">
+                    <strong data-bind="text: annotationCount"></strong>
+                    <span>Annotations</span>
+                </div>
+                <div class="bone-csv-stat">
+                    <strong data-bind="text: unknownRows().length"></strong>
+                    <span>Unknown IDs</span>
+                </div>
+            </div>
+
+            <!-- ko if: activeAnnotation -->
+            <div class="panel panel-info">
+                <div class="panel-heading"><strong data-bind="text: activeAnnotation().label"></strong></div>
+                <div class="panel-body">
+                    <div><strong>Record ID:</strong> <span data-bind="text: activeAnnotation().recordId"></span></div>
+                    <div><strong>bone_id:</strong> <code data-bind="text: activeAnnotation().boneId"></code></div>
+                    <div><strong>Description:</strong> <span data-bind="text: activeAnnotation().description || '—'"></span></div>
+                </div>
+            </div>
+            <!-- /ko -->
+
+            <h4>Created preview annotations</h4>
+            <div class="bone-csv-list" data-bind="foreach: annotations">
+                <div class="bone-csv-record"
+                     data-bind="
+                        css: { 'is-active': $parent.activeAnnotation() === $data },
+                        click: function() { $parent.setActiveAnnotation($data); }
+                     ">
+                    <strong data-bind="text: label"></strong>
+                    <code data-bind="text: boneId"></code>
+                    <div class="text-muted" data-bind="text: description || 'No description'"></div>
+                </div>
+            </div>
+
+            <!-- ko if: unknownRows().length -->
+            <div class="alert alert-warning" style="margin-top: 14px;">
+                <strong>Rows without a mapped region:</strong>
+                <span data-bind="text: unknownRows().map(function(row) { return row.boneId; }).join(', ')"></span>
+            </div>
+            <!-- /ko -->
+
+            <button type="button"
+                    class="btn btn-default"
+                    data-bind="click: downloadIiifAnnotations, enable: annotationCount() > 0">
+                <i class="fa fa-code"></i>
+                Download IIIF AnnotationPage JSON
+            </button>
+            <button type="button"
+                    class="btn btn-primary"
+                    style="margin-left: 8px;"
+                    data-bind="click: goToIiifPreview, enable: annotationCount() > 0">
+                <i class="fa fa-caret-right"></i>
+                Save and open IIIF preview
+            </button>
+        </div>
+    </div>
+    <!-- /ko -->
+</section>

@@ -40,7 +40,14 @@ define([
                 icon: 'fa-file-text-o',
                 description: 'Load and preview pottery records from a CSV or XLSX file to create a pottery collection resource',
                 backgroundColor: '#eef3f8'
-            },            
+            },
+            {
+                name: 'Visualize Bone Inventory',
+                slug: 'bone-csv-visualization-workflow',
+                icon: 'fa-male',
+                description: 'Load a bone inventory CSV and preview mapped IIIF annotation regions on the skeleton',
+                backgroundColor: '#fff3ed'
+            },
             {
                 name: 'Add Digital Resource IIIF',
                 slug: 'iiif-addition-workflow',

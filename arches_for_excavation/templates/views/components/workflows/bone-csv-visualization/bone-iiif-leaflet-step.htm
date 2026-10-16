@@ -1,0 +1,101 @@
+<style>
+.bone-iiif-preview {
+    max-width: 1180px;
+}
+
+.bone-iiif-preview__layout {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(320px, 2fr) minmax(240px, 1fr);
+}
+
+.bone-iiif-preview__map {
+    background: #eef1f4;
+    border: 1px solid #cbd2d9;
+    border-radius: 6px;
+    height: min(72vh, 760px);
+    min-height: 560px;
+    width: 100%;
+}
+
+.bone-iiif-preview__legend {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.bone-iiif-preview__swatch {
+    background: rgba(255, 107, 53, 0.52);
+    border: 2px solid #b22d00;
+    display: inline-block;
+    height: 18px;
+    width: 28px;
+}
+
+@media (max-width: 900px) {
+    .bone-iiif-preview__layout {
+        grid-template-columns: 1fr;
+    }
+
+    .bone-iiif-preview__map {
+        height: 620px;
+    }
+}
+</style>
+
+<section class="workflow-step bone-iiif-preview">
+    <h3>IIIF annotation preview in Leaflet</h3>
+
+    <div data-bind="visible: status" class="alert alert-info">
+        <i class="fa fa-spinner fa-spin"></i>
+        <span data-bind="text: status"></span>
+    </div>
+    <div data-bind="visible: errorMessage" class="alert alert-danger">
+        <span data-bind="text: errorMessage"></span>
+    </div>
+
+    <div class="bone-iiif-preview__layout">
+        <div class="bone-iiif-preview__map" data-bind="boneIiifLeafletInit: initMap"></div>
+
+        <aside>
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>IIIF Canvas</strong></div>
+                <div class="panel-body">
+                    <div><strong>Label:</strong> <span data-bind="text: canvasLabel"></span></div>
+                    <div><strong>Image source:</strong> <span data-bind="text: rendererMode"></span></div>
+                    <div>
+                        <strong>Rendered SvgSelectors:</strong>
+                        <span data-bind="text: renderedCount"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bone-iiif-preview__legend">
+                <span class="bone-iiif-preview__swatch"></span>
+                <span>Bone present in uploaded CSV</span>
+            </div>
+
+            <p class="text-muted">
+                Zoom and pan with Leaflet. Click a highlighted polygon to display its
+                <code>bone_id</code> and description.
+            </p>
+
+            <!-- ko if: activeAnnotation -->
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <strong data-bind="text: activeAnnotation().boneId"></strong>
+                </div>
+                <div class="panel-body" data-bind="text: activeAnnotation().description || 'No description'"></div>
+            </div>
+            <!-- /ko -->
+
+            <button type="button"
+                    class="btn btn-default"
+                    data-bind="click: downloadManifest, enable: renderedCount() > 0">
+                <i class="fa fa-code"></i>
+                Download IIIF manifest
+            </button>
+        </aside>
+    </div>
+</section>

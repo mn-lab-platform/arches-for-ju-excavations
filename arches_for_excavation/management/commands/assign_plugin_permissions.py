@@ -29,6 +29,7 @@ class Command(BaseCommand):
             "Digital Resource 3D Annotation Workflow": "7956078c-e25e-4e23-bec9-104e60a72b2d",
             "Pottery CSV Upload Workflow": "2a55a8e2-0219-4f9f-a87e-3efb2d72f9ef",
             "Pottery Record Import Workflow": "8e6a63b9-24f1-4cf3-aac2-9b4f2a95d7d1",
+            "Bone CSV Visualization Workflow": "8b16a4d5-315f-49f5-adcb-0b2db9cba5b0",
         }
 
         for plugin_name, plugin_id in plugins_to_assign.items():
