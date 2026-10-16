@@ -40,6 +40,24 @@ details = {
 
 
 class MultiCardPrimaryDescriptorsFunction(PrimaryDescriptorsFunction):
+    SPECIAL_FIND_GRAPH_ID = "ac939663-80ce-43df-967d-42def45ef333"
+    SPECIAL_FIND_DESCRIPTORS = {
+        "name": {
+            "string_template": "<Prefix> <Special Find No>",
+            "source_nodes": {
+                "Prefix": ["9ae5d420-ec6d-492c-a5ad-5dad4c64c20c"],
+                "Special Find No": ["31244e3e-389e-4fc0-b397-6ef2c5983b00"],
+            },
+        },
+        "description": {
+            "string_template": "<Order Number> from <Context ID>",
+            "source_nodes": {
+                "Order Number": ["ebd149f1-9a1c-4e84-837e-cc1495cb22a9"],
+                "Context ID": ["ebbcb9f7-e515-4a01-a6f3-610bad9dd13f"],
+            },
+        },
+    }
+
     TRENCH_NODE_ID = uuid.UUID("13e52ba6-b14d-41de-9a09-8bd1186edc10")
     CONTEXT_NUMBER_NODE_ID = uuid.UUID("cf7f2532-74f3-487f-9261-bf27825fe04c")
 
@@ -226,7 +244,15 @@ class MultiCardPrimaryDescriptorsFunction(PrimaryDescriptorsFunction):
     ):
         # Arches passes config for this descriptor directly, not the complete
         # FunctionXGraph configuration.
-        rendered = self._render_multicard_template(resource, config or {}, context)
+        config = config or {}
+        if (
+            str(resource.graph_id) == self.SPECIAL_FIND_GRAPH_ID
+            and descriptor in self.SPECIAL_FIND_DESCRIPTORS
+            and not config.get("source_nodes")
+        ):
+            config = self.SPECIAL_FIND_DESCRIPTORS[descriptor]
+
+        rendered = self._render_multicard_template(resource, config, context)
         if rendered is not None:
             if rendered or descriptor != "name":
                 return rendered

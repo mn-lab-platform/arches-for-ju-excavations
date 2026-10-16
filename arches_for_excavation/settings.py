@@ -19,7 +19,7 @@ APP_ROOT = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe(
 
 WEBPACK_LOADER = {
     "DEFAULT": {
-        "STATS_FILE": os.path.join(APP_ROOT, '..', 'webpack/webpack-stats.json'),
+        "STATS_FILE": os.path.join(APP_ROOT, 'webpack', 'webpack-stats.json'),
     },
 }
 

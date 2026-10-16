@@ -59,6 +59,17 @@ export default ko.components.register('pottery-collection-report', {
                 }
             }),
             ko.mapping.fromJS({
+                name: 'Kitchen ware',
+                icon: 'fa-table',
+                main_component: 'pottery-record-table',
+                nodegroup_ids: [],
+                component_params: {
+                    potteryType: 'Kitchen ware',
+                    recordType: 'kitchen-ware',
+                    collectionResourceId: collectionResourceId
+                }
+            }),                
+            ko.mapping.fromJS({
                 name: 'Plain Ware',
                 icon: 'fa-table',
                 main_component: 'pottery-record-table',
