@@ -10,16 +10,13 @@ export default ko.components.register('context-tabbed-report', {
     viewModel: function(params) {
         const self = this;
 
-
         const ANNOTATION_RESOURCE_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
-        const CRS_RESOURCE_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
 
         self.models3D = ko.observableArray([]);
         self.allowAnnotationsEdits = ko.observable(false);
         self.allowObjectPicking = ko.observable(true);
         self.allowObjectAddition = ko.observable(false);
         self.existingAnnotations = ko.observableArray([]);
-        self.modelCrsDefinitions = ko.observableArray([]);
 
         self.iiifResources = ko.observableArray([]);
         self.readOnly = ko.observable(true);
@@ -91,15 +88,6 @@ export default ko.components.register('context-tabbed-report', {
 
         const graphIn = (graphId, graphIds) => graphIds.includes(graphId);
 
-        const extractCrsDefinitions = (crsData) => {
-            const resource = crsData && crsData.resource ? crsData.resource : {};
-            return {
-                proj: findDeepValue(resource, ['PROJ4 String', 'PROJ4']) || '',
-                wkt: findDeepValue(resource, ['WKT-2 String', 'WKT-2', 'WKT2']) || '',
-                esri: findDeepValue(resource, ['ESRI WKT String', 'ESRI WKT']) || ''
-            };
-        };
-
         const loadModelBundle = async (modelResource) => {
             if (!modelResource) return null;
 
@@ -116,20 +104,12 @@ export default ko.components.register('context-tabbed-report', {
                 .filter(related => graphIn(related.graph_id, ANNOTATION_RESOURCE_GRAPHIDS))
                 .map(related => related.resourceinstanceid);
 
-            const crsId = relatedResourcesArray.find(
-                related => graphIn(related.graph_id, CRS_RESOURCE_GRAPHIDS)
-            )?.resourceinstanceid;
-
-            const [annotations, crsData] = await Promise.all([
-                Promise.all(annotationIds.map(id => resourceService.getOne(id))),
-                crsId ? resourceService.getOne(crsId) : Promise.resolve(null)
-            ]);
+            const [annotations] = await Promise.all(annotationIds.map(id => resourceService.getOne(id)));
 
             return {
                 resourceId,
                 modelData,
-                annotations,
-                crsData
+                annotations
             };
         };
 
@@ -150,7 +130,6 @@ export default ko.components.register('context-tabbed-report', {
                         allowAnnotationsEdits: self.allowAnnotationsEdits,
                         allowObjectPicking: self.allowObjectPicking,
                         existingAnnotations: self.existingAnnotations,
-                        modelCrsDefinitions: self.modelCrsDefinitions
                     }
                 }));
 
@@ -162,8 +141,8 @@ export default ko.components.register('context-tabbed-report', {
                             .filter(result => result.status === 'fulfilled' && result.value)
                             .map(result => result.value);
 
-                        fulfilled.forEach(({ resourceId, modelData, annotations, crsData }) => {
-                            self.models3D.push(modelData);
+                        fulfilled.forEach(({ resourceId, modelData, annotations }) => {
+                            modelData.resourceId = resourceId;
 
                             (annotations || []).forEach(anno => {
                                 const annoResource = anno.resource || {};
@@ -176,12 +155,7 @@ export default ko.components.register('context-tabbed-report', {
                                     relatedResourceName: findDeepValue(annoResource, ['Related Resource', 'Annotated Resource', 'Annoted Resource']) || ''
                                 });
                             });
-                            if (crsData) {
-                                self.modelCrsDefinitions.push({
-                                    modelResourceId: resourceId,
-                                    crs: extractCrsDefinitions(crsData)
-                                });
-                            }
+                            self.models3D.push(modelData);
                         });
 
                         const rejected = results.filter(result => result.status === 'rejected');

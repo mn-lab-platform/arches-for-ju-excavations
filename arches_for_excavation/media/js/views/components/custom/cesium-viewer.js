@@ -2,10 +2,13 @@ import ko from 'knockout';
 import viewerTemplate from 'templates/views/components/custom/cesium-viewer.htm';
 import { initializeCesiumViewer } from '../../../cesium_viewer';
 import basemapService from '../../../services/basemap-service';
+import tileService from '../../../services/tile-service';
+import resourceService from '../../../services/resource-service';
 
 export default ko.components.register('cesium-viewer', {
     viewModel: function(params) {
         const self = this;
+        const CRS_NODE_ID = '26125877-dc4e-402e-a925-78859a703ec3';
         params.configKeys = [];
         
         self.models = ko.unwrap(params.models3D) || [];
@@ -15,9 +18,8 @@ export default ko.components.register('cesium-viewer', {
         self.allowAnnotationsEdits = params.allowAnnotationsEdits() || false;
         self.allowObjectPicking = params.allowObjectPicking() || false;
         self.allowObjectAddition = params.allowObjectAddition() || false;
-        self.modelCrsDefinitions = ko.unwrap(params.modelCrsDefinitions) || [];
-
         self.initializedViewers = new Set();
+
         console.log('[CESIUM] existingAnnotations at init', self.existingAnnotations);
         self.onCesiumViewerRendered = function () {
             self.initializeAllViewers();
@@ -32,7 +34,8 @@ export default ko.components.register('cesium-viewer', {
                 console.error('Error fetching basemaps: ', error);
                 return [];
             }
-        }
+        };
+
         const normalizeRelatedNames = (value) => {
             if (!value) return [];
 
@@ -59,11 +62,39 @@ export default ko.components.register('cesium-viewer', {
 
             return [String(value)];
         };
+
+        const extractCrsDefinitions = (crsData) => {
+            const definitions = crsData?.resource?.['Definition (files)'] || [];
+            return {
+                proj: definitions.find(definition => definition?.Type === 'PROJ4')?.String || '',
+                wkt: definitions.find(definition => definition?.Type === 'WKT-2')?.String || '',
+                esri: definitions.find(definition => definition?.Type === 'ESRI WKT')?.String || ''
+            };
+        };
+
+        const getCrsDefinitionFromModelTile = async (modelResourceId) => {
+            const response = await tileService.getAllForResource(modelResourceId);
+            const tiles = Array.isArray(response) ? response : response?.tiles || [];
+            const crsTile = tiles.find(tile => tile?.data?.[CRS_NODE_ID] !== undefined);
+            const crsValue = crsTile?.data?.[CRS_NODE_ID];
+            const crsEntry = Array.isArray(crsValue) ? crsValue[0] : crsValue;
+            console.log('CRS entry found for model resource', modelResourceId, ':', crsEntry);
+            const crsResourceId = crsEntry?.resourceId;
+
+            if (!crsResourceId) {
+                return { crsResourceId: '', crsDefinition: {} };
+            }
+
+            const crsData = await resourceService.getOne(crsResourceId);
+
+            return extractCrsDefinitions(crsData);
+        };
+
         self.initializeAllViewers = async function () {
             for (let i = 0; i < self.models.length; i++) {
                 const model = self.models[i];
                 console.log('Model data:', model);
-                const modelResourceId = model.resourceinstanceid || model.resourceId || model.id;
+                const modelResourceId = model.resourceinstanceid;
                 const modelName =
                     model.displayname ||
                     `Model ${i}`;
@@ -90,7 +121,9 @@ export default ko.components.register('cesium-viewer', {
                         return relatedNames.includes(modelName)|| relatedNames.includes(modelResourceId);
                     });
                 console.log('[CESIUM] modelAnnotations for', modelName, model.resourceinstanceid, modelAnnotations) ;
+
                 try {
+                    const crsDefinition  = await getCrsDefinitionFromModelTile(modelResourceId);
                     const basemaps = await self._fetchBasemaps();
                     await initializeCesiumViewer(
                         viewerId, 
@@ -101,8 +134,8 @@ export default ko.components.register('cesium-viewer', {
                             allowObjectAddition: self.allowObjectAddition,
                             modelUrl: modelUrl,
                             existingAnnotations: modelAnnotations,
-                            basemaps,
-                            crsDefinition: self.modelCrsDefinitions.filter(crsDef => crsDef.modelResourceId === model.resourceinstanceid).map(crsDef => crsDef.crs)[0] || {},
+                            basemaps: basemaps,
+                            crsDefinition: crsDefinition,
                             onPolygonCompleted: params.onPolygonCompleted,
                             onAnnotationUpdated: params.onAnnotationUpdated,
                             onAnnotationDeleted: params.onAnnotationDeleted

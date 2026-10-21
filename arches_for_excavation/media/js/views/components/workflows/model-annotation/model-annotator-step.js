@@ -22,7 +22,6 @@ define([
         self.ANNOTATION_GROUP_NODEGROUP_ID = 'a2ef2d24-20ae-4070-b11b-207834905809';
 
         self.ANNOTATION_MODEL_GRAPHIDS = ['2880934b-0015-4c5a-8ec1-1ab9bca329fd', 'd1894fdd-41b3-44d3-aebb-ab44999f881e'];
-        self.CRS_MODEL_GRAPHIDS = ['a5219c24-2907-4055-9d68-18216d214458', '855343ec-9d7c-4947-970c-e80b6cfacc4f'];
 
         self.MODE = {
             ADD: 'add',
@@ -40,7 +39,6 @@ define([
         self.allowObjectPicking = ko.observable(self.mode() === self.MODE.EDIT);
         self.allowObjectAddition = ko.observable(self.mode() === self.MODE.ADD);
         self.existingAnnotations = ko.observableArray([]);
-        self.modelCrsDefinitions = ko.observableArray([]);
         
         self.annotationsIds = [];
 
@@ -156,33 +154,15 @@ define([
             }
         };
 
-        self._fetchCrsDefinitionForResource = function() {
-            return resourceService.getAllRelatedTo(self.modelResourceId()).then(function(relatedResources) {
-                const relatedResourcesArray = relatedResources.related_resources.related_resources || [];
-                const relatedCRSObject = relatedResourcesArray.filter(function(rel) {
-                    return self.CRS_MODEL_GRAPHIDS.includes(rel.graph_id);
-                });
-                if (relatedCRSObject.length === 0) {
-                    console.log("No related CRS resource found.");
-                    return null;
-                }
-                const crsResourceId = relatedCRSObject[0].resourceinstanceid;
-                return resourceService.getOne(crsResourceId);
-            });
-        };
-
         if (self.modelResourceId()) {
             self.infoMessage("Loading 3D models...");
 
             const modelPromise = resourceService.getOne(self.modelResourceId());
             const annotationsPromise = self._fetchExistingAnnotationsData();
-            const crsPromise = self._fetchCrsDefinitionForResource();
 
-            Promise.all([modelPromise, annotationsPromise, crsPromise]).then(function(results) {
+            Promise.all([modelPromise, annotationsPromise]).then(function(results) {
                 const modelData = results[0];
                 const annotationsData = results[1];
-                const crsData = results[2];
-                console.log("CRS data fetched: ", crsData);
 
                 modelData.resourceId = self.modelResourceId();
                 self.models3D.push(modelData);
@@ -192,17 +172,6 @@ define([
                     .map(function(a) { return self._formatAnnotationData(a); });
 
                 self.existingAnnotations(formattedAnnotations);
-
-                if (crsData) {
-                    self.modelCrsDefinitions([{
-                        modelResourceId: self.modelResourceId(),
-                        crs: {
-                            proj: crsData.resource["Definition (files)"].find(d => d.Type === 'PROJ4')?.String || '',
-                            wkt: crsData.resource["Definition (files)"].find(d => d.Type === 'WKT-2')?.String || '',
-                            esri: crsData.resource["Definition (files)"].find(d => d.Type === 'ESRI WKT')?.String || ''
-                        }
-                    }]);
-                }
             }).catch(function(error) {
                 console.error("Failed to load data:", error);
                 self.error("Failed to load data.");
