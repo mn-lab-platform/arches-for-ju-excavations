@@ -35,14 +35,18 @@ from .views.ontology_usage import OntologyUsageModelGraphView, OntologyUsageMode
 from .views.resource_mapping_editor import ResourceMappingGraphsView, ResourceMappingMigrateView, ResourceMappingSuggestView
 from .views.displayname_search import DisplayNameSearchView
 from .views.tusd_webhook import tus_webhook
+from .views.tusd_iiif_result import iiif_tus_result
 from .views.tusd_auth import generate_tus_token
 from .views.tusd_patch_metadata import patch_tusd_metadata
 from .views.resource_table import ResourceTableColumnsView, ResourceTableCsvView, ResourceTableDataView, ResourceTableModelsView
+from .views.verify_search import verify_search_ids, verify_search_page
 from .views.crs import search_epsg, get_epsg_proj4, transform_coordinates
 # from .views.bone_iiif import bone_iiif_image, bone_iiif_info, bone_inventory_example_csv
 
 urlpatterns = [
     # project-level urls
+    path("verify-search/", verify_search_page, name="verify_search_page"),
+    path("api/verify/search-ids", verify_search_ids, name="verify_search_ids"),
     path("thumbnail/<uuid:resource_id>", IiifThumbnailView.as_view(), name="thumbnail"),
     path('api/model-3d/upload/', Model3DView.as_view(), name='model_3d_upload'),
     path('api/model-3d/all/access', Models3DAccessView.as_view(), name='model_3d_access'),
@@ -55,6 +59,7 @@ urlpatterns = [
     path('api/titiler/tiles/<str:basemap_id>/<int:z>/<int:x>/<int:y>', titiler_tile_proxy, name='titiler_tile_proxy'),
     path('api/celery/task-status/<str:task_id>', get_celery_task_status, name='celery_task_status'),
     path('api/iiif/geotiff-upload', RasterUploadView.as_view(), name='geotiff_process'),
+    path('api/iiif/tus-result/<str:tus_id>', iiif_tus_result, name='iiif_tus_result'),
     path("api/iiif/build-geotiff-manifest", BuildGeoTiffManifestView.as_view()),
     path("api/iiif/geotiff-manifest/<uuid:resource_id>", GetGeoTiffManifestView.as_view()),
     path("api/iiif/geotiff-file/<uuid:job_id>/<str:kind>", GeoTiffFileView.as_view()),
