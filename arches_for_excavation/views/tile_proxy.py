@@ -15,11 +15,13 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
         try:
             layer = MapLayer.objects.get(maplayerid=basemap_id)
             print(f"Fetched layer {basemap_id} from DB: {layer}")
+            print(f"Layer definitions: {layer.layerdefinitions}")
+            layer_definition = layer.layerdefinitions[0]
             layer_info = {
                 'name': layer.name,
                 'is_public': layer.ispublic,
-                'band_count': layer.layerdefinitions[0].get('band_count', 3),
-                'tus_id': layer.layerdefinitions[0].get('tus_id')
+                'band_count': layer_definition.get('band_count', 3),
+                'tus_id': layer_definition.get('tus_id') or layer_definition.get('id')
             }
             print(f"Caching layer {basemap_id} is_public={layer.ispublic}")
             cache.set(layer_cache_key, layer_info, 300) #cache for 5 minutes

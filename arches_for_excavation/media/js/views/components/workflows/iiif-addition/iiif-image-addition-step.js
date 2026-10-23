@@ -7,14 +7,16 @@ define([
   'services/iiif-addition-api',
   'utils/iiif-file-entries-store',
   'services/iiif-queue-runner',
+  'services/tile-service',
   '../../../../services/service-utils'
-], function(ko, arches, template, _dropzone, utils, iiifApi, FileEntriesStore, QueueRunner, serviceUtils) {
+], function(ko, arches, template, _dropzone, utils, iiifApi, FileEntriesStore, QueueRunner, tileServiceModule, serviceUtils) {
   'use strict';
 
   var NODE_IIIF_LABEL = 'b9a36003-ef1c-4150-83dc-4d979e874065';
   var NODE_IIIF_URL = 'df47642e-dfc0-442f-a5cf-8c1247e9c5bb';
   var NODE_RELATED_RESOURCE = '8bedf116-657a-4eb5-af06-b4de29839966';
   var NODE_USED_FILES = '9469c29f-85c2-4fce-bdb8-cd5d101d49d9';
+  var tileService = tileServiceModule.default || tileServiceModule;
 
   var REL_ONTOLOGY_PROPERTY_ID = "";
   var REL_INVERSE_PROPERTY_ID = "";
@@ -42,6 +44,7 @@ define([
     self.canStartUpload = ko.observable(false);
 
     self.digitalResourceId = ko.observable(null);
+    self.resumeInterruptedUpload = ko.observable(false);
 
     self.tiles = {
       labelTileId: ko.observable(null),
@@ -231,9 +234,85 @@ define([
       }
     };
 
-    // STEP 1: init resource + tiles
-    self.ensureDigitalResource = function() {
+    function restoreInterruptedResource(item) {
+      if (self.isPhotoMode()) return Promise.reject(new Error('Only GeoTIFF uploads can be resumed.'));
+      if (!item || !item.file) return Promise.reject(new Error('Select the GeoTIFF to resume.'));
+
+      var baseName = utils.stripExt(item.file.name);
+      var forceDem = !!(item.isDemObs && item.isDemObs());
+      var targetIds = _toResourceIdList(self.targetResourceId());
+      if (targetIds.length !== 1) return Promise.reject(new Error('Select one target resource before resuming.'));
+
+      return iiifApi.findResumableGeotiffUploads(item.file, {
+        resourceName: self.resourceName() || baseName,
+        baseName: baseName,
+        role: forceDem ? 'dem' : 'ortho',
+        forceDem: forceDem,
+        makeHillshade: forceDem && (!item.makeHillshadeObs || item.makeHillshadeObs())
+      }).then(function(candidates) {
+        function checkNext(index) {
+          if (index >= candidates.length) {
+            throw new Error('No matching interrupted upload was found in this browser. Check the file, resource name, target and DEM options, or start a new upload.');
+          }
+
+          var candidate = candidates[index];
+          return tileService.getAllForResource(candidate.resourceId).then(function(response) {
+            var tiles = Array.isArray(response) ? response : response && response.tiles;
+            if (!Array.isArray(tiles)) return checkNext(index + 1);
+
+            function tileFor(nodeId) {
+              return tiles.find(function(tile) {
+                return tile && tile.data && Object.prototype.hasOwnProperty.call(tile.data, nodeId);
+              });
+            }
+
+            var labelTile = tileFor(NODE_IIIF_LABEL);
+            var urlTile = tileFor(NODE_IIIF_URL);
+            var relationTile = tileFor(NODE_RELATED_RESOURCE);
+            var filesTile = tileFor(NODE_USED_FILES);
+            var relations = relationTile && relationTile.data[NODE_RELATED_RESOURCE];
+            var usedFiles = filesTile && filesTile.data[NODE_USED_FILES];
+            var sameTarget = Array.isArray(relations) && relations.length === 1 &&
+              relations[0] && relations[0].resourceId === targetIds[0];
+
+            if (!labelTile || !urlTile || !relationTile || !filesTile ||
+                !labelTile.tileid || !urlTile.tileid || !relationTile.tileid || !filesTile.tileid ||
+                !sameTarget || labelTile.data[NODE_IIIF_LABEL] !== (self.resourceName() || '') ||
+                !!urlTile.data[NODE_IIIF_URL] ||
+                (usedFiles != null && (!Array.isArray(usedFiles) || usedFiles.length))) {
+              return checkNext(index + 1);
+            }
+
+            self.fileStore.clear();
+            self.tiles.labelTileId(labelTile.tileid);
+            self.tiles.urlTileId(urlTile.tileid);
+            self.tiles.relTileId(relationTile.tileid);
+            self.tiles.fileListTileId(filesTile.tileid);
+            self.digitalResourceId(candidate.resourceId);
+            return candidate.resourceId;
+          }, function(error) {
+            if (error && /HTTP 404\b/.test(error.message || '')) return checkNext(index + 1);
+            throw error;
+          });
+        }
+
+        return checkNext(0);
+      });
+    }
+
+    // STEP 1: restore the interrupted resource or create one with its tiles.
+    self.ensureDigitalResource = function(toQueue) {
       if (self.digitalResourceId()) return Promise.resolve(self.digitalResourceId());
+
+      if (self.resumeInterruptedUpload()) {
+        if (!toQueue || toQueue.length !== 1) {
+          return Promise.reject(new Error('Select exactly one GeoTIFF to resume.'));
+        }
+        self.loading(true);
+        self.progressPhase('uploading');
+        self.progressStatus('Looking for interrupted upload...');
+        return restoreInterruptedResource(toQueue[0]).finally(function() { self.loading(false); });
+      }
 
       self.loading(true);
       self.errorMessage('');
@@ -282,7 +361,7 @@ define([
       self.errorMessage('');
       self.queueRunner.resetDrain();
 
-      self.ensureDigitalResource()
+      self.ensureDigitalResource(toQueue)
         .then(function() {
           toQueue.forEach(function(it) { it.statusObs('queued'); });
           self.progressPhase('uploading');
@@ -299,6 +378,7 @@ define([
     // STEP 3: upload + poll celery + update USED_FILES
     self.processOne = function(item) {
       item.statusObs('uploading');
+      self.progressPhase('uploading');
       self.progressStatus('Uploading ' + item.name + '...');
 
       var fd = new FormData();
@@ -346,14 +426,29 @@ define([
         });
       }
 
-      // GEOTIFF MODE: existing flow
+      // GEOTIFF MODE: transfer through TUS, then continue with the IIIF job response.
       var forceDem = !!(item.isDemObs && item.isDemObs());
       var makeHillshade = forceDem && (!item.makeHillshadeObs || item.makeHillshadeObs());
-      fd.append('role', forceDem ? 'dem' : 'ortho');
-      fd.append('force_dem', forceDem ? '1' : '0');
-      fd.append('make_hillshade', makeHillshade ? '1' : '0');
 
-      return iiifApi.uploadGeotiff(baseUrl, csrftoken, { formData: fd })
+      return iiifApi.uploadGeotiffToTus(item.file, {
+        resourceId: self.digitalResourceId(),
+        resourceName: self.resourceName() || baseName,
+        baseName: baseName,
+        role: forceDem ? 'dem' : 'ortho',
+        forceDem: forceDem,
+        makeHillshade: makeHillshade,
+        onProgress: function(sent, total) {
+          if (total > 0 && item.statusObs() === 'uploading') {
+            self.progressStatus('Uploading ' + item.name + '... ' + Math.floor(sent / total * 100) + '%');
+          }
+        }
+      })
+        .then(function(upload) {
+          item.statusObs('processing');
+          self.progressPhase('processing');
+          self.progressStatus('Upload complete. Waiting for server to start processing ' + item.name + '...');
+          return iiifApi.waitForTusGeotiffResult(baseUrl, upload.tusId);
+        })
         .then(function(r) {
           // ids
           item.task_id = r.task_id || r.job_id;
@@ -463,7 +558,7 @@ define([
         })
         .catch(function(err) {
           item.statusObs('failed');
-          self.errorMessage((self.errorMessage() ? (self.errorMessage() + '\n') : '') + (err && err.message ? err.message : String(err)));
+          self.errorMessage((self.errorMessage() ? (self.errorMessage() + '\n') : '') + item.name + ': ' + (err && err.message ? err.message : String(err)));
 
           if (item.file_id) {
             self.fileStore.upsert([{
