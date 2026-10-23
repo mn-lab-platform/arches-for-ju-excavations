@@ -1,0 +1,45 @@
+{% extends "base-root.htm" %}
+
+{% block title %}Wyszukiwanie do weryfikacji{% endblock title %}
+
+{% block css %}
+{{ block.super }}
+<style>
+    html, body { height: 100%; margin: 0; }
+    .verify-search-page { display: flex; flex-direction: column; height: 100vh; background: #fff; }
+    .verify-search-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid #dce7e5; font: 14px system-ui, sans-serif; }
+    .verify-search-header p { margin: .2rem 0 0; color: #617a7d; }
+    .verify-search-actions { display: flex; align-items: center; gap: .75rem; }
+    .verify-search-actions button { border: 0; border-radius: 8px; background: #176d73; color: #fff; padding: .65rem .9rem; font: 700 13px system-ui, sans-serif; cursor: pointer; }
+    .verify-search-actions button:disabled { opacity: .5; cursor: wait; }
+    #verify-search-status { color: #45656a; }
+    #verify-search-app { min-height: 0; flex: 1; }
+    @media (max-width: 700px) { .verify-search-header { align-items: flex-start; flex-direction: column; } }
+</style>
+{% endblock css %}
+
+{% block body %}
+<div class="verify-search-page" id="verify-search-root" data-graph-id="{{ graph_id }}">
+    {% if search_available %}
+    <header class="verify-search-header">
+        <div>
+            <strong>Wyszukiwanie zaawansowane</strong>
+            <p>Zbuduj zapytanie i uruchom wyszukiwanie, a następnie zastosuj wszystkie wyniki.</p>
+        </div>
+        <div class="verify-search-actions">
+            <span id="verify-search-status" role="status" aria-live="polite"></span>
+            <button id="verify-search-apply" type="button" disabled>Zastosuj do weryfikacji</button>
+        </div>
+    </header>
+    <div id="verify-search-app"></div>
+    {% else %}
+    <div class="verify-search-header">
+        <div>
+            <strong>Zaloguj się do Arches</strong>
+            <p>Wyszukiwanie zaawansowane używa uprawnień Twojego konta Arches.</p>
+            <p><a href="{% url 'auth' %}" target="_blank" rel="noopener">Otwórz logowanie</a>, a następnie ponownie otwórz wyszukiwanie.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock body %}
