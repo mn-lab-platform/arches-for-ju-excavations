@@ -4,7 +4,6 @@ import requests
 from arches.app.models.models import MapLayer
 
 TITILER_INTERNAL_URL = "http://titiler:8000"
-#TODO: no matter if layer is public or private only users with certain group membership can view tiles
 
 def titiler_tile_proxy(request, basemap_id, z, x, y):
     user = request.user
@@ -19,8 +18,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             layer_info = {
                 'name': layer.name,
                 'is_public': layer.ispublic,
-                'basemap_dir': layer.layerdefinitions[0].get('basemap_dir'),
-                'band_count': layer.layerdefinitions[0].get('band_count', 3)
+                'band_count': layer.layerdefinitions[0].get('band_count', 3),
+                'tus_id': layer.layerdefinitions[0].get('tus_id')
             }
             print(f"Caching layer {basemap_id} is_public={layer.ispublic}")
             cache.set(layer_cache_key, layer_info, 300) #cache for 5 minutes
@@ -28,9 +27,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             return HttpResponseNotFound("Layer not found")
     
     is_public = layer_info['is_public']
-    basename_dir = layer_info['basemap_dir']
     band_count = layer_info['band_count']
-
+    tus_id = layer_info.get('tus_id')
     if not is_public:
         if not user.is_authenticated:
             return HttpResponseForbidden("Secure Layer: Login Required")
@@ -40,8 +38,6 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             can_view = cache.get(user_perm_key)
 
             if can_view is None:
-                print(f"Checking permissions for user {user.username} (id={user.id})")
-                print(f"User groups: {[group.name for group in user.groups.all()]}")
                 if user.groups.filter(name='Restricted Basemap Access').exists(): #IMPORTANT: Hardcoded
                     can_view = True
                 else:
@@ -51,7 +47,7 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
                 return HttpResponseForbidden("Access Denied: Insufficient Permissions")
     
     try:
-        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/basemaps/{basename_dir}/{basemap_id}.tif&{_craft_band_index_query(band_count)}"
+        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/maplayers/{tus_id}.tif&{_craft_band_index_query(band_count)}"
 
         upstream_req = requests.get(titiler_url, stream=True, timeout=5)
 
