@@ -40,6 +40,8 @@ function tablePayload(state) {
         filters: state.filters || {},
         sort_by: state.sortBy || '',
         sort_direction: state.sortDirection || 'asc',
+        cursor: state.cursor || '',
+        page_size: state.pageSize || 200,
     };
 }
 
@@ -56,6 +58,7 @@ export function getTable(state) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tablePayload(state)),
+        signal: state.signal,
     });
 }
 

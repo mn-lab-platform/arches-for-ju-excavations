@@ -1,7 +1,41 @@
 import ko from 'knockout';
 import { jsPDF } from 'jspdf';
 import template from 'templates/views/components/plugins/resource-table.htm';
-import { getColumns, getModels, getTable } from 'services/resource-table-api';
+import { exportCsv as requestCsv, getColumns, getModels, getTable } from 'services/resource-table-api';
+
+ko.bindingHandlers.resourceTableViewportHeight = {
+    init(element, valueAccessor) {
+        let frame = null;
+        const updateHeight = () => {
+            if (frame !== null) window.cancelAnimationFrame(frame);
+            frame = window.requestAnimationFrame(() => {
+                frame = null;
+                if (!element.getClientRects().length) return;
+
+                const viewportBottom = window.visualViewport
+                    ? window.visualViewport.offsetTop + window.visualViewport.height
+                    : window.innerHeight;
+                const height = Math.max(160, viewportBottom - element.getBoundingClientRect().top - 16);
+                element.style.height = `${height}px`;
+            });
+        };
+
+        const tableBuiltSubscription = valueAccessor().subscribe(updateHeight);
+        window.addEventListener('resize', updateHeight);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateHeight);
+        }
+        ko.utils.domNodeDisposal.addDisposeCallback(element, () => {
+            if (frame !== null) window.cancelAnimationFrame(frame);
+            tableBuiltSubscription.dispose();
+            window.removeEventListener('resize', updateHeight);
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', updateHeight);
+            }
+        });
+        updateHeight();
+    },
+};
 
 export default ko.components.register('resource-table', {
     viewModel: function() {
@@ -11,18 +45,23 @@ export default ko.components.register('resource-table', {
         self.availableColumns = ko.observableArray([]);
         self.selectedColumnIds = ko.observableArray([]);
         self.rows = ko.observableArray([]);
-        self.cachedRows = ko.observableArray([]);
         self.tableColumns = ko.observableArray([]);
         self.columnWidths = ko.observable({});
         self.tableBuilt = ko.observable(false);
         self.collapsedNodeIds = ko.observableArray([]);
         self.loading = ko.observable(false);
+        self.pageLoading = ko.observable(false);
+        self.exporting = ko.observable(false);
         self.error = ko.observable('');
+        self.nextCursor = ko.observable(null);
+        self.hasMore = ko.observable(false);
+        self.appliedFilters = {};
+        self.queryVersion = 0;
+        self.pageController = null;
         self.columnFilters = {};
         self.columnFilterModes = {};
         self.sortBy = ko.observable('');
         self.sortDirection = ko.observable('asc');
-        self.hasTable = ko.pureComputed(() => self.selectedColumnIds().length > 0 && self.rows().length >= 0);
         self.selectedColumns = ko.pureComputed(() => {
             if (self.tableBuilt()) return self.tableColumns();
             const selected = new Set(self.selectedColumnIds());
@@ -79,6 +118,7 @@ export default ko.components.register('resource-table', {
             if (topScroll && topScroll.scrollLeft !== event.currentTarget.scrollLeft) {
                 topScroll.scrollLeft = event.currentTarget.scrollLeft;
             }
+            self.loadNextPage(event.currentTarget);
         };
         self.isColumnSelected = function(nodeId) {
             return self.selectedColumnIds().includes(nodeId);
@@ -118,57 +158,6 @@ export default ko.components.register('resource-table', {
                 }
             });
             return filters;
-        };
-        self.rowMatchesFilter = function(row, nodeId, filter) {
-            const value = String(row[nodeId] == null ? '' : row[nodeId]).trim();
-            const normalizedValue = value.toLocaleLowerCase();
-            const normalizedFilter = filter.value.toLocaleLowerCase();
-            if (filter.mode === 'empty') return !value;
-            if (filter.mode === 'not-empty') return Boolean(value);
-            if (filter.mode === 'equals') return normalizedValue === normalizedFilter;
-            if (filter.mode === 'not-contains') return !normalizedValue.includes(normalizedFilter);
-            return normalizedValue.includes(normalizedFilter);
-        };
-        self.textCollator = new Intl.Collator(undefined, {
-            numeric: true,
-            sensitivity: 'base',
-        });
-        self.sortValues = function(row, column) {
-            const values = row._sort_values && row._sort_values[column.node_id];
-            return (Array.isArray(values) && values.length ? values : [row[column.node_id]])
-                .map((value) => String(value == null ? '' : value).trim())
-                .filter(Boolean)
-                .sort((first, second) => self.textCollator.compare(first, second));
-        };
-        self.compareRows = function(first, second, column) {
-            const firstValues = self.sortValues(first, column);
-            const secondValues = self.sortValues(second, column);
-            if (!firstValues.length || !secondValues.length) {
-                return firstValues.length ? -1 : (secondValues.length ? 1 : 0);
-            }
-            const length = Math.max(firstValues.length, secondValues.length);
-            for (let index = 0; index < length; index += 1) {
-                if (firstValues[index] === undefined) return -1;
-                if (secondValues[index] === undefined) return 1;
-                const comparison = self.textCollator.compare(firstValues[index], secondValues[index]);
-                if (comparison) return comparison;
-            }
-            return 0;
-        };
-        self.applyTableState = function() {
-            const filters = self.activeFilters();
-            let rows = self.cachedRows().filter((row) => Object.keys(filters).every((nodeId) => (
-                self.rowMatchesFilter(row, nodeId, filters[nodeId])
-            )));
-            const sortBy = self.sortBy();
-            const column = self.tableColumns().find((item) => item.node_id === sortBy);
-            if (column) {
-                rows = rows.slice().sort((first, second) => {
-                    const comparison = self.compareRows(first, second, column);
-                    return self.sortDirection() === 'desc' ? -comparison : comparison;
-                });
-            }
-            self.rows(rows);
         };
         self.isNodeCollapsed = function(nodeId) {
             return self.collapsedNodeIds().includes(nodeId);
@@ -262,10 +251,16 @@ export default ko.components.register('resource-table', {
         };
 
         self.selectedModelId.subscribe((graphId) => {
+            self.queryVersion += 1;
+            if (self.pageController) self.pageController.abort();
+            self.pageController = null;
+            self.pageLoading(false);
+            self.loading(false);
             self.availableColumns([]);
             self.selectedColumnIds([]);
             self.rows([]);
-            self.cachedRows([]);
+            self.nextCursor(null);
+            self.hasMore(false);
             self.tableColumns([]);
             self.columnWidths({});
             self.columnFilters = {};
@@ -320,29 +315,91 @@ export default ko.components.register('resource-table', {
             }
         };
 
-        self.buildTable = function() {
-            if (!self.selectedModelId() || !self.selectedColumnIds().length) return;
-            self.loading(true);
-            self.error('');
-            getTable({
+        self.queryState = function(cursor = null) {
+            return {
                 graphId: self.selectedModelId(),
                 columns: self.selectedColumnIds(),
-            })
+                filters: self.appliedFilters,
+                sortBy: self.sortBy(),
+                sortDirection: self.sortDirection(),
+                cursor,
+                pageSize: 200,
+            };
+        };
+
+        self.loadNextPage = function(grid) {
+            if (!grid || !self.tableBuilt() || !self.hasMore() || self.pageLoading()) return;
+            if (grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 300) {
+                self.loadPage();
+            }
+        };
+
+        self.loadPage = function() {
+            if (self.pageLoading()) return;
+            const version = self.queryVersion;
+            const firstPage = !self.rows().length && !self.nextCursor();
+            const controller = new AbortController();
+            self.pageController = controller;
+            self.pageLoading(true);
+            if (firstPage) self.loading(true);
+            getTable({ ...self.queryState(self.nextCursor()), signal: controller.signal })
                 .then((data) => {
-                    self.tableColumns(data.columns || []);
-                    self.cachedRows(data.rows || []);
+                    if (version !== self.queryVersion) return;
+                    if (firstPage) {
+                        self.tableColumns(data.columns || []);
+                        self.rows(data.rows || []);
+                    } else {
+                        self.rows.push(...(data.rows || []));
+                    }
+                    self.nextCursor(data.next_cursor || null);
+                    self.hasMore(Boolean(data.next_cursor));
                     self.tableBuilt(true);
-                    self.applyTableState();
                 })
-                .catch((error) => self.error(`Could not load table: ${error.message}`))
-                .finally(() => self.loading(false));
+                .catch((error) => {
+                    if (version === self.queryVersion && error.name !== 'AbortError') {
+                        self.error(`Could not load table: ${error.message}`);
+                        self.hasMore(false);
+                    }
+                })
+                .finally(() => {
+                    if (version !== self.queryVersion) return;
+                    self.pageController = null;
+                    self.pageLoading(false);
+                    self.loading(false);
+                    requestAnimationFrame(() => {
+                        self.loadNextPage(document.querySelector('.resource-table-plugin__grid'));
+                    });
+                });
+        };
+
+        self.startQuery = function() {
+            self.queryVersion += 1;
+            if (self.pageController) self.pageController.abort();
+            self.pageController = null;
+            self.pageLoading(false);
+            self.rows([]);
+            self.nextCursor(null);
+            self.hasMore(false);
+            self.error('');
+            const grid = document.querySelector('.resource-table-plugin__grid');
+            if (grid) grid.scrollTop = 0;
+            self.loadPage();
+        };
+
+        self.buildTable = function() {
+            if (!self.selectedModelId() || !self.selectedColumnIds().length) return;
+            self.appliedFilters = self.activeFilters();
+            self.startQuery();
         };
 
         self.loadTable = function() {
-            self.applyTableState();
+            self.appliedFilters = self.activeFilters();
+            self.startQuery();
         };
 
         self.editColumns = function() {
+            self.columnFilters = {};
+            self.columnFilterModes = {};
             self.tableBuilt(false);
         };
 
@@ -359,64 +416,80 @@ export default ko.components.register('resource-table', {
             self.loadTable();
         };
 
-        self.exportCsv = function() {
-            const columns = self.selectedColumns();
-            const escapeValue = function(value) {
-                return `"${String(value == null ? '' : value).replace(/"/g, '""')}"`;
-            };
-            const lines = [
-                columns.map((column) => escapeValue(column.label)).join(','),
-                ...self.rows().map((row) => columns
-                    .map((column) => escapeValue(row[column.node_id]))
-                    .join(',')),
-            ];
-            const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'resource-table.csv';
-            link.click();
-            URL.revokeObjectURL(link.href);
+        self.exportCsv = async function() {
+            if (self.exporting()) return;
+            self.exporting(true);
+            self.error('');
+            try {
+                const blob = await requestCsv(self.queryState());
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'resource-table.csv';
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                self.error(`Could not export CSV: ${error.message}`);
+            } finally {
+                self.exporting(false);
+            }
         };
 
-        self.exportPdf = function() {
+        self.exportPdf = async function() {
+            if (self.exporting()) return;
+            self.exporting(true);
+            self.error('');
             const columns = self.selectedColumns();
-            const rows = self.rows();
-            if (!columns.length || !rows.length) return;
+            const query = self.queryState();
+            const rows = [];
+            try {
+                let cursor = null;
+                do {
+                    const page = await getTable({ ...query, cursor });
+                    rows.push(...(page.rows || []));
+                    cursor = page.next_cursor;
+                } while (cursor);
+                if (!columns.length || !rows.length) return;
 
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-            const margin = 28;
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const columnWidth = (pageWidth - (margin * 2)) / columns.length;
-            let y = margin;
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+                const margin = 28;
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const columnWidth = (pageWidth - (margin * 2)) / columns.length;
+                let y = margin;
 
-            pdf.setFontSize(14);
-            pdf.text('Resource table', margin, y);
-            y += 22;
-            pdf.setFontSize(8);
+                pdf.setFontSize(14);
+                pdf.text('Resource table', margin, y);
+                y += 22;
+                pdf.setFontSize(8);
 
-            const drawRow = function(values, bold) {
-                const lineHeight = 11;
-                const lines = values.map((value) => pdf.splitTextToSize(String(value || ''), columnWidth - 8));
-                const height = Math.max(...lines.map((value) => value.length), 1) * lineHeight + 8;
-                if (y + height > pageHeight - margin) {
-                    pdf.addPage();
-                    y = margin;
-                }
-                if (bold) pdf.setFont(undefined, 'bold');
-                values.forEach((_, index) => {
-                    lines[index].forEach((line, lineIndex) => {
-                        pdf.text(line, margin + index * columnWidth + 4, y + 14 + lineIndex * lineHeight);
+                const drawRow = function(values, bold) {
+                    const lineHeight = 11;
+                    const lines = values.map((value) => pdf.splitTextToSize(String(value || ''), columnWidth - 8));
+                    const height = Math.max(...lines.map((value) => value.length), 1) * lineHeight + 8;
+                    if (y + height > pageHeight - margin) {
+                        pdf.addPage();
+                        y = margin;
+                    }
+                    if (bold) pdf.setFont(undefined, 'bold');
+                    values.forEach((_, index) => {
+                        lines[index].forEach((line, lineIndex) => {
+                            pdf.text(line, margin + index * columnWidth + 4, y + 14 + lineIndex * lineHeight);
+                        });
                     });
-                });
-                if (bold) pdf.setFont(undefined, 'normal');
-                pdf.line(margin, y + height, pageWidth - margin, y + height);
-                y += height;
-            };
+                    if (bold) pdf.setFont(undefined, 'normal');
+                    pdf.line(margin, y + height, pageWidth - margin, y + height);
+                    y += height;
+                };
 
-            drawRow(columns.map((column) => column.label), true);
-            rows.forEach((row) => drawRow(columns.map((column) => row[column.node_id]), false));
-            pdf.save('resource-table.pdf');
+                drawRow(columns.map((column) => column.label), true);
+                rows.forEach((row) => drawRow(columns.map((column) => row[column.node_id]), false));
+                pdf.save('resource-table.pdf');
+            } catch (error) {
+                self.error(`Could not export PDF: ${error.message}`);
+            } finally {
+                self.exporting(false);
+            }
         };
 
         self.loadModels();

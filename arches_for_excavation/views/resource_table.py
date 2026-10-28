@@ -1,13 +1,13 @@
 import csv
-import io
 import json
 import re
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from django.http import JsonResponse, HttpResponse
+from django.core.cache import cache
+from django.http import JsonResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views import View
@@ -388,7 +388,7 @@ def repeating_ancestor_tile(tile, nodegroup_id, tiles_by_id):
     return None
 
 
-def resource_rows(request, graph_id, columns, table_columns):
+def resource_rows(request, resources, columns, table_columns):
     node_ids = [column["node_id"] for column in columns]
     columns_by_id = {column["node_id"]: column for column in columns}
     compound_columns_by_nodegroup = {
@@ -401,11 +401,6 @@ def resource_rows(request, graph_id, columns, table_columns):
         for column in compound_columns_by_nodegroup.values()
         for field in column["fields"]
     }
-    resources = list(
-        accessible_resources(request, graph_id)
-        .order_by("resourceinstanceid")
-        .prefetch_related("tilemodel_set")
-    )
     values_by_resource = []
     concept_ids = set()
     related_resource_ids_set = set()
@@ -517,21 +512,51 @@ def resource_rows(request, graph_id, columns, table_columns):
         rows.append(row)
     return rows
 
+PAGE_SIZE = 200
+FILTER_MODES = {"contains", "equals", "not-contains", "empty", "not-empty"}
+
+
+def normalize_filters(filters, table_columns):
+    if not isinstance(filters, dict):
+        raise ValueError("Invalid filters.")
+    allowed = {column["node_id"] for column in table_columns}
+    normalized = {}
+    for node_id, condition in filters.items():
+        if node_id not in allowed:
+            raise ValueError("Filter column does not belong to the table.")
+        if isinstance(condition, str):
+            condition = {"mode": "contains", "value": condition}
+        if not isinstance(condition, dict):
+            raise ValueError("Invalid filter condition.")
+        mode = condition.get("mode", "contains")
+        if mode not in FILTER_MODES:
+            raise ValueError("Invalid filter mode.")
+        value = str(condition.get("value") or "").strip()
+        if value or mode in {"empty", "not-empty"}:
+            normalized[node_id] = {"mode": mode, "value": value.casefold()}
+    return normalized
+
+
+def row_matches_filters(row, filters):
+    for node_id, condition in filters.items():
+        value = str(row.get(node_id) or "").strip().casefold()
+        search = condition["value"]
+        mode = condition["mode"]
+        if mode == "empty" and value:
+            return False
+        if mode == "not-empty" and not value:
+            return False
+        if mode == "equals" and value != search:
+            return False
+        if mode == "not-contains" and search in value:
+            return False
+        if mode == "contains" and search not in value:
+            return False
+    return True
+
+
 def filter_and_sort_rows(rows, columns, filters=None, sort_by="", sort_direction="asc"):
-    filters = filters if isinstance(filters, dict) else {}
-    active_filters = {
-        column["node_id"]: str(filters.get(column["node_id"], "")).strip().casefold()
-        for column in columns
-        if str(filters.get(column["node_id"], "")).strip()
-    }
-    if active_filters:
-        rows = [
-            row for row in rows
-            if all(
-                search in str(row.get(node_id, "")).casefold()
-                for node_id, search in active_filters.items()
-            )
-        ]
+    rows = [row for row in rows if row_matches_filters(row, filters or {})]
 
     column_by_id = {column["node_id"]: column for column in columns}
     if sort_by in column_by_id:
@@ -548,6 +573,69 @@ def filter_and_sort_rows(rows, columns, filters=None, sort_by="", sort_direction
         rows = [row for _, row in present_rows] + empty_rows
 
     return rows
+
+
+def iter_resource_rows(request, graph_id, columns, table_columns, after_id=None):
+    """Build display rows in bounded database batches, ordered by resource ID."""
+    resources = accessible_resources(request, graph_id).order_by("resourceinstanceid")
+    if after_id:
+        resources = resources.filter(resourceinstanceid__gt=after_id)
+    last_id = None
+    while True:
+        batch_query = resources
+        if last_id:
+            batch_query = batch_query.filter(resourceinstanceid__gt=last_id)
+        batch = list(batch_query.prefetch_related("tilemodel_set")[:PAGE_SIZE])
+        if not batch:
+            return
+        last_id = batch[-1].resourceinstanceid
+        yield from resource_rows(request, batch, columns, table_columns)
+
+
+def table_request(request):
+    payload = json.loads(request.body.decode("utf-8"))
+    graph_id = str(payload.get("graph_id") or "")
+    columns, _ = selected_columns(graph_id, payload.get("columns"))
+    if not columns:
+        raise ValueError("Select at least one column.")
+    table_columns = build_table_columns(columns)
+    filters = normalize_filters(payload.get("filters") or {}, table_columns)
+    sort_by = str(payload.get("sort_by") or "")
+    if sort_by and sort_by not in {column["node_id"] for column in table_columns}:
+        raise ValueError("Invalid sort column.")
+    sort_direction = str(payload.get("sort_direction") or "asc")
+    if sort_direction not in {"asc", "desc"}:
+        raise ValueError("Invalid sort direction.")
+    return payload, graph_id, columns, table_columns, filters, sort_by, sort_direction
+
+
+def matching_rows(request, graph_id, columns, table_columns, filters, sort_by, sort_direction, after_id=None):
+    rows = iter_resource_rows(request, graph_id, columns, table_columns, after_id)
+    if sort_by:
+        return filter_and_sort_rows(list(rows), table_columns, filters, sort_by, sort_direction)
+    return (row for row in rows if row_matches_filters(row, filters))
+
+
+def sorted_query_key(request, graph_id, columns, filters, sort_by, sort_direction):
+    return (
+        str(request.user.pk), graph_id,
+        tuple(column["node_id"] for column in columns),
+        tuple(sorted((node_id, condition["mode"], condition["value"]) for node_id, condition in filters.items())),
+        sort_by, sort_direction,
+    )
+
+
+def rows_for_resource_ids(request, graph_id, resource_ids, columns, table_columns):
+    resources = accessible_resources(request, graph_id).filter(
+        resourceinstanceid__in=resource_ids,
+    ).prefetch_related("tilemodel_set")
+    by_id = {str(resource.resourceinstanceid): resource for resource in resources}
+    return resource_rows(
+        request,
+        [by_id[resource_id] for resource_id in resource_ids if resource_id in by_id],
+        columns,
+        table_columns,
+    )
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
@@ -572,40 +660,92 @@ class ResourceTableColumnsView(View):
 class ResourceTableDataView(View):
     def post(self, request):
         try:
-            payload = json.loads(request.body.decode("utf-8"))
-            graph_id = str(payload.get("graph_id") or "")
-            columns, _ = selected_columns(graph_id, payload.get("columns"))
-            if not columns:
-                return JsonResponse({"error": "Select at least one column."}, status=400)
-            table_columns = build_table_columns(columns)
-            rows = resource_rows(request, graph_id, columns, table_columns)
-            rows = filter_and_sort_rows(
-                rows,
-                table_columns,
-                payload.get("filters"),
-                str(payload.get("sort_by") or ""),
-                str(payload.get("sort_direction") or "asc"),
+            payload, graph_id, columns, table_columns, filters, sort_by, sort_direction = table_request(request)
+            page_size = payload.get("page_size", PAGE_SIZE)
+            if isinstance(page_size, bool) or not isinstance(page_size, int) or not 1 <= page_size <= PAGE_SIZE:
+                raise ValueError("Invalid page size.")
+            cursor = str(payload.get("cursor") or "")
+            if sort_by:
+                query_key = sorted_query_key(
+                    request, graph_id, columns, filters, sort_by, sort_direction,
+                )
+                if cursor:
+                    token, separator, offset_text = cursor.partition(":")
+                    if not separator or not uuid_string(token) or not offset_text.isdecimal():
+                        raise ValueError("Invalid cursor.")
+                    offset = int(offset_text)
+                    cached = cache.get(f"resource-table-sort:{token}")
+                    if not cached or cached["query"] != query_key:
+                        raise ValueError("Table session expired. Apply filters to reload.")
+                    resource_ids = cached["ids"]
+                    page = rows_for_resource_ids(
+                        request, graph_id, resource_ids[offset:offset + page_size],
+                        columns, table_columns,
+                    )
+                    cache.set(f"resource-table-sort:{token}", cached, timeout=300)
+                else:
+                    rows = matching_rows(
+                        request, graph_id, columns, table_columns, filters, sort_by, sort_direction,
+                    )
+                    resource_ids = [row["resource_id"] for row in rows]
+                    page = rows[:page_size]
+                    token = str(uuid4())
+                    if len(resource_ids) > page_size:
+                        cache.set(
+                            f"resource-table-sort:{token}",
+                            {"query": query_key, "ids": resource_ids},
+                            timeout=300,
+                        )
+                    offset = 0
+                next_cursor = f"{token}:{offset + page_size}" if len(resource_ids) > offset + page_size else None
+            else:
+                after_id = None
+                if cursor:
+                    after_id = uuid_string(cursor)
+                    if not after_id:
+                        raise ValueError("Invalid cursor.")
+                rows = matching_rows(
+                    request, graph_id, columns, table_columns, filters, sort_by, sort_direction,
+                    after_id,
+                )
+                page = []
+                for row in rows:
+                    page.append(row)
+                    if len(page) > page_size:
+                        break
+                next_cursor = page[page_size - 1]["resource_id"] if len(page) > page_size else None
+            return JsonResponse(
+                {"columns": table_columns, "rows": page[:page_size], "next_cursor": next_cursor},
+                json_dumps_params={"ensure_ascii": False},
             )
-            return JsonResponse({"columns": table_columns, "rows": rows, "total": len(rows)}, json_dumps_params={"ensure_ascii": False})
         except LookupError as error:
             return JsonResponse({"error": str(error)}, status=404)
         except (ValueError, json.JSONDecodeError) as error:
             return JsonResponse({"error": str(error)}, status=400)
 
 
-class ResourceTableCsvView(ResourceTableDataView):
+class ResourceTableCsvView(View):
     def post(self, request):
-        response = super().post(request)
-        if response.status_code != 200:
-            return response
-        payload = json.loads(response.content.decode("utf-8"))
-        output = io.StringIO(newline="")
-        writer = csv.writer(output, lineterminator="\r\n")
-        columns = payload["columns"]
-        writer.writerow([column["label"] for column in columns])
-        for row in payload["rows"]:
-            writer.writerow([row.get(column["node_id"], "") for column in columns])
-        csv_data = output.getvalue().rstrip("\r\n")
-        csv_response = HttpResponse(csv_data, content_type="text/csv; charset=utf-8")
-        csv_response["Content-Disposition"] = "attachment; filename=resource-table.csv"
-        return csv_response
+        try:
+            _, graph_id, columns, table_columns, filters, sort_by, sort_direction = table_request(request)
+        except LookupError as error:
+            return JsonResponse({"error": str(error)}, status=404)
+        except (ValueError, json.JSONDecodeError) as error:
+            return JsonResponse({"error": str(error)}, status=400)
+
+        class CsvBuffer:
+            def write(self, value):
+                return value
+
+        def stream():
+            writer = csv.writer(CsvBuffer(), lineterminator="\r\n")
+            yield writer.writerow([column["label"] for column in table_columns])
+            rows = matching_rows(
+                request, graph_id, columns, table_columns, filters, sort_by, sort_direction,
+            )
+            for row in rows:
+                yield writer.writerow([row.get(column["node_id"], "") for column in table_columns])
+
+        response = StreamingHttpResponse(stream(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = "attachment; filename=resource-table.csv"
+        return response
