@@ -40,6 +40,7 @@ from .views.tusd_webhook import tus_webhook
 from .views.tusd_iiif_result import iiif_tus_result
 from .views.tusd_auth import generate_tus_token
 from .views.tusd_patch_metadata import patch_tusd_metadata
+from .views.verify_permissions import verify_permissions
 
 urlpatterns = [
     # project-level urls
@@ -98,4 +99,5 @@ urlpatterns = [
     path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
     path("api/tus/generate-token", generate_tus_token, name="generate_tus_token"),
     path("api/tus/patch-metadata", patch_tusd_metadata, name="patch_tus_metadata"),
+    path("api/verify/permissions", verify_permissions, name="verify_permissions"),
 ]
