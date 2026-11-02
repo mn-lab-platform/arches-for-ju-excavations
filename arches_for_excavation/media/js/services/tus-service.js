@@ -1,5 +1,11 @@
 import { getCookie } from "./service-utils";
 
+const TUS_UPLOAD_TYPES = Object.freeze({
+    maplayer: 'maplayer',
+    model: 'model',
+    iiif: 'iiif',
+});
+
 const getUploadUrl = () => {
     return '/tus/files/';
 }
@@ -14,9 +20,9 @@ const generateSecureToken = () => {
     })
 }
 
-const patchTusMetadata = (tusId, newMetadata) => {
+const patchTusMetadata = async (tusId, newMetadata) => {
     const url = `/api/tus/patch-metadata`;
-    return fetch(url, {
+    const response = await fetch(url, {
         method: 'POST',
         credentials: 'include',
         headers: { 
@@ -28,9 +34,16 @@ const patchTusMetadata = (tusId, newMetadata) => {
             metadata: newMetadata
         })
     });
+
+    if (!response.ok) {
+        throw new Error(`Metadata update failed: HTTP ${response.status}`);
+    }
+
+    return response;
 }
 
 export default {
+    TUS_UPLOAD_TYPES,
     getUploadUrl,
     generateSecureToken,
     patchTusMetadata

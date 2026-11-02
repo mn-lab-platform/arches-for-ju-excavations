@@ -1,16 +1,21 @@
 define([
     'knockout',
-    'arches',
     'templates/views/components/workflows/model-addition/model-addition-step.htm',
     '../../../../services/tile-service',
-    '../../../../services/service-utils',
+    '../../../../services/models-3d-service',
+    '../../../../services/tus-service',
+    'tus-js-client',
+    'arches',
     'bindings/dropzone'
-], function(ko, arches, template, tileServiceModule, serviceUtils) {
+], function(ko, template, tileServiceModule, models3dServiceModule, tusServiceInstance, tus, arches) {
     return ko.components.register('model-addition-step', {
         viewModel: function(params) {
             const self = this;
             self.value = params.value;
+            console.log('Arches:', arches.default || arches);
             const tileService = tileServiceModule.default || tileServiceModule;
+            const models3dService = models3dServiceModule.default || models3dServiceModule;
+            const tusService = tusServiceInstance.default || tusServiceInstance;
             
             self.LABEL_NODE_ID = '5b1ab6bd-faf6-4120-93ae-8e6f4ea1de32';
             self.CREATED_AT_NODE_ID = '664b24d2-b94d-4cfd-be93-eb7d94ea0c03';
@@ -28,11 +33,16 @@ define([
             self.parentResourceId = ko.observable(
                 params.parentResourceId || null
             ); 
+            self.modelId = null;
+            self.currentUpload = null;
 
-            self._sanitizeFilename = function(name) {
-                const sanitized = name.replace(/[\/\\:*?"<>|]/g, '_').trim();
-                return sanitized;
-            };
+            self._createUuid4 = function () {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0;
+                    var v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
 
             self._postTile = function(nodegroupId, data, resourceId) {
                 const payload = {
@@ -90,22 +100,19 @@ define([
                     .catch(function(error) {
                         console.error('[ModelAdditionStep] Promise chain broken! Error creating model resource:', error);
                         self.errorMessage('Error creating model resource: ' + (error.message || error));
+                        throw error;
                     });
             }
 
             self.dropzoneOptionsZip = {
-                url: '/api/model-3d/upload/',
-                paramName: 'model_file',
+                url: '/dummy-upload-endpoint/',
                 maxFiles: 1,
                 acceptedFiles: '.zip,.3tz',
                 autoProcessQueue: false,
-                maxFilesize: 10240,
+                maxFilesize: Infinity,
                 clickable: '#dropzone-button',
                 previewsContainer: '#dropzone-preview',
                 addRemoveLinks: true,
-                headers: {
-                    'X-CSRFToken': serviceUtils.getCookie('csrftoken')
-                },
                 init: function() {
                     var dz = this;
                     self.dropzone = dz;
@@ -113,9 +120,28 @@ define([
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
                         self.errorMessage('');
+                        self.successMessage('');
+
+                        if (self.currentUpload) {
+                            self.currentUpload.abort(false);
+                            self.currentUpload = null;
+                        }
                         
                         const extractedName = file.name.split('.').slice(0, -1).join('.');
                         self.modelName(extractedName);
+
+                        const checker = new tus.Upload(file, { endpoint: tusService.getUploadUrl() });
+                        checker.findPreviousUploads().then(function (previousUploads) {
+                            if (previousUploads.length) {
+                                const oldMetadata = previousUploads[0].metadata;
+                                if (oldMetadata) {
+                                    self.modelName(oldMetadata.model_name || extractedName);
+                                    self.modelId = oldMetadata.model_id || null;
+                                    self.infoMessage('This file has an unfinished upload. It will continue from where it left off. We auto-filled your original settings.');
+                                }
+                            }
+
+                        })
                         
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
@@ -138,41 +164,10 @@ define([
                         self.successMessage(null);
                         self.infoMessage(null);
                         self.modelName('');
-                    });
-
-                    dz.on('sending', function(file, xhr, formData) {
-                        formData.append('parent_resource_id', self.parentResourceId() || '');
-                        self.infoMessage('Uploading 3D model file...  0%');
-                    });
-
-                    dz.on('uploadprogress', function(file, progress, bytesSent) {
-                        self.infoMessage(`Uploading 3D model file...  ${Math.round(progress)}%`);
-                    });
-
-                    dz.on('success', function(file, response) {                        
-                        const {_, model_id, url, georeferenced} = response;
-                        self.isGeoreferenced(georeferenced);
-                        
-                        const currentModelName = self.modelName();                        
-                        const safeName = self._sanitizeFilename(currentModelName);
-                        self._createModelResource(safeName, url, model_id);
-                        
-                        self.errorMessage('');
-                        self.successMessage('3D model uploaded successfully.');
-                        self.canSubmit(false);
-                        self.value(model_id);
-                    });
-
-                    dz.on('error', function(file, errorMessage) {
-                        console.error('Upload failed:', errorMessage);
-                        self.errorMessage(typeof errorMessage === 'string' ? errorMessage : 'Upload failed');
-                        self.infoMessage('');
-                        self.successMessage('');
-                    });
-
-                    dz.on('complete', function() {
-                        console.log('[ModelAdditionStep] Dropzone: upload complete event triggered.');
-                        self.infoMessage('');
+                        if (self.currentUpload) {
+                            self.currentUpload.abort(true);
+                            self.currentUpload = null;
+                        }
                     });
 
                     dz.on('dragover', function() { dz.element.classList.add('dragover'); });
@@ -181,11 +176,107 @@ define([
                 }
             };
 
-            self.submitUpload = function() {
+            self.submitUpload = async function() {
+                const token = (await tusService.generateSecureToken()).token;
+                if (!token) {
+                    self.errorMessage('Failed to obtain a secure upload token. Please try again.');
+                    return;
+                }
+
                 if (self.dropzone.files.length > 0) {
-                    self.dropzone.processQueue();
-                } else {
-                    console.warn('[ModelAdditionStep] Cannot submit: No files in Dropzone queue.');
+                    const file = self.dropzone.files[0];
+                    if (!self.parentResourceId()) {
+                        self.errorMessage('Cannot upload a 3D model without a parent resource.');
+                        return;
+                    }
+                    self.modelId = self.modelId || self._createUuid4();
+                    const upload = new tus.Upload(file, {
+                        endpoint: tusService.getUploadUrl(),
+                        retryDelays: [0, 3000, 5000, 10000, 20000],
+                        removeFingerprintOnSuccess: true,
+                        metadata: {
+                            upload_token: token,
+                            upload_type: tusService.TUS_UPLOAD_TYPES.model,
+                            model_name: self.modelName(),
+                            model_id: self.modelId,
+                            parent_resource_id: self.parentResourceId()
+                        },
+                        onError: function(error) {
+                            self.currentUpload = null;
+                            let errorMessage = error.message || 'An error occurred during the upload.';
+                            
+                            if (error.originalResponse) {
+                                const rawBody = error.originalResponse.getBody();
+
+                                try {
+                                    const data = JSON.parse(rawBody);
+                                    if (data.error) {
+                                        errorMessage = data.error;
+                                    }
+                                } catch (parseError) {
+                                    if (rawBody && rawBody.trim().length > 0) {
+                                        errorMessage = rawBody.trim();
+                                    }
+                                }
+                            }
+                            self.errorMessage(`Upload failed: ${errorMessage}`);
+                            self.infoMessage('');
+                            self.successMessage('');
+                            self.canSubmit(true);
+                        },
+                        onProgress: function(bytesUploaded, bytesTotal) {
+                            const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                            self.infoMessage(`Upload progress: ${percentage}%`);
+                        },
+                        onSuccess: function() {
+                            if(self.currentUpload) {
+                                const modelUrl = `/files/uploadedfiles/3d_models/${self.parentResourceId()}/${self.modelId}/`;
+                                models3dService.waitForModelStatus(
+                                    self.parentResourceId(),
+                                    self.modelId
+                                ).then(status => {
+                                    self.isGeoreferenced(status.georeferenced);
+                                    return self._createModelResource(self.modelName(), modelUrl, self.modelId);
+                                }).then(() => {
+                                    self.successMessage('Upload completed successfully!');
+                                    self.infoMessage('');
+                                    self.errorMessage('');
+                                    self.canSubmit(false);
+                                    self.value(self.modelId);
+                                }).catch((error) => {
+                                    self.errorMessage('Upload completed, but failed to create model resource: ' + (error.message || error));
+                                    self.infoMessage('');
+                                    self.successMessage('');
+                                });
+                            }
+                            self.currentUpload = null;
+                        }
+                    });
+                    self.currentUpload = upload;
+                    upload.findPreviousUploads().then(async function (previousUploads) {
+                    if (previousUploads.length) {
+                        const newMetadata = {
+                            upload_type: tusService.TUS_UPLOAD_TYPES.model,
+                            upload_token: token,
+                            model_name: self.modelName(),
+                            model_id: self.modelId,
+                            parent_resource_id: self.parentResourceId()
+                        };
+
+                        const tusFileId = previousUploads[0].uploadUrl.split('/').pop();
+                        try {
+                            await tusService.patchTusMetadata(tusFileId, newMetadata);
+                        } catch (patchErr) {
+                            console.error("Failed to sync new metadata, proceeding with old metadata:", patchErr);
+                            self.errorMessage('Failed to sync new metadata with the server. Proceeding with previous metadata.');
+                            self.infoMessage('');
+                            self.successMessage('');
+                        }
+                        upload.resumeFromPreviousUpload(previousUploads[0])
+                    }
+
+                    upload.start();
+                    })
                 }
             };
         },

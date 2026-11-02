@@ -4,9 +4,8 @@ define([
     '../../../../services/basemap-service',
     '../../../../services/tus-service',
     'tus-js-client',
-    'arches',
     'bindings/dropzone'
-], function(ko, template, basemapServiceModule, tusService, tus, arches) {
+], function(ko, template, basemapServiceModule, tusService, tus) {
     return ko.components.register('geotiff-upload-step', {
         viewModel: function(params) {
             const CELERY_STATES = {
@@ -212,7 +211,7 @@ define([
                                     self.basemapName(oldMetadata.basemap_name || '');
                                     self.sortOrder(oldMetadata.basemap_sortorder || 0);
                                     self.selectedIcon(oldMetadata.basemap_icon || 'fa fa-map');
-
+                                    self.submitLabel(`Continue Uploading ${self.isOverlay() ? 'Overlay' : 'Basemap'}`);
                                     self.loading(false);
                                     self.infoMessage('This file has an unfinished upload. It will continue from where it left off. We auto-filled your original settings.');
                                 }
@@ -365,7 +364,7 @@ define([
                             self.canSubmit(true);
                         },
                         onProgress: function(bytesUploaded, bytesTotal) {
-                            const percentage = Math.floor((bytesUploaded / bytesTotal) * 100);
+                            const percentage = Math.floor((bytesUploaded / bytesTotal) * 100).toFixed(2);
                             self.loading(true);
                             self.infoMessage(`Uploading basemap GEOTIFF file...  ${percentage}%`);
                         },
@@ -389,6 +388,7 @@ define([
                     upload.findPreviousUploads().then(async function (previousUploads) {
                         if (previousUploads.length) {
                             const newMetadata = {
+                                upload_type: tusService.TUS_UPLOAD_TYPES.maplayer,
                                 upload_token: token,
                                 basemap_name: self.basemapName(),
                                 basemap_sortorder: self.sortOrder(),
