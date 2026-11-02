@@ -13,6 +13,7 @@ from django.conf import settings
 from django.utils.text import get_valid_filename
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
@@ -20,6 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 from ..celery_tasks.iiif_tasks import process_geotiff_metadata_task, generate_hillshade_task, generate_color_relief_task
 from ..celery_tasks.convert_task import convert_geotiff_to_cog, convert_dem_geotiff_to_cog
 from .services.raster_metadata import _read_geotiff_metadata
+from .permissions import HasPluginAccess
 from .services.iiif_image_service import (
     image_id_from_service_url,
     legacy_titiler_path_from_service_url,
@@ -215,6 +217,7 @@ def process_geotiff_from_path(
 
 
 class RasterUploadView(APIView):
+    permission_classes = (IsAuthenticated, HasPluginAccess)
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):

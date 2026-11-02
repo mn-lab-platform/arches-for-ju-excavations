@@ -12,6 +12,7 @@ from django.conf import settings
 from django.utils.text import get_valid_filename
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
@@ -20,6 +21,7 @@ from ..celery_tasks.iiif_tasks import process_geotiff_metadata_task, generate_hi
 from ..celery_tasks.convert_task import convert_geotiff_to_cog, convert_dem_geotiff_to_cog
 from .services.raster_metadata import _read_geotiff_metadata
 from .services.iiif_image_service import make_image_id, register_image, relative_service_url
+from .permissions import HasPluginAccess
 from PIL import Image
 
 def _ensure_dir(p: Path) -> None:
@@ -74,6 +76,7 @@ def _map_arche_path_to_titiler_path(p: Path) -> str:
     return f"{mount}/{rel}"
 
 class PhotoUploadView(APIView):
+    permission_classes = (IsAuthenticated, HasPluginAccess)
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
