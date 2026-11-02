@@ -9,6 +9,7 @@ from .services.iiif_image_service import (
     quote_titiler_path,
     register_image,
     resolve_titiler_path,
+    validated_iiif_titiler_path,
 )
 
 TITILER_INTERNAL_URL = "http://titiler:8000"
@@ -27,6 +28,15 @@ def _force_png_iiif_suffix(suffix: str) -> str:
         flags=re.IGNORECASE,
     )
     return suffix
+
+
+def _validated_iiif_suffix(suffix: str) -> str:
+    suffix = suffix.lstrip("/")
+    if not suffix or any(part in ("", ".", "..") for part in suffix.split("/")):
+        raise ValueError("Invalid IIIF request path")
+    if any(character in suffix for character in ("%", "\\", "?", "#")):
+        raise ValueError("Invalid IIIF request path")
+    return _force_png_iiif_suffix(suffix)
 
 
 def _with_cors(response, request=None):
@@ -82,8 +92,15 @@ def _public_base(request, file_path: str) -> str:
 
 
 def _proxy_titiler_iiif(request, titiler_path: str, suffix: str, image_id: str):
-    suffix = suffix.lstrip("/")
-    suffix = _force_png_iiif_suffix(suffix)
+    try:
+        titiler_path = validated_iiif_titiler_path(titiler_path)
+    except (FileNotFoundError, ValueError, OSError):
+        return _with_cors(HttpResponse(status=404), request)
+
+    try:
+        suffix = _validated_iiif_suffix(suffix)
+    except ValueError:
+        return _with_cors(HttpResponseBadRequest("Invalid IIIF request path"), request)
     upstream_url = f"{TITILER_INTERNAL_URL}/iiif/{quote_titiler_path(titiler_path)}/{suffix}"
 
     try:
@@ -152,9 +169,16 @@ def titiler_iiif_proxy(request):
     if not suffix:
         suffix = "info.json"
 
+    try:
+        file_path = validated_iiif_titiler_path(file_path)
+    except (FileNotFoundError, ValueError, OSError):
+        return _with_cors(HttpResponse(status=404), request)
+
     # Forward /iiif{path}/... to TiTiler (minimum: info.json)
-    suffix = suffix.lstrip("/")
-    suffix = _force_png_iiif_suffix(suffix)
+    try:
+        suffix = _validated_iiif_suffix(suffix)
+    except ValueError:
+        return _with_cors(HttpResponseBadRequest("Invalid IIIF request path"), request)
     image_id = make_legacy_image_id(file_path)
     register_image(image_id, file_path, kind="legacy")
     return _proxy_titiler_iiif(request, file_path, suffix, image_id)

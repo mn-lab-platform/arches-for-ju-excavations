@@ -129,6 +129,21 @@ def titiler_path_to_local_path(path: str) -> Path:
     raise ValueError("IIIF path must be inside TiTiler mount or uploadedfiles root")
 
 
+def validated_iiif_titiler_path(path: str) -> str:
+    """Return a TiTiler path only for existing files in the IIIF upload directory."""
+    local_path = titiler_path_to_local_path(path)
+    iiif_root = Path(settings.RASTER_DATA_DIR).resolve()
+    if not _is_within(local_path, iiif_root):
+        raise ValueError("IIIF path must be inside the IIIF upload directory")
+    if not local_path.is_file():
+        raise FileNotFoundError("IIIF image file not found")
+    titiler_path = local_path_to_titiler_path(local_path)
+    # The IIIF router decodes URL escapes again after the HTTP server does.
+    if '%' in titiler_path:
+        raise ValueError("Encoded characters are not allowed in IIIF file paths")
+    return titiler_path
+
+
 def register_image(
     image_id: str,
     titiler_path: str,
