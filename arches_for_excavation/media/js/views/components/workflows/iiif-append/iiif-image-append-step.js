@@ -414,6 +414,7 @@ define([
     self.processOne = function(item) {
       console.log('[IIIF-APPEND] processOne ENTER:', item && item.name);
       item.statusObs('uploading');
+      self.progressPhase('uploading');
       self.progressStatus('Uploading ' + item.name + '...');
 
       var fd = new FormData();
@@ -475,11 +476,25 @@ define([
       var forceDem = !!(item.isDemObs && item.isDemObs());
       var makeHillshade = forceDem && (!item.makeHillshadeObs || item.makeHillshadeObs());
 
-      fd.append('role', forceDem ? 'dem' : 'ortho');
-      fd.append('force_dem', forceDem ? '1' : '0');
-      fd.append('make_hillshade', makeHillshade ? '1' : '0');
-
-      return iiifApi.uploadGeotiff(baseUrl, csrftoken, { formData: fd })
+      return iiifApi.uploadGeotiffToTus(item.file, {
+        resourceId: self.digitalResourceId(),
+        resourceName: self.resourceName() || baseName,
+        baseName: baseName,
+        role: forceDem ? 'dem' : 'ortho',
+        forceDem: forceDem,
+        makeHillshade: makeHillshade,
+        onProgress: function(sent, total) {
+          if (total > 0 && item.statusObs() === 'uploading') {
+            self.progressStatus('Uploading ' + item.name + '... ' + Math.floor(sent / total * 100) + '%');
+          }
+        }
+      })
+        .then(function(upload) {
+          item.statusObs('processing');
+          self.progressPhase('processing');
+          self.progressStatus('Upload complete. Waiting for server to start processing ' + item.name + '...');
+          return iiifApi.waitForTusGeotiffResult(baseUrl, upload.tusId);
+        })
         .then(function(r) {
           item.task_id = r.task_id || r.job_id;
           item.job_id = r.job_id || null;
@@ -612,7 +627,7 @@ define([
           item.statusObs('failed');
           self.errorMessage(
             (self.errorMessage() ? (self.errorMessage() + '\n') : '') +
-            (err && err.message ? err.message : String(err))
+            item.name + ': ' + (err && err.message ? err.message : String(err))
           );
 
           if (item.file_id) {

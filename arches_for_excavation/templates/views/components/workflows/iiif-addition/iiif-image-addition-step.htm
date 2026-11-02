@@ -136,6 +136,14 @@
       </div>
     </div>
 
+    <div class="checkbox" data-bind="visible: !isPhotoMode() && queue().length > 0">
+        <label>
+            <input type="checkbox" data-bind="checked: resumeInterruptedUpload">
+            Wznów przerwany upload z tego urządzenia
+        </label>
+        <small class="help-block">Wybierz ten sam plik, nazwę zasobu i ustawienia DEM/Ortho. Formularz użyje poprzedniego zasobu IIIF.</small>
+    </div>
+
     <!-- Status i przycisk upload -->
     <div data-bind="visible: progressPhase() === 'ready'" style="margin-top:10px; text-align:center;">
         <p style="color: #5cb85c; font-weight: bold;" data-bind="text: progressStatus"></p>

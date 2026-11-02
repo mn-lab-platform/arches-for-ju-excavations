@@ -1,5 +1,7 @@
 import { getCookie } from "./service-utils";
 
+const getUploadEndpoint = () => `/tus/`;
+
 const generateSecureToken = () => {
     const url = `/api/tus/generate-token`;
     return fetch(url, {
@@ -27,6 +29,7 @@ const patchTusMetadata = (tusId, newMetadata) => {
 }
 
 export default {
+    getUploadEndpoint,
     generateSecureToken,
     patchTusMetadata
 }

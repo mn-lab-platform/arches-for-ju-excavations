@@ -48,12 +48,12 @@ def _write_upload_to_disk(file_obj, dst_path: Path) -> None:
             f.write(chunk)
 
 
-def _compute_file_hash(file_obj) -> str:
-    """Compute SHA256 hash of uploaded file for uniqueness"""
+def _compute_file_hash(source_path: Path) -> str:
+    """Compute the same short SHA256 hash for a file already on disk."""
     hasher = hashlib.sha256()
-    file_obj.seek(0)
-    for chunk in file_obj.chunks():
-        hasher.update(chunk)
+    with source_path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            hasher.update(chunk)
     return hasher.hexdigest()[:8]  # first 8 chars
 
 
@@ -82,6 +82,138 @@ def _is_singleband_float(meta: dict) -> bool:
     return count == 1 and dtype.startswith("float")
 
 
+class InvalidDemError(ValueError):
+    def __init__(self, metadata: dict):
+        super().__init__("DEM requires single-band float raster (e.g. float32/float64).")
+        self.metadata = metadata
+
+
+def process_geotiff_from_path(
+    source_path: Path,
+    *,
+    original_filename: str,
+    resource_id: str,
+    resource_name: str,
+    base_name: str,
+    role: str = "ortho",
+    force_dem=None,
+    make_hillshade=None,
+) -> dict:
+    """Prepare an uploaded GeoTIFF on the shared volume and start IIIF processing.
+
+    The source is moved into the existing IIIF product layout. Callers must pass
+    a completed upload and its original filename; a tusd file has no extension.
+    """
+    source_path = Path(source_path)
+    ext = _safe_ext(original_filename)
+    resource_name = get_valid_filename(resource_name or "GeoTIFF") or "unnamed"
+    resource_id = resource_id or str(uuid.uuid4())
+    base_name = get_valid_filename(base_name or os.path.splitext(original_filename)[0]) or "raster"
+    job_id = str(uuid.uuid4())
+    file_hash = _compute_file_hash(source_path)
+
+    resource_folder_name = f"{resource_name}_{resource_id}"
+    file_folder_name = f"{base_name}_{resource_id}_{file_hash}"
+    file_folder = _get_data_root() / resource_folder_name / file_folder_name
+    products_folder = file_folder / "produkty"
+    _ensure_dir(products_folder)
+
+    original_path = products_folder / f"{base_name}_original{ext}"
+    cog_path = products_folder / f"{base_name}_cog{ext}"
+    meta_path = products_folder / f"{base_name}_meta.json"
+
+    source_path.replace(original_path)
+    meta_original = _read_geotiff_metadata(str(original_path))
+
+    role_req = (role or "ortho").lower()
+    force_dem = _as_bool(force_dem, default=(role_req == "dem"))
+    make_hillshade = _as_bool(make_hillshade, default=force_dem)
+    if force_dem and not _is_singleband_float(meta_original):
+        raise InvalidDemError(meta_original)
+
+    role = "dem" if force_dem else "ortho"
+    make_hillshade = bool(make_hillshade and role == "dem")
+
+    payload = {
+        "job_id": job_id,
+        "resource_id": resource_id,
+        "resource_name": resource_name,
+        "base_name": base_name,
+        "file_hash": file_hash,
+        "folder_name": file_folder_name,
+        "role": role,
+        "options": {
+            "force_dem": force_dem,
+            "make_hillshade": make_hillshade,
+        },
+        "original_filename": original_filename,
+        "paths": {
+            "original": str(original_path),
+            "cog": str(cog_path),
+            "meta": str(meta_path),
+        },
+        "metadata_original": meta_original,
+    }
+
+    job_index = {
+        "job_id": job_id,
+        "resource_id": resource_id,
+        "resource_name": resource_name,
+        "base_name": base_name,
+        "file_hash": file_hash,
+        "folder_name": file_folder_name,
+        "paths": {
+            "original": str(original_path),
+            "cog": str(cog_path),
+            "meta": str(meta_path),
+        },
+    }
+    _write_job_index(file_folder, job_id, job_index)
+    if not make_hillshade:
+        tasks = [
+            convert_geotiff_to_cog.s(str(original_path), str(cog_path)),
+            process_geotiff_metadata_task.si(payload),
+        ]
+    else:
+        tasks = [
+            convert_dem_geotiff_to_cog.s(str(original_path), str(cog_path)),
+            process_geotiff_metadata_task.si(payload),
+            generate_hillshade_task.s(),
+            generate_color_relief_task.s(),
+        ]
+
+    async_result = chain(*tasks).apply_async()
+
+    resp = {
+        "job_id": job_id,
+        "resource_id": resource_id,
+        "resource_name": resource_name,
+        "base_name": base_name,
+        "file_hash": file_hash,
+        "task_id": async_result.id,
+        "download_url_original": f"/api/iiif/geotiff-file/{job_id}/original",
+        "download_url_cog": f"/api/iiif/geotiff-file/{job_id}/cog",
+        "download_url_meta": f"/api/iiif/geotiff-file/{job_id}/meta",
+        "paths": {
+            "original": str(original_path),
+            "cog": str(cog_path),
+            "meta": str(meta_path),
+        },
+        "metadata": meta_original,
+        "role": role,
+        "options": {
+            "force_dem": force_dem,
+            "make_hillshade": make_hillshade,
+        },
+    }
+
+    if make_hillshade:
+        resp["download_url_hillshade"] = f"/api/iiif/geotiff-file/{job_id}/hillshade"
+        resp["download_url_colorrelief"] = f"/api/iiif/geotiff-file/{job_id}/colorrelief"
+
+    return resp
+
+
 class RasterUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
@@ -91,139 +223,35 @@ class RasterUploadView(APIView):
             return Response({"error": "Missing 'file' field"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            ext = _safe_ext(up.name)
+            _safe_ext(up.name)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-        resource_name = request.data.get("resource_name") or "GeoTIFF"
-        resource_name = get_valid_filename(resource_name) or "unnamed"
-
-        resource_id = request.data.get("resource_id") or str(uuid.uuid4())
-        job_id = str(uuid.uuid4())
-        base_name = request.data.get("base_name") or os.path.splitext(up.name)[0]
-        base_name = get_valid_filename(base_name) or "raster"
-
-        file_hash = _compute_file_hash(up)
-
-        data_root = _get_data_root()
-
-        resource_folder_name = f"{resource_name}_{resource_id}"
-        file_folder_name = f"{base_name}_{resource_id}_{file_hash}"
-
-        resource_folder = data_root / resource_folder_name
-        file_folder = resource_folder / file_folder_name
-        products_folder = file_folder / "produkty"
-
-        _ensure_dir(products_folder)
-
-        original_filename = f"{base_name}_original{ext}"
-        cog_filename = f"{base_name}_cog{ext}"
-        meta_filename = f"{base_name}_meta.json"
-
-        original_path = products_folder / original_filename
-        cog_path = products_folder / cog_filename
-        meta_path = products_folder / meta_filename
-
-        _write_upload_to_disk(up, original_path)
-        meta_original = _read_geotiff_metadata(str(original_path))
-
-        role_req = (request.data.get("role") or "ortho").lower()
-        force_dem = _as_bool(request.data.get("force_dem"), default=(role_req == "dem"))
-        make_hillshade = _as_bool(request.data.get("make_hillshade"), default=force_dem)
-
-        # strict validation when DEM requested
-        if force_dem and not _is_singleband_float(meta_original):
+        staging_dir = _get_data_root() / ".incoming"
+        staging_path = staging_dir / f"{uuid.uuid4()}.upload"
+        try:
+            _write_upload_to_disk(up, staging_path)
+            resp = process_geotiff_from_path(
+                staging_path,
+                original_filename=up.name,
+                resource_id=request.data.get("resource_id"),
+                resource_name=request.data.get("resource_name"),
+                base_name=request.data.get("base_name"),
+                role=request.data.get("role"),
+                force_dem=request.data.get("force_dem"),
+                make_hillshade=request.data.get("make_hillshade"),
+            )
+        except InvalidDemError as e:
             return Response(
-                {
-                    "error": "DEM requires single-band float raster (e.g. float32/float64).",
-                    "metadata": meta_original,
-                },
+                {"error": str(e), "metadata": e.metadata},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        role = "dem" if force_dem else "ortho"
-        make_hillshade = bool(make_hillshade and role == "dem")
-
-        payload = {
-            "job_id": job_id,
-            "resource_id": resource_id,
-            "resource_name": resource_name,
-            "base_name": base_name,
-            "file_hash": file_hash,
-            "folder_name": file_folder_name,  
-            "role": role,
-            "options": {
-                "force_dem": force_dem,
-                "make_hillshade": make_hillshade,
-            },
-            "original_filename": up.name,
-            "paths": {
-                "original": str(original_path),
-                "cog": str(cog_path),
-                "meta": str(meta_path),
-            },
-            "metadata_original": meta_original,
-        }
-
-        job_index = {
-            "job_id": job_id,
-            "resource_id": resource_id,
-            "resource_name": resource_name,
-            "base_name": base_name,
-            "file_hash": file_hash,
-            "folder_name": file_folder_name,  
-            "paths": {
-                "original": str(original_path),
-                "cog": str(cog_path),
-                "meta": str(meta_path),
-            }
-        }
-        job_index_path = _write_job_index(file_folder, job_id, job_index)
-        if not make_hillshade:
-            tasks = [
-                convert_geotiff_to_cog.s(str(original_path), str(cog_path)),
-                process_geotiff_metadata_task.si(payload),
-            ]
-
-        if make_hillshade:
-            tasks = [
-                convert_dem_geotiff_to_cog.s(str(original_path), str(cog_path)),
-                process_geotiff_metadata_task.si(payload),
-            ]            
-            tasks.append(generate_hillshade_task.s())
-            tasks.append(generate_color_relief_task.s())
-
-        task_chain = chain(*tasks)
-        async_result = task_chain.apply_async()
-
-        resp = {
-            "job_id": job_id,
-            "resource_id": resource_id,
-            "resource_name": resource_name,
-            "base_name": base_name,
-            "file_hash": file_hash,
-            "task_id": async_result.id,
-            "download_url_original": f"/api/iiif/geotiff-file/{job_id}/original",
-            "download_url_cog": f"/api/iiif/geotiff-file/{job_id}/cog",
-            "download_url_meta": f"/api/iiif/geotiff-file/{job_id}/meta",
-            "paths": {
-                "original": str(original_path),
-                "cog": str(cog_path),
-                "meta": str(meta_path),
-            },
-            "metadata": meta_original,
-            "role": role,
-            "options": {
-                "force_dem": force_dem,
-                "make_hillshade": make_hillshade,
-            },
-        }
-
-        if make_hillshade:
-            resp["download_url_hillshade"] = f"/api/iiif/geotiff-file/{job_id}/hillshade"
-            resp["download_url_colorrelief"] = f"/api/iiif/geotiff-file/{job_id}/colorrelief"
+        finally:
+            staging_path.unlink(missing_ok=True)
 
         return Response(resp, status=status.HTTP_202_ACCEPTED)
+
+
 @csrf_exempt
 def dem_pixel_value(request):
     try:

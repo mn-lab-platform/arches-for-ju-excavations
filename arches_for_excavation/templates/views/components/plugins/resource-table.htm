@@ -80,14 +80,14 @@
             <button type="button" data-bind="click: editColumns">Choose columns</button>
             <div class="resource-table-plugin__actions">
                 <button type="button" data-bind="click: loadTable">Apply filters</button>
-                <button type="button" data-bind="click: exportCsv, enable: rows().length">Export CSV</button>
-                <button type="button" data-bind="click: exportPdf, enable: rows().length">Export PDF</button>
+                <button type="button" data-bind="click: exportCsv, enable: rows().length && !exporting()">Export CSV</button>
+                <button type="button" data-bind="click: exportPdf, enable: rows().length && !exporting()">Export PDF</button>
             </div>
         </div>
         <div class="resource-table-plugin__top-scroll" data-bind="event: { scroll: $component.syncTopScroll }" aria-label="Horizontal table scroll">
             <div class="resource-table-plugin__top-scroll-track" data-bind="style: { width: tableWidth() + 'px' }"></div>
         </div>
-        <div class="resource-table-plugin__grid" data-bind="event: { scroll: $component.syncGridScroll }">
+        <div class="resource-table-plugin__grid" data-bind="resourceTableViewportHeight: tableBuilt, event: { scroll: $component.syncGridScroll }">
             <table data-bind="style: { width: tableWidth() + 'px' }">
                 <colgroup data-bind="foreach: selectedColumns">
                     <col data-bind="style: { width: $component.columnWidth(node_id) }">
@@ -156,7 +156,10 @@
                         </td>
                     </tr>
                 </tbody>
-                <tbody data-bind="visible: !rows().length && !loading()">
+                <tbody data-bind="visible: pageLoading() && rows().length">
+                    <tr><td data-bind="attr: { colspan: selectedColumns().length || 1 }">Loading more...</td></tr>
+                </tbody>
+                <tbody data-bind="visible: !rows().length && !loading() && !error()">
                     <tr><td data-bind="attr: { colspan: selectedColumns().length || 1 }">No resources found.</td></tr>
                 </tbody>
             </table>
@@ -522,9 +525,8 @@
 
 .resource-table-plugin--table-mode .resource-table-plugin__grid {
     flex: 0 1 auto;
-    height: calc(100vh - 180px);
-    max-height: calc(100vh - 180px);
-    min-height: 280px;
+    height: calc(100vh - 280px);
+    min-height: 160px;
 }
 
 .resource-table-plugin table {

@@ -5,6 +5,7 @@ from django.urls import include, path
 from .views.model_3d import Model3DView
 from .views.cesium_plugin import Models3DAccessView
 from .views.basemap import BasemapCheckView, BasemapAccessView
+from .views.basemap import BasemapCheckView, BasemapAccessView
 from .views.local_coordinate_system import LocalCoordinateSystemDefineView, LocalCoordinateSystemDownloadView, LocalCoordinateSystemAssignToResourcesView
 from .views.tile_proxy import titiler_tile_proxy
 from .views.celery_utils import get_celery_task_status
@@ -39,6 +40,11 @@ from .views.crs import search_epsg, get_epsg_proj4, transform_coordinates
 from .views.tusd_webhook import tus_webhook
 from .views.tusd_auth import generate_tus_token
 from .views.tusd_patch_metadata import patch_tusd_metadata
+from .views.tusd_webhook import tus_webhook
+from .views.tusd_iiif_result import iiif_tus_result
+from .views.tusd_auth import generate_tus_token
+from .views.tusd_patch_metadata import patch_tusd_metadata
+from .views.verify_permissions import verify_permissions
 
 urlpatterns = [
     # project-level urls
@@ -54,6 +60,7 @@ urlpatterns = [
     path('api/titiler/tiles/<str:basemap_id>/<int:z>/<int:x>/<int:y>', titiler_tile_proxy, name='titiler_tile_proxy'),
     path('api/celery/task-status/<str:task_id>', get_celery_task_status, name='celery_task_status'),
     path('api/iiif/geotiff-upload', RasterUploadView.as_view(), name='geotiff_process'),
+    path('api/iiif/tus-result/<str:tus_id>', iiif_tus_result, name='iiif_tus_result'),
     path("api/iiif/build-geotiff-manifest", BuildGeoTiffManifestView.as_view()),
     path("api/iiif/geotiff-manifest/<uuid:resource_id>", GetGeoTiffManifestView.as_view()),
     path("api/iiif/geotiff-file/<uuid:job_id>/<str:kind>", GeoTiffFileView.as_view()),
@@ -96,4 +103,8 @@ urlpatterns = [
     path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
     path("api/tus/generate-token", generate_tus_token, name="generate_tus_token"),
     path("api/tus/patch-metadata", patch_tusd_metadata, name="patch_tus_metadata"),
+    path("api/webhooks/tusd", tus_webhook, name="tus_webhooks"),
+    path("api/tus/generate-token", generate_tus_token, name="generate_tus_token"),
+    path("api/tus/patch-metadata", patch_tusd_metadata, name="patch_tus_metadata"),
+    path("api/verify/permissions", verify_permissions, name="verify_permissions"),
 ]

@@ -204,7 +204,7 @@ define([
                             self.currentUpload = null;
                         }
 
-                        const checker = new tus.Upload(file, { endpoint: 'http://localhost:1080/files' });
+                        const checker = new tus.Upload(file, { endpoint: tusServiceInstance.getUploadEndpoint() });
                         checker.findPreviousUploads().then(function (previousUploads) {
                             if (previousUploads.length) {
                                 const oldMetadata = previousUploads[0].metadata;
@@ -327,7 +327,7 @@ define([
                 if (self.dropzone.files.length > 0) {
                     const file = self.dropzone.files[0];
                     const upload = new tus.Upload(file, {
-                        endpoint: 'http://localhost:1080/files',
+                        endpoint: tusServiceInstance.getUploadEndpoint(),
                         retryDelays: [0, 3000, 5000, 10000, 20000],
                         removeFingerprintOnSuccess: true,
                         metadata: {
