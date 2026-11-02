@@ -3,11 +3,13 @@ import json
 import logging
 import re
 import rasterio
+import zipfile
+import json
 from pathlib import Path
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.http import JsonResponse
 from pyproj import Transformer
@@ -16,8 +18,12 @@ from ..celery_tasks.basemap_tasks import create_basemap
 from .geotiif_handler import InvalidDemError, _safe_ext, process_geotiff_from_path
 
 logger = logging.getLogger(__name__)
-TUS_ID_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
 
+TUS_UPLOAD_TYPES = {
+    'maplayer': 'maplayer',
+    'model': 'model',
+    'iiif': 'iiif',
+}
 
 def iiif_tus_results_dir():
     return Path(getattr(settings, 'IIIF_TUS_RESULTS_DIR', '/arches_data/iiif_tus_results'))
@@ -31,7 +37,6 @@ def _token_user_id(token, max_age=3600):
         return str(user_id) if user_id else None
     except (BadSignature, SignatureExpired):
         return None
-
 
 def _token_is_valid(token, max_age=3600):
     return bool(_token_user_id(token, max_age))
@@ -70,7 +75,154 @@ def _raster_is_geotiff(path):
     except Exception as e:
         print(f"Error checking if raster is GeoTIFF: {e}")
         return False
+    
+def _tileset_has_lat_lng_height_properties(tileset_data):
+    props = tileset_data.get('properties', {})
+    return all(prop in props for prop in ['Latitude', 'Longitude', 'Height'])
 
+def _analyze_3d_tiles_file(file_path):
+    model_georeferenced = False
+    try:
+        with zipfile.ZipFile(file_path) as zf:
+            namelist = zf.namelist()
+            if not any(name == 'tileset.json' for name in namelist):
+                return { 'status': 'error', 'message': 'tileset.json not found in ZIP.' }
+            try:
+                with zf.open('tileset.json') as f:
+                    tileset_data = json.load(f)
+                    model_georeferenced = _tileset_has_lat_lng_height_properties(tileset_data)
+            except (KeyError, json.JSONDecodeError) as e:
+                print(f"tileset.json invalid: {e}")
+                return { 'status': 'error', 'message': 'tileset.json is not valid JSON.' }
+            tile_extensions = ('.b3dm', '.pnts', '.i3dm', '.cmpt', '.glb', '.gltf')
+            if not any(name.lower().endswith(tile_extensions) for name in namelist):
+                return { 'status': 'error', 'message': 'No tile files found (e.g., .b3dm, .pnts).' }
+    except zipfile.BadZipFile as e:
+        print(f"Bad ZIP file: {e}")
+        return { 'status': 'error', 'message': 'Uploaded file is not a valid zip file.' }
+    print("ZIP validation passed")
+    return { 'status': 'success', 'georeferenced': model_georeferenced }
+
+def _handle_maplayer_upload(metadata, source_file_path, tus_id):
+    if not _raster_is_geotiff(source_file_path):
+        return JsonResponse({'error': 'Uploaded file is not a valid GeoTIFF'}, status=400)
+    
+    maplayer_metadata = {
+        'original_name': metadata.get('basemap_name', 'Untitled Basemap'),
+        'sortorder': metadata.get('basemap_sortorder', '0'),
+        'activated': metadata.get('basemap_activated', 'true').lower() == 'true',
+        'ispublic': metadata.get('basemap_ispublic', 'true').lower() == 'true',
+        'addto_map': metadata.get('basemap_addto_map', 'false').lower() == 'true',
+        'isoverlay': metadata.get('basemap_isoverlay', 'false').lower() == 'true',
+        'icon': metadata.get('basemap_icon', 'fa fa-map'),
+        'authorized_group': 'Restricted Basemap Access', # IMPORTANT: hardcoded group with basemap viewing rights,
+        'bounds': None,
+        'center_coordinates': None,
+        'band_count': None,
+        'tus_id': tus_id, # Use the TUS ID as the unique identifier for the basemap, it is also the name of the file in the mounted volume
+    }
+
+    try:
+        source_file_path = os.path.join(MEDIA_BASE, tus_id)
+        cog_path = os.path.join(MEDIA_BASE, "maplayers", f"{tus_id}.tif")
+
+        raster_data = _get_raster_info(source_file_path, to_wgs84=True)
+        maplayer_metadata['center_coordinates'] = raster_data['center']
+        maplayer_metadata['bounds'] = raster_data['bounds']
+        maplayer_metadata['band_count'] = raster_data['band_count']
+
+        task = create_basemap.apply_async(
+            args=[source_file_path, cog_path, maplayer_metadata],
+            task_id=tus_id
+        )
+        return JsonResponse({
+            'status': 'processing',
+            'task_id': task.id,
+        })
+    
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to read raster info: {str(e)}'}, status=500)
+
+def _handle_model_upload(metadata, source_file_path, tus_id):
+    model_id = metadata.get('model_id')
+    parent_resource_id = metadata.get('parent_resource_id')
+    try:
+        model_uuid = UUID(str(model_id))
+        parent_uuid = UUID(str(parent_resource_id))
+        if model_uuid.version != 4:
+            raise ValueError
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Model and parent resource IDs must be valid UUIDs'}, status=400)
+
+    model_id = str(model_uuid)
+    parent_resource_id = str(parent_uuid)
+    target_folder = os.path.join(
+        settings.MEDIA_ROOT,
+        settings.UPLOADED_FILES_DIR,
+        '3d_models',
+        parent_resource_id,
+        model_id,
+    )
+
+    try:
+        model_info = _analyze_3d_tiles_file(source_file_path)
+        if model_info['status'] == 'error':
+            print(f"Validation failed: {model_info['message']}")
+            os.makedirs(target_folder, exist_ok=True)
+            with open(os.path.join(target_folder, ".upload-status.json"), "w", encoding="utf-8") as status_file:
+                json.dump({"status": "error", "error": model_info["message"]}, status_file)
+            return JsonResponse({'error': model_info['message']}, status=400)
+        
+        os.makedirs(target_folder, exist_ok=True)
+
+        with zipfile.ZipFile(source_file_path) as zf:
+            zf.extractall(target_folder)
+        with open(os.path.join(target_folder, ".upload-status.json"), "w", encoding="utf-8") as status_file:
+            json.dump({
+                "status": "ready",
+                "model_id": model_id,
+                "parent_resource_id": parent_resource_id,
+                "georeferenced": model_info["georeferenced"],
+            }, status_file)
+    except Exception as e:
+        print(f"Error processing 3D model upload: {e}")
+        os.makedirs(target_folder, exist_ok=True)
+        with open(os.path.join(target_folder, ".upload-status.json"), "w", encoding="utf-8") as status_file:
+            json.dump({"status": "error", "error": str(e)}, status_file)
+        return JsonResponse({'error': f'Failed to process 3D model: {str(e)}'}, status=500)
+    model_url = (
+        f"{settings.MEDIA_URL.rstrip('/')}/{settings.UPLOADED_FILES_DIR}/"
+        f"3d_models/{parent_resource_id}/{model_id}/"
+    )
+    return JsonResponse({'status': 'success', 'model_id': model_id, 'url': model_url, 'georeferenced': model_info['georeferenced'] })
+
+
+@require_GET
+def model_upload_status(request, parent_resource_id, model_id):
+    try:
+        parent_uuid = UUID(str(parent_resource_id))
+        model_uuid = UUID(str(model_id))
+        if model_uuid.version != 4:
+            raise ValueError
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Invalid model or parent resource ID"}, status=400)
+
+    status_path = os.path.join(
+        settings.MEDIA_ROOT,
+        settings.UPLOADED_FILES_DIR,
+        "3d_models",
+        str(parent_uuid),
+        str(model_uuid),
+        ".upload-status.json",
+    )
+    try:
+        with open(status_path, "r", encoding="utf-8") as status_file:
+            return JsonResponse(json.load(status_file))
+    except FileNotFoundError:
+        return JsonResponse({"status": "processing"}, status=202)
+    except (OSError, json.JSONDecodeError) as error:
+        return JsonResponse({"error": f"Unable to read model status: {error}"}, status=500)
+    
 
 def _iiif_metadata(metadata):
     filename = metadata.get('filename')
@@ -183,63 +335,30 @@ def tus_webhook(request):
         if not user_id:
             return JsonResponse({'error': 'Invalid or expired upload authentication token'}, status=403)
 
-        upload_kind = metadata.get('upload_kind')
-        if upload_kind not in (None, 'iiif_geotiff'):
-            raise ValueError('Unsupported upload_kind')
-        iiif_metadata = _iiif_metadata(metadata) if upload_kind == 'iiif_geotiff' else None
-
         if event_type == 'pre-create':
             return JsonResponse({'status': 'success', 'message': 'Upload authorized'})
+        
+        source_file_path = os.path.join(MEDIA_BASE, tus_id)
+        if not os.path.exists(source_file_path):
+            return JsonResponse({'error': 'Uploaded file not found'}, status=404)
 
-        if event_type != 'post-finish':
-            raise ValueError('Unsupported webhook event')
-        if not isinstance(tus_id, str) or not TUS_ID_PATTERN.fullmatch(tus_id):
-            raise ValueError('Invalid TUS upload ID')
         if iiif_metadata is not None:
             return _process_iiif_upload(media_base, tus_id, iiif_metadata, user_id)
 
         source_file_path = os.path.join(media_base, tus_id)
 
-        if not _raster_is_geotiff(source_file_path):
-            return JsonResponse({'error': 'Uploaded file is not a valid GeoTIFF'}, status=400)
+        upload_type = metadata.get('upload_type', None)
+        if not upload_type:
+            return JsonResponse({'error': 'Missing upload_type in metadata'}, status=400)
 
-        maplayer_metadata = {
-            'original_name': metadata.get('basemap_name', 'Untitled Basemap'),
-            'sortorder': metadata.get('basemap_sortorder', '0'),
-            'activated': metadata.get('basemap_activated', 'true').lower() == 'true',
-            'ispublic': metadata.get('basemap_ispublic', 'true').lower() == 'true',
-            'addto_map': metadata.get('basemap_addto_map', 'false').lower() == 'true',
-            'isoverlay': metadata.get('basemap_isoverlay', 'false').lower() == 'true',
-            'icon': metadata.get('basemap_icon', 'fa fa-map'),
-            'authorized_group': 'Restricted Basemap Access', # IMPORTANT: hardcoded group with basemap viewing rights,
-            'bounds': None,
-            'center_coordinates': None,
-            'band_count': None,
-            'tus_id': tus_id, # Use the TUS ID as the unique identifier for the basemap, it is also the name of the file in the mounted volume
-        }
+        if upload_type == TUS_UPLOAD_TYPES['maplayer']:
+            return _handle_maplayer_upload(metadata, source_file_path, tus_id)
+        elif upload_type == TUS_UPLOAD_TYPES['model']:
+            return _handle_model_upload(metadata, source_file_path, tus_id)
+        elif upload_type == TUS_UPLOAD_TYPES['iiif']:
+            return _process_iiif_upload(media_base, tus_id, _iiif_metadata(metadata), user_id)
 
-    except (json.JSONDecodeError, ValueError, AttributeError, TypeError) as error:
-        return JsonResponse({'error': str(error)}, status=400)
-    
-    try:
-        source_file_path = os.path.join(media_base, tus_id)
-        cog_path = os.path.join(media_base, "maplayers", f"{tus_id}.tif")
-
-        raster_data = _get_raster_info(source_file_path, to_wgs84=True)
-        maplayer_metadata['center_coordinates'] = raster_data['center']
-        maplayer_metadata['bounds'] = raster_data['bounds']
-        maplayer_metadata['band_count'] = raster_data['band_count']
-
-        task = create_basemap.apply_async(
-            args=[source_file_path, cog_path, maplayer_metadata],
-            task_id=tus_id
-        )
-        return JsonResponse({
-            'status': 'processing',
-            'task_id': task.id,
-        })
-    
-    except Exception as e:
-        return JsonResponse({'error': f'Failed to read raster info: {str(e)}'}, status=500)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     return JsonResponse({'status': 'success', 'message': 'Webhook received successfully'})

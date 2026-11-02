@@ -4,7 +4,6 @@ from django.views.decorators.http import require_GET
 
 @require_GET
 def generate_tus_token(request):
-
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Authentication required. Please log in.'}, status=401)
 

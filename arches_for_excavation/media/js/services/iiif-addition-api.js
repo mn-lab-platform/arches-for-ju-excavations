@@ -33,7 +33,7 @@ define([
     return {
       upload_token: String(token),
       upload_started_at: String(Date.now()),
-      upload_kind: 'iiif_geotiff',
+      upload_type: tusService.TUS_UPLOAD_TYPES.iiif,
       filename: String(file.name),
       resource_id: String(options.resourceId),
       resource_name: String(options.resourceName || baseName),
@@ -83,7 +83,7 @@ define([
     options = options || {};
     if (!file || !/\.tiff?$/i.test(file.name || '')) return Promise.resolve([]);
 
-    var endpoint = tusService.getUploadEndpoint();
+    var endpoint = tusService.getUploadUrl();
     var storage = tus.defaultOptions && tus.defaultOptions.urlStorage;
     if (!storage || typeof storage.findAllUploads !== 'function') return Promise.resolve([]);
 
@@ -130,7 +130,7 @@ define([
       }
 
       return new Promise(function(resolve, reject) {
-        var endpoint = tusService.getUploadEndpoint();
+        var endpoint = tusService.getUploadUrl();
         var metadata = iiifTusMetadata(file, options, tokenResponse.token);
         var upload = new tus.Upload(file, {
           endpoint: endpoint,
