@@ -7,10 +7,15 @@ define([
     return ko.components.register('pottery-csv-upload-step', {
         viewModel: function(params) {
             const self = this;
+            self.value = params.value;
             const tileService = tileServiceModule.default || tileServiceModule;
             const CONTEXT_NUMBER_NODE_IDS = ['1b5b4e9a-a38d-11eb-96c4-020063fe0012', 'cf7f2532-74f3-487f-9261-bf27825fe04c'];
+            function isResourceId(value) {
+                return typeof value === 'string' &&
+                    /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value);
+            }
 
-            self.selectedContextNumber = ko.observable('');            
+            self.selectedContextNumber = ko.observable('');
             self.selectedContextResourceId = ko.observable(ko.unwrap(params.selectedContextResourceId) || '');
 
             self.fileName = ko.observable('');
@@ -19,21 +24,41 @@ define([
             self.sourceDetailLabel = ko.observable('');
             self.sourceDetailValue = ko.observable('');
             self.headers = ko.observableArray([]);
-            self.previewRows = ko.observableArray([]);
             self.rowCount = ko.observable(0);
-            self.columnCount = ko.observable(0);
             self.errorMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
             self.importMessage = ko.observable(null);
+            self.isPreparing = ko.observable(false);
             self.importResult = ko.observable(null);
+            self.hasResourceId = ko.pureComputed(function() {
+                return isResourceId(ko.unwrap(self.value));
+            });
+            if (params.form && params.form.complete) params.form.complete(self.hasResourceId());
             self.potteryImportData = ko.observableArray([]);
-            self.selectedPotteryRows = ko.observableArray([]);
+            self.rowsForSelectedContext = ko.pureComputed(function() {
+                const contextNumber = String(self.selectedContextNumber() || '').trim();
+                return self.potteryImportData().filter(function(row) {
+                    return contextNumber &&
+                        String(row.contextNo || '').trim() === contextNumber;
+                });
+            });
+            self.selectedPotteryRows = ko.pureComputed(function() {
+                return self.rowsForSelectedContext().filter(function(row) {
+                    return row.pottery.length > 0;
+                });
+            });
+            self.otherContextRowsCount = ko.pureComputed(function() {
+                return self.potteryImportData().length - self.rowsForSelectedContext().length;
+            });
 
             self.hasPreview = ko.pureComputed(function() {
                 return self.headers().length > 0;
             });
             self.canImport = ko.pureComputed(function() {
-                return !!self.selectedContextResourceId() && self.potteryImportData().length > 0;
+                return !!self.selectedContextResourceId() &&
+                    self.selectedPotteryRows().length > 0 &&
+                    !self.isPreparing() &&
+                    !self.importMessage();
             });
             self.loadSelectedContextNumber = function() {
                 const resourceId = self.selectedContextResourceId();
@@ -51,8 +76,6 @@ define([
                         tiles.forEach(function(tile) {
                             const tileData = tile.data || {};
                             CONTEXT_NUMBER_NODE_IDS.forEach(function(nodeId) {
-                                const tileNodeValue = tileData[nodeId];
-                                console.log('Tile ID:', tile.id, 'Node ID:', nodeId, 'Value:', tileNodeValue);
                                 if (tileData[nodeId]) {
                                     contextNumber = tileData[nodeId];
                                 }
@@ -60,14 +83,13 @@ define([
                         });
 
                         self.selectedContextNumber(contextNumber);
-                        console.log('Selected Context number:', contextNumber);
                     })
                     .catch(function(error) {
                         self.errorMessage('Could not load selected Context number: ' + error.message);
                     });
             };
 
-            self.loadSelectedContextNumber();            
+            self.loadSelectedContextNumber();
             function normalizeHeader(header) {
                 return (header || '')
                     .replace(/\u0000/g, '')
@@ -170,6 +192,7 @@ define([
             }
 
             self.onFileSelected = function(_, event) {
+                if (self.isPreparing() || self.importMessage()) return;
                 const file = event.target.files && event.target.files[0];
                 self.clear();
 
@@ -191,16 +214,20 @@ define([
                 }
 
                 const reader = new FileReader();
+                self.importMessage('Reading CSV...');
                 reader.onload = function(loadEvent) {
                     try {
                         const result = parseCsvBuffer(loadEvent.target.result);
-                        applyParsedFile(file, result, 'CSV loaded. No data has been imported yet.');
+                        applyParsedFile(file, result);
                     } catch (error) {
                         self.errorMessage(error.message || 'Could not read CSV.');
+                    } finally {
+                        self.importMessage(null);
                     }
                 };
                 reader.onerror = function() {
                     self.errorMessage('Could not read CSV.');
+                    self.importMessage(null);
                 };
                 reader.readAsArrayBuffer(file);
             };
@@ -241,7 +268,7 @@ define([
                         return parseJsonResponse(response);
                     })
                     .then(function(result) {
-                        applyParsedFile(file, result, 'XLSX loaded. No data has been imported yet.');
+                        applyParsedFile(file, result);
                     })
                     .catch(function(error) {
                         self.errorMessage('Could not read XLSX: ' + error.message);
@@ -251,7 +278,7 @@ define([
                     });
             }
 
-            function applyParsedFile(file, result, successMessage) {
+            function applyParsedFile(file, result) {
                 const potteryImportData = buildPotteryImportData(result.rows);
                 const fileType = result.format === 'xlsx' ? 'XLSX' : 'CSV';
                 const sourceDetailLabel = result.format === 'xlsx' ? 'Sheet' : 'Delimiter';
@@ -259,19 +286,13 @@ define([
                     ? (result.sheet || '')
                     : (result.delimiter === '\t' ? 'tab' : result.delimiter);
 
-                console.log('Selected Context resource:', self.selectedContextResourceId());
-                console.log(fileType + ' rows:', result.rows);
-                console.log('Pottery import data:', potteryImportData);
-
                 self.fileType(fileType);
                 self.sourceDetailLabel(sourceDetailLabel);
                 self.sourceDetailValue(sourceDetailValue);
                 self.headers(result.headers);
-                self.previewRows(result.previewRows);
                 self.rowCount(result.rowCount);
-                self.columnCount(result.headers.length);
                 self.potteryImportData(potteryImportData);
-                self.successMessage(successMessage);
+                self.successMessage(null);
 
                 if (typeof params.value === 'function') {
                     params.value({
@@ -285,49 +306,14 @@ define([
                     });
                 }
 
-                if (params.form && params.form.complete) {
-                    params.form.complete(true);
-                }
             }
-            
+
             self.importCsv = function() {
+                if (!self.canImport()) return;
+
                 const selectedContextResourceId = self.selectedContextResourceId();
                 const selectedContextNumber = String(self.selectedContextNumber() || '').trim();
-
-                const dataForSelectedContext = self.potteryImportData().filter(function(row) {
-                    return String(row.contextNo || '').trim() === selectedContextNumber;
-                });
-                const rowsForOtherContexts = self.potteryImportData().filter(function(row) {
-                    const contextNo = String(row.contextNo || '').trim();
-                    return contextNo && contextNo !== selectedContextNumber;
-                });
-
-                if (!selectedContextNumber) {
-                    self.errorMessage('Selected Context number is empty. Choose a Context with a Context number before importing.');
-                    return;
-                }
-
-                if (dataForSelectedContext.length === 0 || !dataForSelectedContext.some(function(row) {
-                    return row.pottery.length > 0;
-                })) {
-                    self.selectedPotteryRows([]);
-                    self.importResult({
-                        created: 0,
-                        updated: 0,
-                        skipped: self.potteryImportData().length,
-                        missing_concepts: [],
-                        errors: []
-                    });
-                    self.errorMessage('No pottery rows with importable pottery data were found in the selected file.');
-                    return;
-                }
-
-                if (rowsForOtherContexts.length > 0) {
-                    self.errorMessage(
-                        'The file contains rows for a different Context. Only rows for Context ' +
-                        selectedContextNumber + ' will be imported.'
-                    );
-                }
+                const dataForSelectedContext = self.rowsForSelectedContext();
 
                 const payload = {
                     contextResourceId: selectedContextResourceId,
@@ -335,15 +321,13 @@ define([
                     rows: dataForSelectedContext
                 };
 
-                self.importMessage('Sending pottery data to backend...');                
-                self.selectedPotteryRows(dataForSelectedContext);
-                self.importResult({
-                    created: 0,
-                    updated: 0,
-                    skipped: dataForSelectedContext.length === 0 ? self.potteryImportData().length : 0,
-                    missing_concepts: [],
-                    errors: []
-                });
+                if (typeof self.value === 'function') self.value(null);
+                if (params.form && params.form.complete) params.form.complete(false);
+                self.errorMessage(null);
+                self.successMessage(null);
+                self.importResult(null);
+                self.isPreparing(true);
+                self.importMessage('Saving Pottery Collection...');
                 fetch('/api/pottery/import-preview', {
                     method: 'POST',
                     credentials: 'include',
@@ -357,25 +341,32 @@ define([
                         return parseJsonResponse(response);
                     })
                     .then(function(data) {
-                        console.log('Backend pottery response:', data);
-
+                        const missingConcepts = data.missingConcepts || [];
                         self.importResult({
                             created: data.created ? 1 : 0,
                             updated: data.updated ? 1 : 0,
-                            skipped: self.potteryImportData().length - dataForSelectedContext.length,
-                            missing_concepts: data.missingConcepts || [],
-                            errors: []
+                            fragmentCount: data.fragmentCount || 0,
+                            missing_concepts: missingConcepts
                         });
 
-                        self.successMessage(
-                            data.message + ' Saved ' + data.fragmentCount + ' pottery fragments.'
-                        );
+                        if (missingConcepts.length) {
+                            self.errorMessage('Import finished with ' + missingConcepts.length + ' unresolved value(s). Review the result below.');
+                        } else {
+                            if (!isResourceId(data.potteryCollectionResourceId)) {
+                                throw new Error('Import response did not include a valid Pottery Collection ID.');
+                            }
+                            self.successMessage(data.message + ' Saved ' + data.fragmentCount + ' pottery type cards.');
+                            if (typeof self.value === 'function') self.value(data.potteryCollectionResourceId);
+                            if (params.form && params.form.savedData) params.form.savedData(data.potteryCollectionResourceId);
+                            if (params.form && params.form.complete) params.form.complete(true);
+                        }
                     })
                     .catch(function(error) {
                         self.errorMessage('Backend import preview failed: ' + error.message);
                     })
                     .finally(function() {
                         self.importMessage(null);
+                        self.isPreparing(false);
                     });
             };
 
@@ -386,14 +377,14 @@ define([
                 self.sourceDetailLabel('');
                 self.sourceDetailValue('');
                 self.headers([]);
-                self.previewRows([]);
                 self.rowCount(0);
-                self.columnCount(0);
                 self.potteryImportData([]);
                 self.errorMessage(null);
                 self.successMessage(null);
                 self.importMessage(null);
                 self.importResult(null);
+                if (typeof self.value === 'function') self.value(null);
+                if (params.form && params.form.complete) params.form.complete(false);
             };
 
             function parseCsvBuffer(buffer) {

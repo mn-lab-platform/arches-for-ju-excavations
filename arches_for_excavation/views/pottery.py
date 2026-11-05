@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.views import View
 from openpyxl import load_workbook
 
-from arches.app.models.models import Node, Resource, Value
+from arches.app.models.models import Node, Resource
 from arches.app.models.tile import Tile
 from arches_for_excavation.utils.pottery.concept_lookup import resolve_dictionary_value
 from arches_for_excavation.utils.pottery.constants import POTTERY_DICTIONARY_CHRONOLOGY
@@ -25,6 +25,7 @@ NO_MATERIAL_NODE_ID = "3d57d956-38a5-4982-a0f6-d8fb388e1cb9"
 CATEGORY_REMARKS_NODE_ID = "3c371503-9028-464a-8b85-53a43c853781"
 CATEGORY_CHRONOLOGY_NODEGROUP_ID = "13c63c03-ffc3-455a-a1ce-23082b4111e8"
 CATEGORY_PERIOD_NODE_ID = "ab05ac4b-4fd8-4eb9-9549-9d4a2a86893c"
+CATEGORY_UNCERTAIN_NODE_ID = "ca337aae-aa58-4f47-8811-c1f994252fdf"
 CONTAINS_SPECIAL_FINDS_NODE_ID = "f0930ca8-a24f-458c-a27e-463601ca574a"
 DIAGNOSTIC_NODE_ID = "99affc33-fc6e-4fee-9ac4-e2d4f13087cc"
 FINDS_DICTIONARY_ID = "401ad5c8-4a6d-40fc-a9cd-61e1d953f13e"
@@ -45,18 +46,16 @@ FIELD_REMAINS_LABEL_MAP = {
 }
 
 
-# The Pottery Collection graph uses the PAC category concepts configured on
-# its Pottery Type node. These are the stable PAC IDs for the category
-# columns in the simplified collection workbook.
-POTTERY_TYPE_PAC_IDS = {
-    "Amphorae": "Q969",
-    "Table Ware": "Q937",
-    "Kitchen Ware": "Q970",
-    "Plain Ware": "Q938",
-    "Storage Vessel": "Q971",
-    "Lamp": "Q924",
+# The workbook uses short category names, while the collection configured on
+# the Pottery Type node uses these preferred labels in the MN thesaurus.
+POTTERY_TYPE_LABELS = {
+    "Amphorae": "amphorae (A)",
+    "Table Ware": "table ware (TW)",
+    "Kitchen Ware": "kitchen ware (KW)",
+    "Plain Ware": "plain ware (PW)",
+    "Storage Vessel": "storage vessels (SV)",
+    "Lamp": "Lamp (L)",
 }
-PAC_ENTITY_URL = "https://pac.cenagis.edu.pl/entity/"
 
 def normalize_header(header):
     normalized = re.sub(r"[\s\-/]+", "_", str(header or "").replace("\x00", "").strip().lower())
@@ -176,22 +175,14 @@ class PotteryImportWorkbookPreviewView(View):
 class PotteryImportPreviewView(View):
     @staticmethod
     def _resolve_pottery_type(pottery_type):
-        """Resolve the fixed category labels used by collection workbooks."""
-        pottery_type_value = resolve_dictionary_value("Pottery Type", pottery_type)
-        if pottery_type_value:
-            return pottery_type_value
-
-        pac_id = POTTERY_TYPE_PAC_IDS.get(pottery_type)
-        if not pac_id:
+        """Resolve a workbook category in the graph node's configured collection."""
+        node = Node.objects.get(nodeid=POTTERY_TYPE_NODE_ID)
+        collection_id = (node.config or {}).get("rdmCollection")
+        if not collection_id:
             return ""
 
-        values = Value.objects.filter(
-            concept__legacyoid=f"{PAC_ENTITY_URL}{pac_id}",
-            valuetype_id="prefLabel",
-        ).order_by("language_id")
-        english_value = values.filter(language_id="en").first()
-        value = english_value or values.first()
-        return str(value.valueid) if value else ""
+        label = POTTERY_TYPE_LABELS.get(pottery_type, pottery_type)
+        return resolve_dictionary_value(collection_id, label)
 
     def _find_existing_pottery_collection(self, context_resource_id):
         tiles = Tile.objects.filter(
@@ -299,7 +290,7 @@ class PotteryImportPreviewView(View):
         undiagnostic = self._number_or_none(item.get("undiagnostic"))
         diagnostic = self._number_or_none(item.get("diagnostic"))
         remarks = item.get("remarks")
-        chronology = item.get("chronology")
+        chronology = str(item.get("chronology") or "").strip()
 
         if undiagnostic is not None:
             fragment_data[UNDIAGNOSTIC_NODE_ID] = undiagnostic
@@ -308,9 +299,11 @@ class PotteryImportPreviewView(View):
         if remarks:
             fragment_data[CATEGORY_REMARKS_NODE_ID] = localized_string(remarks)
         if chronology:
+            chronology_uncertain = chronology.endswith("?")
+            chronology_label = chronology[:-1].strip() if chronology_uncertain else chronology
             chronology_value = resolve_dictionary_value(
                 POTTERY_DICTIONARY_CHRONOLOGY,
-                chronology,
+                chronology_label,
             )
             if chronology_value:
                 category_chronology_value = chronology_value
@@ -334,7 +327,10 @@ class PotteryImportPreviewView(View):
             self._create_tile(
                 pottery_resource,
                 CATEGORY_CHRONOLOGY_NODEGROUP_ID,
-                {CATEGORY_PERIOD_NODE_ID: [category_chronology_value]},
+                {
+                    CATEGORY_PERIOD_NODE_ID: [category_chronology_value],
+                    CATEGORY_UNCERTAIN_NODE_ID: chronology_uncertain,
+                },
                 parent_tile=fragment_tile,
             )
 

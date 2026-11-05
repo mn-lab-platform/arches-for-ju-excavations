@@ -6,7 +6,9 @@ define([
   'templates/views/components/plugins/pottery-csv-upload-workflow.htm',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/pottery-csv-upload/pottery-csv-upload-step',
-], function(ko, $, arches, Workflow, workflowTemplate) {
+  'views/components/workflows/universal/components/workflow-success-summary-step',
+  'views/components/workflows/universal/components/finish-on-summary'
+], function(ko, $, arches, Workflow, workflowTemplate, _resourceSelection, _potteryStep, _summaryStep, finishOnSummary) {
   return ko.components.register('pottery-csv-upload-workflow', {
     viewModel: function(params) {
       this.componentName = 'pottery-csv-upload-workflow';
@@ -45,11 +47,28 @@ define([
               }
             }]
           }]
+        },
+        {
+          title: 'Summary',
+          name: 'summary',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'workflow-success-summary-step',
+              uniqueInstanceName: 'pottery-csv-summary-instance',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['pottery-csv-upload']['pottery-csv-upload-instance']['value']",
+                successMessage: 'Pottery Collection saved successfully!'
+              }
+            }]
+          }]
         }
       ];
 
       const WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
+      finishOnSummary(this);
     },
     template: workflowTemplate
   });
