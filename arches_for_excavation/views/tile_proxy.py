@@ -1,5 +1,9 @@
 from django.core.cache import cache
 from django.http import HttpResponse, StreamingHttpResponse, HttpResponseForbidden, HttpResponseNotFound
+from django.conf import settings
+from pathlib import Path
+from urllib.parse import urlencode
+from uuid import UUID
 import requests
 from arches.app.models.models import MapLayer
 
@@ -7,7 +11,7 @@ TITILER_INTERNAL_URL = "http://titiler:8000"
 
 def titiler_tile_proxy(request, basemap_id, z, x, y):
     user = request.user
-    layer_cache_key = f"layer_info:{basemap_id}"
+    layer_cache_key = f"layer_info:v2:{basemap_id}"
     layer_info = cache.get(layer_cache_key)
 
     if layer_info is None:
@@ -21,7 +25,8 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
                 'name': layer.name,
                 'is_public': layer.ispublic,
                 'band_count': layer_definition.get('band_count', 3),
-                'tus_id': layer_definition.get('tus_id') or layer_definition.get('id')
+                'tus_id': layer_definition.get('tus_id') or layer_definition.get('id'),
+                'basemap_dir': layer_definition.get('basemap_dir'),
             }
             print(f"Caching layer {basemap_id} is_public={layer.ispublic}")
             cache.set(layer_cache_key, layer_info, 300) #cache for 5 minutes
@@ -48,8 +53,16 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
             if not can_view:
                 return HttpResponseForbidden("Access Denied: Insufficient Permissions")
     
+    raster_path = _resolve_raster_path(tus_id, layer_info.get('basemap_dir'))
+    if raster_path is None:
+        return HttpResponseNotFound("Basemap raster not found")
+
     try:
-        titiler_url = f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=file:///data/maplayers/{tus_id}.tif&{_craft_band_index_query(band_count)}"
+        file_url = f"file:///data/{raster_path.as_posix()}"
+        titiler_url = (
+            f"{TITILER_INTERNAL_URL}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?"
+            f"{urlencode({'url': file_url})}&{_craft_band_index_query(band_count)}"
+        )
 
         upstream_req = requests.get(titiler_url, stream=True, timeout=5)
 
@@ -67,6 +80,24 @@ def titiler_tile_proxy(request, basemap_id, z, x, y):
     
     except requests.exceptions.RequestException as e:
         return HttpResponse(status=502)
+
+def _resolve_raster_path(tus_id, basemap_dir):
+    try:
+        raster_id = str(UUID(str(tus_id)))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+    root = Path(settings.MEDIA_ROOT) / settings.UPLOADED_FILES_DIR
+    candidates = [Path('maplayers') / f'{raster_id}.tif']
+    if (
+        isinstance(basemap_dir, str)
+        and basemap_dir not in ('', '.', '..')
+        and Path(basemap_dir).name == basemap_dir
+        and '\\' not in basemap_dir
+    ):
+        candidates.append(Path('basemaps') / basemap_dir / f'{raster_id}.tif')
+
+    return next((path for path in candidates if (root / path).is_file()), None)
 
 def _craft_band_index_query(band_count):
     if band_count >= 3:
