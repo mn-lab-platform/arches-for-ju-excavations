@@ -40,6 +40,37 @@ define([
             self.preview = ko.observable(null);
             self.previewRecords = ko.observableArray([]);
             self.previewColumns = ko.observableArray([]);
+            self.previewPageSize = 25;
+            self.previewPage = ko.observable(1);
+            self.previewPageInput = ko.observable('1');
+            self.previewPageCount = ko.pureComputed(function() {
+                return Math.max(1, Math.ceil(self.previewRecords().length / self.previewPageSize));
+            });
+            self.visiblePreviewRecords = ko.pureComputed(function() {
+                const start = (self.previewPage() - 1) * self.previewPageSize;
+                return self.previewRecords().slice(start, start + self.previewPageSize);
+            });
+            self.previewRowStart = ko.pureComputed(function() {
+                return self.previewRecords().length ? (self.previewPage() - 1) * self.previewPageSize + 1 : 0;
+            });
+            self.previewRowEnd = ko.pureComputed(function() {
+                return Math.min(self.previewPage() * self.previewPageSize, self.previewRecords().length);
+            });
+            self.setPreviewPage = function(page) {
+                const boundedPage = Math.max(1, Math.min(page, self.previewPageCount()));
+                self.previewPage(boundedPage);
+                self.previewPageInput(String(boundedPage));
+            };
+            self.goToPreviewPage = function() {
+                const requestedPage = Number(self.previewPageInput());
+                self.setPreviewPage(Number.isInteger(requestedPage) ? requestedPage : self.previewPage());
+            };
+            self.previousPreviewPage = function() {
+                self.setPreviewPage(self.previewPage() - 1);
+            };
+            self.nextPreviewPage = function() {
+                self.setPreviewPage(self.previewPage() + 1);
+            };
             self.dictionaryFields = ko.observable({});
             self.dictionaryOptionsByField = ko.observable({});
             self.missingDictionaryValues = ko.observableArray([]);
@@ -106,6 +137,7 @@ define([
                 self.preview(null);
                 self.previewRecords([]);
                 self.previewColumns([]);
+                self.setPreviewPage(1);
                 self.dictionaryFields({});
                 self.dictionaryOptionsByField({});
                 self.missingDictionaryValues([]);
@@ -166,6 +198,7 @@ define([
                 self.preview(null);
                 self.previewRecords([]);
                 self.previewColumns([]);
+                self.setPreviewPage(1);
                 self.dictionaryFields({});
                 self.dictionaryOptionsByField({});
                 self.missingDictionaryValues([]);
@@ -208,6 +241,7 @@ define([
                 self.preview(null);
                 self.previewColumns([]);
                 self.previewRecords([]);
+                self.setPreviewPage(1);
                 self.dictionaryFields({});
                 self.dictionaryOptionsByField({});
                 self.missingDictionaryValues([]);
@@ -233,13 +267,12 @@ define([
                         });
                     })
                     .then(function(data) {
-                        console.log(self.recordLabel() + ' preview response:', data);
-
                         self.preview(data);
                         self.dictionaryFields(data.dictionaryFields || {});
                         self.dictionaryOptionsByField(data.dictionaryOptionsByField || {});
                         self.previewColumns(data.columns || []);
                         self.previewRecords((data.records || []).map(makeEditableRecord));
+                        self.setPreviewPage(1);
                         self.missingDictionaryValues(data.missingDictionaryValues || []);
                         self.successMessage(
                             'Loaded ' + data.parsed + ' ' + self.recordLabel() + ' records from sheet "' + data.sheet + '".'
@@ -291,11 +324,10 @@ define([
                         });
                     })
                     .then(function(data) {
-                        console.log(self.recordLabel() + ' commit response:', data);
-
                         self.preview(data);
                         self.previewColumns(data.columns || []);
                         self.previewRecords((data.records || []).map(makeEditableRecord));
+                        self.setPreviewPage(1);
                         self.importComplete(true);
                         self.successMessage('Created ' + data.created + ' ' + self.recordLabel() + ' records.');
 

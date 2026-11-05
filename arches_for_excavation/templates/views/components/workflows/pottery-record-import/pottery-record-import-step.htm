@@ -129,6 +129,18 @@
             </div>
         </div>
 
+        <div class="pottery-record-page-controls" data-bind="visible: previewPageCount() > 1">
+            <span data-bind="text: 'Rows ' + previewRowStart() + '–' + previewRowEnd() + ' of ' + previewRecords().length"></span>
+            <button class="btn btn-default btn-sm" data-bind="click: previousPreviewPage, enable: previewPage() > 1">Previous</button>
+            <label>
+                Page
+                <input type="number" min="1" class="form-control input-sm pottery-record-page-input"
+                    data-bind="value: previewPageInput, attr: { max: previewPageCount() }, event: { change: goToPreviewPage }">
+            </label>
+            <span data-bind="text: 'of ' + previewPageCount()"></span>
+            <button class="btn btn-default btn-sm" data-bind="click: nextPreviewPage, enable: previewPage() < previewPageCount()">Next</button>
+        </div>
+
         <div class="pottery-record-table-wrap">
             <table class="table table-condensed table-striped">
                 <thead>
@@ -137,7 +149,7 @@
                     </tr>
                 </thead>
 
-                <tbody data-bind="foreach: previewRecords">
+                <tbody data-bind="foreach: visiblePreviewRecords">
                     <tr data-bind="foreach: $parent.previewColumns">
                         <td>
                             <!-- ko if: $data.key === 'resourceLink' -->
@@ -197,6 +209,13 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="pottery-record-page-controls" data-bind="visible: previewPageCount() > 1">
+            <span data-bind="text: 'Rows ' + previewRowStart() + '–' + previewRowEnd() + ' of ' + previewRecords().length"></span>
+            <button class="btn btn-default btn-sm" data-bind="click: previousPreviewPage, enable: previewPage() > 1">Previous</button>
+            <span data-bind="text: 'Page ' + previewPage() + ' of ' + previewPageCount()"></span>
+            <button class="btn btn-default btn-sm" data-bind="click: nextPreviewPage, enable: previewPage() < previewPageCount()">Next</button>
+        </div>
     </div>
 
 
@@ -255,6 +274,24 @@
 .pottery-record-table-wrap {
     overflow-x: auto;
     border: 1px solid #d7dee6;
+}
+
+.pottery-record-page-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.pottery-record-page-controls label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.pottery-record-page-input {
+    width: 75px;
 }
 
 .pottery-record-missing-dictionaries {
