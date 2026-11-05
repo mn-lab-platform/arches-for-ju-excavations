@@ -268,7 +268,7 @@ def _write_iiif_result(path, data):
         temporary.unlink(missing_ok=True)
 
 
-def _process_iiif_upload(media_base, tus_id, metadata, user_id):
+def _process_iiif_upload(MEDIA_BASE, tus_id, metadata, user_id):
     results_dir = iiif_tus_results_dir()
     results_dir.mkdir(parents=True, exist_ok=True)
     result_path = results_dir / f'{tus_id}.json'
@@ -291,7 +291,7 @@ def _process_iiif_upload(media_base, tus_id, metadata, user_id):
             return JsonResponse(claim, status=202)
 
     try:
-        source = media_base / tus_id
+        source = MEDIA_BASE / tus_id
         if not source.is_file() or source.is_symlink():
             raise FileNotFoundError('Completed TUS upload not found')
         if not _raster_is_geotiff(source):
@@ -318,7 +318,7 @@ def _process_iiif_upload(media_base, tus_id, metadata, user_id):
 @csrf_exempt
 @require_POST
 def tus_webhook(request):
-    media_base = Path(settings.MEDIA_ROOT) / settings.UPLOADED_FILES_DIR
+    MEDIA_BASE = Path(settings.MEDIA_ROOT) / settings.UPLOADED_FILES_DIR
     try:
         body = json.loads(request.body)
         if not isinstance(body, dict):
@@ -342,10 +342,7 @@ def tus_webhook(request):
         if not os.path.exists(source_file_path):
             return JsonResponse({'error': 'Uploaded file not found'}, status=404)
 
-        if iiif_metadata is not None:
-            return _process_iiif_upload(media_base, tus_id, iiif_metadata, user_id)
-
-        source_file_path = os.path.join(media_base, tus_id)
+        source_file_path = os.path.join(MEDIA_BASE, tus_id)
 
         upload_type = metadata.get('upload_type', None)
         if not upload_type:
@@ -356,7 +353,10 @@ def tus_webhook(request):
         elif upload_type == TUS_UPLOAD_TYPES['model']:
             return _handle_model_upload(metadata, source_file_path, tus_id)
         elif upload_type == TUS_UPLOAD_TYPES['iiif']:
-            return _process_iiif_upload(media_base, tus_id, _iiif_metadata(metadata), user_id)
+            iiif_metadata = _iiif_metadata(metadata)
+            if not iiif_metadata:
+                return JsonResponse({'error': 'Invalid IIIF GeoTIFF metadata'}, status=400)
+            return _process_iiif_upload(MEDIA_BASE, tus_id, iiif_metadata, user_id)
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)

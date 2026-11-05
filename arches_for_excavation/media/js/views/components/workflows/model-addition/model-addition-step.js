@@ -12,7 +12,6 @@ define([
         viewModel: function(params) {
             const self = this;
             self.value = params.value;
-            console.log('Arches:', arches.default || arches);
             const tileService = tileServiceModule.default || tileServiceModule;
             const models3dService = models3dServiceModule.default || models3dServiceModule;
             const tusService = tusServiceInstance.default || tusServiceInstance;

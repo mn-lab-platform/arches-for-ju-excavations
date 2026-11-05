@@ -331,6 +331,7 @@ define([
                         removeFingerprintOnSuccess: true,
                         metadata: {
                             upload_token: token,
+                            upload_type: tusServiceInstance.TUS_UPLOAD_TYPES.maplayer,
                             basemap_name: self.basemapName(),
                             basemap_sortorder: self.sortOrder(),
                             basemap_icon: self.selectedIcon(),
@@ -388,7 +389,7 @@ define([
                     upload.findPreviousUploads().then(async function (previousUploads) {
                         if (previousUploads.length) {
                             const newMetadata = {
-                                upload_type: tusService.TUS_UPLOAD_TYPES.maplayer,
+                                upload_type: tusServiceInstance.TUS_UPLOAD_TYPES.maplayer,
                                 upload_token: token,
                                 basemap_name: self.basemapName(),
                                 basemap_sortorder: self.sortOrder(),

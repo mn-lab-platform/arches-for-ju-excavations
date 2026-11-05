@@ -4,7 +4,7 @@ import logging
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
-from .tusd_webhook import TUS_ID_PATTERN, iiif_tus_results_dir
+from .tusd_webhook import iiif_tus_results_dir
 
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,6 @@ def iiif_tus_result(request, tus_id):
         return JsonResponse({'error': 'Authentication required'}, status=401)
     if not (request.user.is_superuser or request.user.groups.filter(name='Plugin Access').exists()):
         return JsonResponse({'error': 'Forbidden'}, status=403)
-    if not TUS_ID_PATTERN.fullmatch(tus_id):
-        return JsonResponse({'error': 'Invalid TUS upload ID'}, status=400)
 
     result_path = iiif_tus_results_dir() / f'{tus_id}.json'
     try:
