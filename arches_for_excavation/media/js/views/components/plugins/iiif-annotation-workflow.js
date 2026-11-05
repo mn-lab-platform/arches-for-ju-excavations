@@ -8,9 +8,10 @@ define([
   'viewmodels/workflow-step',  
   'views/components/workflows/iiif-annotation/iiif-annotator-step',
   'views/components/workflows/universal/resource-selection-step',
-  'views/components/workflows/iiif-annotation/iiif-annotation-summary-step'
-], function(ko, $, arches, Workflow, workflowTemplate) {
-  // Only 5 parameters for 9 imports - the last 4 are self-registering components
+  'views/components/workflows/universal/components/workflow-success-summary-step',
+  'views/components/workflows/universal/components/finish-on-summary'
+], function(ko, $, arches, Workflow, workflowTemplate, _workflowStep, _annotator, _selection, _summary, finishOnSummary) {
+  // Workflow steps register their Knockout components when imported.
   
   return ko.components.register('iiif-annotation-workflow', {
     viewModel: function(params) {
@@ -61,31 +62,29 @@ define([
               }
             }]
           }]
-        }//,
-        // {
-        //   title: 'Review & finish',
-        //   name: 'iiif-annotation-summary',
-        //   required: true,
-        //   informationboxdata: {
-        //     heading: 'Review annotation payload',
-        //     text: 'Check what will be saved/used in the next processing step.'
-        //   },
-        //   layoutSections: [{
-        //     componentConfigs: [{
-        //       componentName: 'iiif-annotation-summary-step',
-        //       uniqueInstanceName: 'iiif-annotation-summary-instance',
-        //       tilesManaged: 'none',
-        //       parameters: {
-        //         payload: "['iiif-image-selection']['iiif-annotator-instance']['value']"
-        //       }
-        //     }]
-        //   }]
-        // }
+        },
+        {
+          title: 'Summary',
+          name: 'summary',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'workflow-success-summary-step',
+              uniqueInstanceName: 'iiif-annotation-summary-instance',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['iiif-image-selection']['iiif-annotator-instance']['digitalResourceId']",
+                successMessage: 'IIIF annotations saved successfully!'
+              }
+            }]
+          }]
+        }
       ];
 
       // Apply Workflow base
       var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
+      finishOnSummary(this);
     },
     template: workflowTemplate
   });

@@ -5,8 +5,10 @@ define([
   'templates/views/components/plugins/iiif-addition-workflow.htm',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/iiif-RTI-addition/iiif-rti-upload-step',
-  'views/components/workflows/iiif-RTI-addition/iiif-rti-adjustment-step'
-], function(ko, arches, Workflow, workflowTemplate) {
+  'views/components/workflows/iiif-RTI-addition/iiif-rti-adjustment-step',
+  'views/components/workflows/universal/components/workflow-success-summary-step',
+  'views/components/workflows/universal/components/finish-on-summary'
+], function(ko, arches, Workflow, workflowTemplate, _selection, _upload, _adjustment, _summary, finishOnSummary) {
   'use strict';
 
   return ko.components.register('iiif-RTI-addition-workflow', {
@@ -81,11 +83,28 @@ define([
               }
             }]
           }]
+        },
+        {
+          title: 'Summary',
+          name: 'summary',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'workflow-success-summary-step',
+              uniqueInstanceName: 'iiif-rti-summary-instance',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['rti-upload']['iiif-rti-upload-instance']['digitalResourceId']",
+                successMessage: 'RTI resource added successfully!'
+              }
+            }]
+          }]
         }
       ];
 
       var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
+      finishOnSummary(this);
     },
     template: workflowTemplate
   });

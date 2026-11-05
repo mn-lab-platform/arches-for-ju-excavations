@@ -639,6 +639,7 @@ define([
 
             if (typeof params.value === 'function') params.value(valueData);
             if (params.form && params.form.value) params.form.value(valueData);
+            if (params.form && params.form.savedData) params.form.savedData(valueData);
 
             setTimeout(function() { self.progressStatus(''); }, 800);
             return manifestUrl;
@@ -656,9 +657,17 @@ define([
 
     // Step complete gate
     if (params.form && typeof params.form.complete === 'function') {
-      params.form.complete(ko.pureComputed(function() {
-        return !!self.digitalResourceId() && self.queue().length > 0;
-      }));
+      var completion = ko.pureComputed(function() {
+        return !!self.digitalResourceId() && self.progressPhase() === 'complete';
+      });
+      params.form.complete(completion() || !!ko.unwrap(params.form.savedData));
+      var completionSubscription = completion.subscribe(function(value) {
+        params.form.complete(!!value);
+      });
+      self.dispose = function() {
+        completionSubscription.dispose();
+        completion.dispose();
+      };
     }
 
     return self;

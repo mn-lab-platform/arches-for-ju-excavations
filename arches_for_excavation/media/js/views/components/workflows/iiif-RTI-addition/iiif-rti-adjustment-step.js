@@ -188,6 +188,7 @@ define([
 
         if (typeof params.value === 'function') params.value(value);
         if (params.form && params.form.value) params.form.value(value);
+        if (params.form && params.form.savedData) params.form.savedData(value);
       })
       .catch(function(err) {
         self.saved(false);
@@ -200,9 +201,17 @@ define([
     };
 
     if (params.form && typeof params.form.complete === 'function') {
-      params.form.complete(ko.pureComputed(function() {
+      var completion = ko.pureComputed(function() {
         return self.saved();
-      }));
+      });
+      params.form.complete(completion() || !!ko.unwrap(params.form.savedData));
+      var completionSubscription = completion.subscribe(function(value) {
+        params.form.complete(!!value);
+      });
+      self.dispose = function() {
+        completionSubscription.dispose();
+        completion.dispose();
+      };
     }
 
     return self;

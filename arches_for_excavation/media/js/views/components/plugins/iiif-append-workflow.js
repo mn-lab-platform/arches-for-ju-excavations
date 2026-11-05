@@ -5,8 +5,10 @@ define([
   'viewmodels/workflow',
   'templates/views/components/plugins/iiif-append-workflow.htm',
   'views/components/workflows/iiif-append/iiif-image-append-step',
-  'views/components/workflows/universal/resource-selection-step'
-], function(ko, $, arches, Workflow, workflowTemplate) {
+  'views/components/workflows/universal/resource-selection-step',
+  'views/components/workflows/universal/components/workflow-success-summary-step',
+  'views/components/workflows/universal/components/finish-on-summary'
+], function(ko, $, arches, Workflow, workflowTemplate, _append, _selection, _summary, finishOnSummary) {
   'use strict';
 
   return ko.components.register('iiif-append-workflow', {
@@ -60,11 +62,28 @@ define([
               }
             }]
           }]
+        },
+        {
+          title: 'Summary',
+          name: 'summary',
+          required: true,
+          layoutSections: [{
+            componentConfigs: [{
+              componentName: 'workflow-success-summary-step',
+              uniqueInstanceName: 'iiif-append-summary-instance',
+              tilesManaged: 'none',
+              parameters: {
+                resourceId: "['iiif-image-append']['iiif-image-append-instance']['digitalResourceId']",
+                successMessage: 'Files appended to the IIIF resource successfully!'
+              }
+            }]
+          }]
         }
       ];
 
       var WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
+      finishOnSummary(this);
     },
     template: workflowTemplate
   });

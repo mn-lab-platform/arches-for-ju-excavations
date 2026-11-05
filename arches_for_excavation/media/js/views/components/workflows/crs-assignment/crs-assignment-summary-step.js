@@ -186,9 +186,17 @@ define([
         self.confirmAssignment = function() { return runAssign(); };
 
         if (params.form) {
-            params.form.complete(ko.pureComputed(function() {
+            var completion = ko.pureComputed(function() {
                 return !!ko.unwrap(self.crsId) && self.count() > 0 && self.confirmed();
-            }));
+            });
+            params.form.complete(completion() || !!ko.unwrap(params.form.savedData));
+            var completionSubscription = completion.subscribe(function(value) {
+                params.form.complete(!!value);
+            });
+            self.dispose = function() {
+                completionSubscription.dispose();
+                completion.dispose();
+            };
 
             const originalSave = params.form.save || function() { return Promise.resolve(); };
             params.form.save = function() {

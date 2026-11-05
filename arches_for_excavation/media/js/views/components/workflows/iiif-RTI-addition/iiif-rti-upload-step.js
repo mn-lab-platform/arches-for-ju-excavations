@@ -257,6 +257,7 @@ define([
             planes: self.planes()
           });
         }
+        if (params.form && params.form.savedData) params.form.savedData(params.form.value());
       })
       .catch(function(err) {
         self.errorMessage(err && err.message ? err.message : String(err));
@@ -268,9 +269,17 @@ define([
     };
 
     if (params.form && typeof params.form.complete === 'function') {
-      params.form.complete(ko.pureComputed(function() {
+      var completion = ko.pureComputed(function() {
         return !!self.digitalResourceId() && !!self.metadataUrl() && self.planes().length > 0;
-      }));
+      });
+      params.form.complete(completion() || !!ko.unwrap(params.form.savedData));
+      var completionSubscription = completion.subscribe(function(value) {
+        params.form.complete(!!value);
+      });
+      self.dispose = function() {
+        completionSubscription.dispose();
+        completion.dispose();
+      };
     }
 
     return self;

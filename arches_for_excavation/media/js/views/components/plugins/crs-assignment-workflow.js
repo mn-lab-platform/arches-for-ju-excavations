@@ -6,8 +6,9 @@ define([
   'templates/views/components/plugins/crs-assignment-workflow.htm',
   'views/components/workflows/universal/resource-selection-step',
   'views/components/workflows/crs-assignment/crs-assignment-summary-step',
+  'views/components/workflows/universal/components/finish-on-summary'
 
-], function(ko, $, arches, Workflow, workflowTemplate) {
+], function(ko, $, arches, Workflow, workflowTemplate, _selection, _summary, finishOnSummary) {
   return ko.components.register('crs-assignment-workflow', {
     viewModel: function(params) {
       this.componentName = 'crs-assignment-workflow';
@@ -74,6 +75,7 @@ define([
 
       const WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
+      finishOnSummary(this);
     },
     template: workflowTemplate
   });

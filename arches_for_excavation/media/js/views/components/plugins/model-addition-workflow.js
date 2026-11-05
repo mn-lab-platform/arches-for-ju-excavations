@@ -6,8 +6,10 @@ define([
   'templates/views/components/plugins/model-addition-workflow.htm',
   'views/components/workflows/model-addition/model-addition-step',
   'views/components/workflows/universal/resource-selection-step',
-  'views/components/workflows/model-addition/summary-step'
-], function(ko, $, arches, Workflow, workflowTemplate) {
+  'views/components/workflows/universal/components/workflow-success-summary',
+  'views/components/workflows/model-addition/summary-step',
+  'views/components/workflows/universal/components/finish-on-summary'
+], function(ko, $, arches, Workflow, workflowTemplate, _addition, _selection, _successSummary, _summary, finishOnSummary) {
   return ko.components.register('model-addition-workflow', {
     viewModel: function(params) {
       this.componentName = 'model-addition-workflow';
@@ -72,6 +74,7 @@ define([
       // Apply Workflow base
       const WF = Workflow && Workflow.default ? Workflow.default : Workflow;
       WF.apply(this, [params]);
+      finishOnSummary(this);
     },
     template: workflowTemplate
   });

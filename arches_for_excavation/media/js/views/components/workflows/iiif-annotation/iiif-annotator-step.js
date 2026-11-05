@@ -549,6 +549,7 @@ define([
                     self.newAnnotations.removeAll();
 
                     self.value(buildStepPayload());
+                    if (params.form && params.form.savedData) params.form.savedData(self.value());
                     self.isSaved(true);
                     self.success('Annotations saved successfully.');
                     self.showFinalizeModal(false);
@@ -570,9 +571,17 @@ define([
         };
 
         if (params.form && params.form.complete) {
-            params.form.complete(ko.pureComputed(function() {
+            var completion = ko.pureComputed(function() {
                 return self.isSaved() && !self.isSaving();
-            }));
+            });
+            params.form.complete(completion() || !!ko.unwrap(params.form.savedData));
+            var completionSubscription = completion.subscribe(function(value) {
+                params.form.complete(!!value);
+            });
+            self.dispose = function() {
+                completionSubscription.dispose();
+                completion.dispose();
+            };
         }
 
         if (params.form && params.form.save) {
