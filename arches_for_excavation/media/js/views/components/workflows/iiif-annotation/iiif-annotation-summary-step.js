@@ -217,7 +217,7 @@ define([
         });
 
         self.canContinue = ko.pureComputed(function() {
-            // workflow można zamknąć dopiero po udanym zapisie
+            // The workflow can be closed only after a successful save
             return self.canSave() && self.isSaved() && !self.isLoading();
         });
 
@@ -227,7 +227,7 @@ define([
             console.log('[WF LOG][summary] Workflow step complete condition set.');
         }
 
-        // NEW: jeżeli user zmieni parametry po zapisie -> wymagaj ponownego save
+        // Require another save if the user changes parameters after saving
         function invalidateSavedState() {
             if (self.isSaved()) {
                 self.isSaved(false);
@@ -384,7 +384,7 @@ define([
                 anno.annotation_resource_id ||
                 null;
 
-            // redundancja: zapisz też w body
+            // Also store this in the request body for redundancy
             if (annotationResourceId) {
                 body.push({
                     type: 'TextualBody',
@@ -412,8 +412,8 @@ define([
             };
 
             if (annotationResourceId) {
-                out.annotationResourceId = annotationResourceId;   // główne pole
-                out.annotation_resource_id = annotationResourceId; // kompatybilność
+                out.annotationResourceId = annotationResourceId;   // Primary field
+                out.annotation_resource_id = annotationResourceId; // Compatibility
             }
 
             if (title) {
@@ -500,7 +500,7 @@ define([
                 .then(() => postTile(NODEGROUP_ANNOTATION_BODY, annotationBodyData, resourceId))
                 .then(() => {
                     console.log('[WF LOG][summary] Annotation resource created:', resourceId);
-                    return resourceId; // Zwróć ID stworzonego resource'a
+                    return resourceId; // Return the created resource ID
                 });
         };
 
@@ -532,7 +532,7 @@ define([
 
             console.log('[WF LOG][summary] Starting manual save...');
 
-            // Sprawdź czy mamy wybrany/stworzony target resource
+            // Check whether a target resource has been selected or created
             const targetResourceId = self.riValue();
             const mode = self.mode();
             
@@ -540,7 +540,7 @@ define([
                 self.saveAnnotationsWithTargetResource(payload, targetResourceId)
                     .then(function() {
                         self.isSaved(true);
-                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
+                        self.success('Annotations saved successfully. You can close the workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {
@@ -549,11 +549,11 @@ define([
                         self.isLoading(false);
                     });
             } else {
-                // Zwykły tryb - tylko adnotacje
+                // Standard mode: annotations only
                 self.saveAnnotationsOnly(payload)
                     .then(function() {
                         self.isSaved(true);
-                        self.success('Adnotacje zapisane poprawnie. Możesz zamknąć workflow.');
+                        self.success('Annotations saved successfully. You can close the workflow.');
                         self.isLoading(false);
                     })
                     .catch(function(err) {

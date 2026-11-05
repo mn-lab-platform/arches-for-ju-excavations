@@ -32,7 +32,7 @@ define([
 
     self.resourceName = ko.observable('');
 
-    // Ustaw domyślnie na false – inaczej znowu wrócisz do “zawsze robi hillshade”
+    // Default to false to avoid generating hillshade for every upload
     self.forceDem = ko.observable(false);
     self.makeHillshade = ko.observable(false);
 
@@ -455,7 +455,7 @@ define([
           item.job_id = r.job_id || null;
           item.file_id = r.job_id || item.file_id || utils.uuidv4();
 
-          // initial file entries (original + whatever endpoints są dostępne od razu)
+          // Initial file entries (original plus any endpoints available immediately)
           var entries = [{
             file_id: item.file_id,
             name: item.name,

@@ -29,14 +29,14 @@
       </div>
 
       <button class="btn btn-primary" data-bind="click: manualSave, enable: canSave() && !isLoading()">
-        Zapisz adnotacje
+        Save annotations
       </button>
 
       <span data-bind="visible: isLoading()" style="margin-left:10px;">
-        <i class="fa fa-spinner fa-spin"></i> Zapisuję...
+        <i class="fa fa-spinner fa-spin"></i> Saving...
       </span>
 
-      <!-- FIX: jedno data-bind + success alert -->
+      <!-- One data-bind and a success alert -->
       <span class="text-danger" style="margin-left:10px;" data-bind="visible: error, text: error"></span>
 
       <div class="alert alert-success" style="margin-top:10px;" data-bind="visible: success">
@@ -127,21 +127,21 @@
   <!-- /ko -->
 </div>
 <style>
-    /* Zwiększamy wysokość i dodajemy relative, żeby pozycjonowanie działało poprawnie */
+    /* Increase height and use relative positioning for correct layout */
     .resource-creator-panel {
         position: relative;
-        min-height: 400px; /* Dajemy miejsce na formularz */
+        min-height: 400px; /* Leave room for the form */
         background: #fff;
         border: 1px solid #ddd;
         padding: 15px;
         margin-top: 15px;
     }
 
-    /* Kluczowa poprawka: Wymuszamy, aby panel przycisków był widoczny w przepływie */
+    /* Keep the button panel visible in the document flow */
     .resource-creator-panel .install-buttons {
-        position: static !important; /* Wyłącza absolute positioning */
+        position: static !important; /* Disable absolute positioning */
         display: flex !important;
-        justify-content: flex-end; /* Przesuwa przyciski do prawej */
+        justify-content: flex-end; /* Align buttons to the right */
         padding: 10px 0;
         margin-top: 20px;
         background: transparent !important;
@@ -149,7 +149,7 @@
         border-top: 1px solid #eee;
     }
 
-    /* Opcjonalnie: poprawki dla samej karty, żeby nie próbowała być na 100% wysokości ekranu */
+    /* Prevent the card from trying to fill the full screen height */
     .resource-creator-panel .card-component {
         height: auto !important;
         min-height: unset !important;

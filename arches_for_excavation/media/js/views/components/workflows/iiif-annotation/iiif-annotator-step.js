@@ -321,13 +321,13 @@ define([
 
                 self.riVm(newVm);
 
-                // jak w summary-step: daj VM chwilę na zbudowanie select2Config
+                // As in summary-step, give the VM time to build select2Config
                 window.setTimeout(function() {
-                    // czasem select2Config pojawia się asynchronicznie
+                    // select2Config sometimes appears asynchronously
                     self.riVm(newVm); // wymusza refresh bindingu KO
                     self.riVmReady(!!(newVm && newVm.select2Config));
 
-                    // fallback: druga próba po krótkiej chwili
+                    // Fallback: retry after a short delay
                     if (!self.riVmReady()) {
                         window.setTimeout(function() {
                             self.riVm(newVm);
@@ -353,7 +353,7 @@ define([
                 return;
             }
 
-            // gdy wracamy do trybu linkowania i graph już jest wybrany -> odbuduj RIS
+            // Rebuild RIS when returning to link mode with a graph already selected
             var gid = String(self.targetGraphId() || '').trim();
             if (gid && !self.riVm()) {
                 rebuildRiVm(gid);

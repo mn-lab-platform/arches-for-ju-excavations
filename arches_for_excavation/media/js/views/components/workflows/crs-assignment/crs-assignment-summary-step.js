@@ -58,7 +58,7 @@ define([
             }
             payload = asObject(payload);
 
-            // awaryjnie: czasem może być zagnieżdżone jeszcze raz
+            // Fallback: sometimes it is nested one level deeper
             if (payload && asObject(payload.resource)) payload = payload.resource;
 
             return asObject(payload);

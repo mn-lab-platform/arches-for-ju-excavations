@@ -47,7 +47,7 @@
     <h3 data-bind="text: stepTitle"></h3>
     <p class="text-muted" data-bind="visible: stepDescription, text: stepDescription"></p>
 
-    <!-- Info o zasobie z kroku 1 -->
+    <!-- Resource from step 1 -->
     <div class="alert alert-info" data-bind="visible: targetResourceId">
         Target resource ID:
         <code data-bind="text: targetResourceId"></code>
@@ -58,7 +58,7 @@
     </div>
 
 
-    <!-- Nazwa zasobu -->
+    <!-- Resource name -->
     <div class="form-group" style="margin-top:10px;">
         <label for="iiif-resource-name-input">Resource name</label>
         <input id="iiif-resource-name-input"
@@ -69,7 +69,7 @@
         <small class="text-muted">Used to organize files in folder structure</small>
     </div>
 
-    <!-- NOWE: tryb przesyłania -->
+    <!-- Upload mode -->
     <div class="form-group" style="margin-top:10px;">
       <label>Upload mode</label>
       <div>
@@ -94,7 +94,7 @@
         </div>
     </div>
 
-    <!-- NOWE: tabela plików -->
+    <!-- Selected files table -->
     <div class="panel panel-default" style="margin-top:10px;" data-bind="visible: queue().length > 0">
       <div class="panel-heading"><strong>Selected files</strong></div>
       <div class="panel-body" style="padding:0;">
@@ -139,12 +139,12 @@
     <div class="checkbox" data-bind="visible: !isPhotoMode() && queue().length > 0">
         <label>
             <input type="checkbox" data-bind="checked: resumeInterruptedUpload">
-            Wznów przerwany upload z tego urządzenia
+            Resume an interrupted upload from this device
         </label>
-        <small class="help-block">Wybierz ten sam plik, nazwę zasobu i ustawienia DEM/Ortho. Formularz użyje poprzedniego zasobu IIIF.</small>
+        <small class="help-block">Select the same file, resource name, and DEM/Ortho settings. The form will reuse the existing IIIF resource.</small>
     </div>
 
-    <!-- Status i przycisk upload -->
+    <!-- Upload status and button -->
     <div data-bind="visible: progressPhase() === 'ready'" style="margin-top:10px; text-align:center;">
         <p style="color: #5cb85c; font-weight: bold;" data-bind="text: progressStatus"></p>
         <button type="button" class="btn btn-success" data-bind="click: startUpload">
@@ -161,14 +161,14 @@
         </div>
     </div>
 
-    <!-- Potwierdzenie sukcesu -->
+    <!-- Success confirmation -->
     <div data-bind="visible: progressPhase() === 'complete'" class="alert alert-success" style="margin-top:10px;">
         <span class="glyphicon glyphicon-ok"></span>
         <strong>Success!</strong> All files processed and manifest created.
         <p style="margin-top:8px;" data-bind="text: progressStatus"></p>
     </div>
 
-    <!-- Błędy -->
+    <!-- Errors -->
     <div data-bind="visible: errorMessage" class="alert alert-danger" style="margin-top:10px;">
         <span data-bind="text: errorMessage"></span>
     </div>

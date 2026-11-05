@@ -35,23 +35,23 @@
         autoEnableAnnotationTools: true
       "></iiif-map-viewer>
 
-      <!-- USUNIĘTE: reset FAB przeniesiony do panelu iiif-panel--annotation -->
+      <!-- Removed: reset FAB moved to the iiif-panel--annotation panel -->
       <!--
       <button class="btn btn-warning anno-reset-fab"
               data-bind="visible: newAnnotations().length > 0 || showAnnoMetaModal(), click: resetUnsavedAnnotations, enable: !isSaving()">
         <i class="fa fa-undo"></i>
-        Reset niezapisanych
+        Reset unsaved annotations
       </button>
       -->
     </div>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap;">
       <span class="text-muted" data-bind="visible: newAnnotations().length === 0">
-        Dodaj adnotację, aby odblokować zapis.
+        Add an annotation to enable saving.
       </span>
 
       <span class="text-info" data-bind="visible: newAnnotations().length > 0 && !isSaved()">
-        Nowe adnotacje oczekują: <strong data-bind="text: newAnnotations().length"></strong>
+        New annotations pending: <strong data-bind="text: newAnnotations().length"></strong>
       </span>
 
       <span class="text-success" data-bind="visible: isSaved">
@@ -404,7 +404,7 @@
     margin-left: 8px;
   }
 
-  /* USUŃ (nieużywane po przeniesieniu do panelu) */
+  /* Remove (unused after moving to the panel) */
   /*
   .anno-reset-fab {
     position: absolute;

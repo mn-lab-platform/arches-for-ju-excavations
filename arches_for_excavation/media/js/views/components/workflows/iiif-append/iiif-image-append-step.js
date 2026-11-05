@@ -165,7 +165,7 @@ define([
 
         var files = _normalizeUsedFileEntriesForStore(ctx.used_files);
         
-        // append workflow: ładujemy istniejące USED_FILES, ale ich nie kasujemy docelowo
+        // Append workflow: load existing USED_FILES without removing them from the target
         self.fileStore.clear();
         self.fileStore.tileId(self.tiles.fileListTileId());
         self.fileStore.upsert(files);
@@ -341,7 +341,7 @@ define([
 
     self.queueRunner = new QueueRunner({
       maxParallel: self.maxParallel,
-      queue: self.queue, // FIX: było "list", musi być "queue"
+      queue: self.queue, // The option must be "queue", not "list"
       processItem: function(item) {
         console.log('[IIIF-APPEND] processItem start:', item && item.name, item && item.statusObs && item.statusObs());
         return self.processOne(item);
@@ -352,7 +352,7 @@ define([
       }
     });
 
-    // debug: podgląd statusów kolejki
+    // Debug: inspect queue statuses
     self._queueDebugSub = ko.computed(function() {
       var snapshot = self.queue().map(function(it) {
         return {
@@ -438,7 +438,7 @@ define([
               throw new Error(e.error || 'Photo upload failed');
             });
           }
-          return resp.json(); // FIX: było resp.json
+          return resp.json(); // Call resp.json rather than returning the function
         })
         .then(function(r) {
           item.job_id = r.job_id || null;
@@ -458,7 +458,7 @@ define([
             description: item.iiif_service_url ? ('IIIF: ' + item.iiif_service_url) : ''
           }]));
 
-          // nie blokuj całego uploadu gdy zapis USED_FILES się nie uda
+          // Do not block the entire upload if saving USED_FILES fails
           return self.saveUsedFilesTile().catch(function(e) {
             console.warn('[IIIF-APPEND] saveUsedFilesTile failed (non-fatal):', e);
           });
