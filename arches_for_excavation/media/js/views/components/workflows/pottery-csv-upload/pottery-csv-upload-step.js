@@ -218,7 +218,7 @@ define([
                 reader.onload = function(loadEvent) {
                     try {
                         const result = parseCsvBuffer(loadEvent.target.result);
-                        applyParsedFile(file, result);
+                        applyParsedFile(result);
                     } catch (error) {
                         self.errorMessage(error.message || 'Could not read CSV.');
                     } finally {
@@ -268,7 +268,7 @@ define([
                         return parseJsonResponse(response);
                     })
                     .then(function(result) {
-                        applyParsedFile(file, result);
+                        applyParsedFile(result);
                     })
                     .catch(function(error) {
                         self.errorMessage('Could not read XLSX: ' + error.message);
@@ -278,7 +278,7 @@ define([
                     });
             }
 
-            function applyParsedFile(file, result) {
+            function applyParsedFile(result) {
                 const potteryImportData = buildPotteryImportData(result.rows);
                 const fileType = result.format === 'xlsx' ? 'XLSX' : 'CSV';
                 const sourceDetailLabel = result.format === 'xlsx' ? 'Sheet' : 'Delimiter';
@@ -293,18 +293,6 @@ define([
                 self.rowCount(result.rowCount);
                 self.potteryImportData(potteryImportData);
                 self.successMessage(null);
-
-                if (typeof params.value === 'function') {
-                    params.value({
-                        fileName: file.name,
-                        fileSize: file.size,
-                        fileType: fileType,
-                        sheet: result.sheet || '',
-                        delimiter: result.delimiter || '',
-                        headers: result.headers,
-                        rowCount: result.rowCount
-                    });
-                }
 
             }
 
@@ -357,8 +345,6 @@ define([
                             }
                             self.successMessage(data.message + ' Saved ' + data.fragmentCount + ' pottery type cards.');
                             if (typeof self.value === 'function') self.value(data.potteryCollectionResourceId);
-                            if (params.form && params.form.savedData) params.form.savedData(data.potteryCollectionResourceId);
-                            if (params.form && params.form.complete) params.form.complete(true);
                         }
                     })
                     .catch(function(error) {

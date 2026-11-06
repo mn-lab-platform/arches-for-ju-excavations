@@ -257,7 +257,6 @@ define([
             planes: self.planes()
           });
         }
-        if (params.form && params.form.savedData) params.form.savedData(params.form.value());
       })
       .catch(function(err) {
         self.errorMessage(err && err.message ? err.message : String(err));

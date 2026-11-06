@@ -549,7 +549,6 @@ define([
                     self.newAnnotations.removeAll();
 
                     self.value(buildStepPayload());
-                    if (params.form && params.form.savedData) params.form.savedData(self.value());
                     self.isSaved(true);
                     self.success('Annotations saved successfully.');
                     self.showFinalizeModal(false);

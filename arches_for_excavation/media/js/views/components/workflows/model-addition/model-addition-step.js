@@ -242,8 +242,6 @@ define([
                                     self.errorMessage('');
                                     self.canSubmit(false);
                                     self.value(self.modelId);
-                                    if (params.form && params.form.savedData) params.form.savedData(self.modelId);
-                                    if (params.form && params.form.complete) params.form.complete(true);
                                 }).catch((error) => {
                                     self.errorMessage('Upload completed, but failed to create model resource: ' + (error.message || error));
                                     self.infoMessage('');

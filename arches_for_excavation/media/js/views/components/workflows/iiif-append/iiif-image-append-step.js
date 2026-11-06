@@ -736,7 +736,6 @@ define([
 
           if (typeof params.value === 'function') params.value(valueData);
           if (params.form && params.form.value) params.form.value(valueData);
-          if (params.form && params.form.savedData) params.form.savedData(valueData);
 
           setTimeout(function() { self.progressStatus(''); }, 800);
           return manifestUrl;
