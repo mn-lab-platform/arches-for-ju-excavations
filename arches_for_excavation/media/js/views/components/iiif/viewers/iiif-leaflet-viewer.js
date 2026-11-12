@@ -11,16 +11,17 @@ import {
   pickLargestCanvas
 } from '../lib/iiif-manifest-utils';
 
-import { createLeafletViewManager } from '../features/leaflet-view-manager';
+import { createLeafletViewManager, getCanvasGeoref } from '../features/leaflet-view-manager';
 import { ensureLeafletIiif, getIiifLayerMaxZoom } from '../lib/leaflet-iiif-loader';
 import { createLeafletClickCoordinates } from '../lib/leaflet-click-coordinates';
 
 const LOG = '[iiif-leaflet-viewer]';
 const DEBUG_FLAG = 'iiif.leaflet.debug';
-const FORCE_DEBUG = true;
+const IMAGE_MIN_ZOOM = -10;
+// Dwa dodatkowe poziomy powiększenia kafli (4× ponad skalę ortho).
+const OVERZOOM_LEVELS = 2;
 
 function isDebugOn() {
-  if (FORCE_DEBUG) return true;
   try {
     if (typeof window === 'undefined') return false;
     if (window.__IIIF_LEAFLET_DEBUG__ === true) return true;
@@ -70,8 +71,8 @@ export function createLeafletViewer(opts = {}) {
 
   /**
    * displayMaxZoom:
-   * - wspólny max zoom dla UI Leafleta
-   * - zwykle powinien odpowiadać największemu canvasowi, np. ortho
+   * - fallback dla canvasów bez porównywalnej transformacji
+   * - dla wspólnego CRS limit wyliczamy z najdrobniejszego piksela terenowego
    *
    * nativeMaxZoom:
    * - prawdziwy max zoom konkretnego canvasu
@@ -163,40 +164,41 @@ export function createLeafletViewer(opts = {}) {
 
   async function ensureLayer(rec) {
     if (!api._map) return null;
-    if (rec._layer) return rec._layer;
 
     if (!rec.serviceUrl) {
       throw new Error('Leaflet: missing IIIF ImageService for canvas: ' + rec.id);
     }
 
-    ensurePanes();
+    if (!rec._layer) {
+      ensurePanes();
 
-    const infoJsonUrl = rec.serviceUrl.replace(/\/+$/, '') + '/info.json';
-    const paneName = rec.isBase ? 'iiif-base' : 'iiif-overlays';
+      const infoJsonUrl = rec.serviceUrl.replace(/\/+$/, '') + '/info.json';
+      const paneName = rec.isBase ? 'iiif-base' : 'iiif-overlays';
+      const nativeMaxZoom = Number(api.getCanvasNativeMaxZoom(rec.id) ?? rec.nativeMaxZoom ?? 0);
+      const displayMaxZoom = Number(api.getDisplayMaxZoom() ?? nativeMaxZoom);
 
-    const nativeMaxZoom = Number(api.getCanvasNativeMaxZoom(rec.id) ?? rec.nativeMaxZoom ?? 0);
-    const displayMaxZoom = Number(api.getDisplayMaxZoom() ?? nativeMaxZoom);
+      rec._layer = api._L.tileLayer.iiif(infoJsonUrl, {
+        opacity: 1,
+        pane: paneName,
+        fitBounds: false,
+        setMaxBounds: false,
+        minZoom: IMAGE_MIN_ZOOM,
+        minNativeZoom: 0,
+        maxNativeZoom: nativeMaxZoom,
+        // GridLayer zaokrągla zoom kafli. Przy limicie np. 5.585
+        // warstwa musi dopuszczać poziom 6; mapa nadal kończy na 5.585.
+        maxZoom: Math.ceil(displayMaxZoom)
+      });
+    }
 
-    rec._layer = api._L.tileLayer.iiif(infoJsonUrl, {
-      opacity: 1,
-      pane: paneName,
-      fitBounds: false,
-      setMaxBounds: false,
-
-      /**
-       * Najważniejsza część:
-       *
-       * maxNativeZoom = do którego zoomu istnieją prawdziwe kafle
-       * maxZoom       = do którego Leaflet pozwala wizualnie przybliżać
-       *
-       * Czyli DEM może mieć nativeMaxZoom = 3,
-       * ale displayMaxZoom = 5, więc Leaflet overzoomuje DEM-a.
-       */
-      maxNativeZoom: nativeMaxZoom,
-      maxZoom: displayMaxZoom
-    });
-
-    return rec._layer;
+    const layer = rec._layer;
+    // leaflet-iiif inicjalizuje GridLayer dopiero po pobraniu info.json.
+    // Zmiana zoomu przed tym momentem kończy się błędem _levels[zoom].
+    await layer._infoPromise;
+    if (!Number.isFinite(layer.maxNativeZoom) || !Array.isArray(layer._tierSizes)) {
+      throw new Error('Leaflet: could not load IIIF image info: ' + rec.serviceUrl);
+    }
+    return layer;
   }
 
   async function setLayerVisible(rec, visible) {
@@ -309,7 +311,9 @@ export function createLeafletViewer(opts = {}) {
         crs: api._L.CRS.Simple,
         zoomControl: true,
         attributionControl: false,
-        preferCanvas: true
+        preferCanvas: true,
+        minZoom: IMAGE_MIN_ZOOM,
+        zoomSnap: 0
       });
 
       ensurePanes();
@@ -388,13 +392,7 @@ export function createLeafletViewer(opts = {}) {
       return;
     }
 
-    /**
-     * Wspólny displayMaxZoom liczymy z całego manifestu,
-     * a nie tylko z aktualnej grupy.
-     *
-     * Dzięki temu przełączenie ortho <-> DEM nie zmienia
-     * maksymalnego zoomu UI.
-     */
+    // Fallback, gdy canvasy nie mają porównywalnej transformacji.
     api._displayMaxZoom = Math.max(
       0,
       ...all.map((canvas, idx) => {
@@ -661,7 +659,26 @@ export function createLeafletViewer(opts = {}) {
   };
 
   api.getDisplayMaxZoom = () => {
-    return Number(api._displayMaxZoom || 0);
+    const fallbackMaxZoom = Number(api._displayMaxZoom || 0);
+    const baseId = api._lockedBaseId || api.baseCanvasId();
+    const baseRec = api.getCanvasRecord(baseId);
+    const baseGeoref = getCanvasGeoref(baseRec?.canvas);
+    if (baseGeoref.reason) return fallbackMaxZoom + OVERZOOM_LEVELS;
+
+    const matching = (api._manifest?.items || [])
+      .map(getCanvasGeoref)
+      .filter((geo) => !geo.reason && (
+        (baseGeoref.epsg && geo.epsg === baseGeoref.epsg) ||
+        (baseGeoref.crs && geo.crs === baseGeoref.crs)
+      ));
+    const finestPixelSize = Math.min(...matching.map((geo) => geo.pixelSize));
+    if (!(finestPixelSize > 0) || !Number.isFinite(finestPixelSize)) {
+      return fallbackMaxZoom + OVERZOOM_LEVELS;
+    }
+
+    return api.getCanvasNativeMaxZoom(baseId) +
+      Math.log2(baseGeoref.pixelSize / finestPixelSize) +
+      OVERZOOM_LEVELS;
   };
 
   api.getCurrentBaseCanvasMaxZoom = () => {

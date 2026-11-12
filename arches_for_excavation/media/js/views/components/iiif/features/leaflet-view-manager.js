@@ -1,5 +1,34 @@
 // features/leaflet-view-manager.js
 
+import { affineForward, affineInverse } from '../lib/affine-utils';
+import { mdValue, parseTransformFromCanvas } from '../lib/iiif-manifest-utils';
+
+export function getCanvasGeoref(canvas) {
+  const transform = parseTransformFromCanvas(canvas);
+  const epsgRaw = String(mdValue(canvas, 'epsg') || '')
+    .trim()
+    .replace(/^EPSG:/i, '');
+  const epsg = /^\d+$/.test(epsgRaw) ? epsgRaw : null;
+  const crsRaw = String(mdValue(canvas, 'crs') || '').trim();
+  const crs = crsRaw && !/^(none|null)$/i.test(crsRaw)
+    ? crsRaw.replace(/\s+/g, ' ')
+    : null;
+
+  if (!transform || !transform.every(Number.isFinite)) {
+    return { reason: 'brak poprawnej transformacji' };
+  }
+  if (!epsg && !crs) return { reason: 'brak układu współrzędnych' };
+
+  const [a, b, , d, e] = transform;
+  const pixelSize = Math.sqrt(Math.abs(a * e - b * d));
+  if (!(pixelSize > 0) || !Number.isFinite(pixelSize)) {
+    return { reason: 'nieodwracalna transformacja' };
+  }
+
+  // has_georef=false oznacza tu brak EPSG; LOCAL_CS nadal ma użyteczną transformację.
+  return { transform, epsg, crs, pixelSize };
+}
+
 export function createLeafletViewManager(opts = {}) {
   const getMap = opts.getMap || (() => null);
   const getLeaflet = opts.getLeaflet || (() => null);
@@ -45,7 +74,6 @@ export function createLeafletViewManager(opts = {}) {
     if (!(w > 1 && h > 1)) return;
 
     const nativeMaxZoom = getCanvasMaxZoom(baseId) ?? 0;
-    const displayMaxZoom = Number(getDisplayMaxZoom() ?? nativeMaxZoom ?? 0);
 
     const crs = map.options?.crs;
     if (!crs?.latLngToPoint) return;
@@ -88,42 +116,34 @@ export function createLeafletViewManager(opts = {}) {
       return;
     }
 
-    /**
-     * Pozycja jako relatywny punkt canvasu.
-     * Działa dobrze, jeśli ortho i DEM mają ten sam extent.
-     */
+    // Względny środek służy jako fallback przy braku wspólnej georeferencji.
     const relX = fullX / w;
     const relY = fullY / h;
 
     const zoom = Number(map.getZoom?.() ?? 0);
+    if (!Number.isFinite(zoom)) return;
 
-    /**
-     * Zoom widoku zapisujemy względem displayMaxZoom,
-     * nie względem nativeMaxZoom konkretnego canvasu.
-     *
-     * Dzięki temu:
-     * ortho native=5, DEM native=3, display=5
-     * przełączenie ortho -> DEM nie zetnie zoomu do 3.
-     */
-    const relZ = zoom - displayMaxZoom;
+    const georef = getCanvasGeoref(rec.canvas);
+    const groundCenter = !georef.reason
+      ? affineForward(georef.transform, fullX, fullY)
+      : null;
 
     savedView = {
       relX,
       relY,
-      relZ,
+      zoom,
       refW: w,
       refH: h,
       refNativeMaxZoom: nativeMaxZoom,
-      refDisplayMaxZoom: displayMaxZoom
+      sourceLabel: rec.label || rec.id,
+      georefReason: georef.reason || null,
+      epsg: georef.epsg || null,
+      crs: georef.crs || null,
+      groundCenter,
+      groundUnitsPerScreenPixel: !georef.reason
+        ? georef.pixelSize * Math.pow(2, nativeMaxZoom - zoom)
+        : null
     };
-
-    dbg('--- [SAVE VIEW] ---');
-    dbg(`1. Canvas Dimensions: w=${w}, h=${h}`);
-    dbg(`2. nativeMaxZoom=${nativeMaxZoom}, displayMaxZoom=${displayMaxZoom}`);
-    dbg(`3. Viewport Center LatLng: ${center.toString?.() || String(center)}`);
-    dbg(`4. Full Pixels: fullX=${fullX.toFixed(2)}, fullY=${fullY.toFixed(2)}`);
-    dbg(`5. Ratios: relX=${relX.toFixed(6)}, relY=${relY.toFixed(6)}`);
-    dbg(`6. Map zoom=${zoom}, relZ=${relZ}`);
   }
 
   async function restoreView(rec) {
@@ -157,25 +177,65 @@ export function createLeafletViewManager(opts = {}) {
     const nativeMaxZoom = getCanvasMaxZoom(rec.id) ?? 0;
     const displayMaxZoom = Number(getDisplayMaxZoom() ?? nativeMaxZoom ?? 0);
 
-    /**
-     * Target zoom liczymy po displayMaxZoom.
-     * To jest główny fix.
-     */
-    let targetZoom = savedView.relZ + displayMaxZoom;
+    // Bez wspólnej georeferencji zachowujemy względny środek i skalę obrazu.
+    let newFullX = savedView.relX * w;
+    let newFullY = savedView.relY * h;
+    let targetZoom =
+      savedView.zoom +
+      nativeMaxZoom -
+      savedView.refNativeMaxZoom +
+      Math.log2(savedView.refW / w);
+
+    const georef = getCanvasGeoref(rec.canvas);
+    const sameCrs = !georef.reason && (
+      (savedView.epsg && savedView.epsg === georef.epsg) ||
+      (savedView.crs && savedView.crs === georef.crs)
+    );
+    let restoreMode = 'względny';
+    let fallbackReason = savedView.georefReason || georef.reason || 'różne układy współrzędnych';
+
+    if (
+      sameCrs &&
+      savedView.groundCenter?.length === 2 &&
+      savedView.groundCenter.every(Number.isFinite) &&
+      Number.isFinite(savedView.groundUnitsPerScreenPixel) &&
+      savedView.groundUnitsPerScreenPixel > 0
+    ) {
+      const pixel = affineInverse(
+        georef.transform,
+        savedView.groundCenter[0],
+        savedView.groundCenter[1]
+      );
+
+      if (pixel?.every(Number.isFinite)) {
+        newFullX = pixel[0];
+        newFullY = pixel[1];
+        targetZoom = nativeMaxZoom + Math.log2(
+          georef.pixelSize / savedView.groundUnitsPerScreenPixel
+        );
+        restoreMode = 'terenowy';
+        fallbackReason = null;
+      } else {
+        fallbackReason = 'nie można odwrócić transformacji';
+      }
+    }
+
+    if (!Number.isFinite(targetZoom)) return false;
+
     const originalTargetZoom = targetZoom;
 
     /**
-     * Clamp też do displayMaxZoom, a nie do nativeMaxZoom.
-     * Inaczej DEM zetnie zoom.
+     * Zoom może być ujemny, ale musi pozostać w zakresie mapy
+     * i wspólnego maksymalnego zoomu UI.
      */
-    targetZoom = clampNum(targetZoom, 0, displayMaxZoom);
+    const mapMinZoom = Number(map.getMinZoom?.());
+    const mapMaxZoom = Number(map.getMaxZoom?.());
+    const minZoom = Number.isFinite(mapMinZoom) ? mapMinZoom : -10;
+    const maxZoom = Number.isFinite(mapMaxZoom)
+      ? Math.min(mapMaxZoom, displayMaxZoom)
+      : displayMaxZoom;
 
-    /**
-     * Pozycję liczymy w pikselach aktualnego canvasu.
-     * Tu nadal używamy nativeMaxZoom, bo to jest raster.
-     */
-    const newFullX = savedView.relX * w;
-    const newFullY = savedView.relY * h;
+    targetZoom = clampNum(targetZoom, minZoom, maxZoom);
 
     const newImgX = newFullX / Math.pow(2, nativeMaxZoom);
     const newImgY = newFullY / Math.pow(2, nativeMaxZoom);
@@ -183,20 +243,11 @@ export function createLeafletViewManager(opts = {}) {
     const unscaledPt = L.point(newImgX, newImgY);
     const center = crs.pointToLatLng(unscaledPt, 0);
 
-    dbg('--- [RESTORE VIEW] ---');
-    dbg(`1. Target Canvas Dimensions: w=${w}, h=${h}`);
-    dbg(`2. nativeMaxZoom=${nativeMaxZoom}, displayMaxZoom=${displayMaxZoom}`);
-    dbg(`3. Restoring Ratios: relX=${savedView.relX.toFixed(6)}, relY=${savedView.relY.toFixed(6)}`);
-    dbg(`4. Target Full Pixels: fullX=${newFullX.toFixed(2)}, fullY=${newFullY.toFixed(2)}`);
-    dbg(`5. Target Image Pixels zoom0: newImgX=${newImgX.toFixed(2)}, newImgY=${newImgY.toFixed(2)}`);
-
-    if (originalTargetZoom !== targetZoom) {
-      dbg(`6. Target Zoom clamped from ${originalTargetZoom} to ${targetZoom}`);
-    } else {
-      dbg(`6. Target Zoom=${targetZoom}`);
-    }
-
-    dbg(`7. Final Map Center LatLng: ${center.toString?.() || String(center)}`);
+    const clampInfo = originalTargetZoom !== targetZoom
+      ? ` (limit z ${originalTargetZoom.toFixed(3)})`
+      : '';
+    const reasonInfo = fallbackReason ? `, powód: ${fallbackReason}` : '';
+    dbg(`Widok ${savedView.sourceLabel} → ${rec.label || rec.id}: ${restoreMode}${reasonInfo}, środek px=(${newFullX.toFixed(1)}, ${newFullY.toFixed(1)}), zoom=${savedView.zoom.toFixed(3)}→${targetZoom.toFixed(3)}${clampInfo}`);
 
     map.invalidateSize(false);
     map.setView(center, targetZoom, {
