@@ -104,7 +104,9 @@ export default ko.components.register('context-tabbed-report', {
                 .filter(related => graphIn(related.graph_id, ANNOTATION_RESOURCE_GRAPHIDS))
                 .map(related => related.resourceinstanceid);
 
-            const [annotations] = await Promise.all(annotationIds.map(id => resourceService.getOne(id)));
+            const annotations = await Promise.all(
+                annotationIds.map(id => resourceService.getOne(id))
+            );
 
             return {
                 resourceId,

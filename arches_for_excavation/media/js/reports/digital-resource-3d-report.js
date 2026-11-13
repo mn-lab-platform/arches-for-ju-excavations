@@ -45,8 +45,15 @@ export default ko.components.register('digital-resource-3d-report', {
         };
 
         const parseJsonValue = (value, fallback) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                if (value['@value'] !== undefined) value = value['@value'];
+                else if (value.value !== undefined) value = value.value;
+            }
+
             if (!value) return fallback;
-            if (typeof value !== 'string') return value;
+            if (Array.isArray(value)) return value;
+            if (typeof value !== 'string') return fallback;
+
             try { return JSON.parse(value); } catch (_) { return fallback; }
         };
 
