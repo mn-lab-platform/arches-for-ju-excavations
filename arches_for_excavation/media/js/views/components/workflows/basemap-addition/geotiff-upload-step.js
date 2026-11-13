@@ -22,7 +22,11 @@ define([
             const basemapService = basemapServiceModule.default || basemapServiceModule;
 
             self.mode = ko.observable(params.mode);
+            self.isResumingUpload = ko.observable(false);
             self.submitLabel = ko.pureComputed(function() {
+                if (self.isResumingUpload()) {
+                    return `Continue Uploading ${self.isOverlay() ? 'Overlay' : 'Basemap'}`;
+                }
                 return self.mode() === 'overlay' ? 'Create a new Overlay' : 'Create a new Basemap';
             });
 
@@ -196,6 +200,7 @@ define([
 
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
+                        self.isResumingUpload(false);
                         self.errorMessage('');
                         self.successMessage('');
                         if (self.currentUpload) {
@@ -211,13 +216,15 @@ define([
                                     self.basemapName(oldMetadata.basemap_name || '');
                                     self.sortOrder(oldMetadata.basemap_sortorder || 0);
                                     self.selectedIcon(oldMetadata.basemap_icon || 'fa fa-map');
-                                    self.submitLabel(`Continue Uploading ${self.isOverlay() ? 'Overlay' : 'Basemap'}`);
+                                    self.isResumingUpload(true);
                                     self.loading(false);
                                     self.infoMessage('This file has an unfinished upload. It will continue from where it left off. We auto-filled your original settings.');
                                 }
                             }
-
-                        })
+                        }).catch(error => {
+                            console.error('Failed to inspect previous upload metadata:', error);
+                            self.errorMessage('Unable to inspect unfinished upload metadata.');
+                        });
 
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
@@ -240,6 +247,7 @@ define([
                         self.successMessage(null);
                         self.infoMessage(null);
                         self.loading(false);
+                        self.isResumingUpload(false);
                         self.basemapName('');
                         self.sortOrder(0);
                         if (self.currentUpload) {

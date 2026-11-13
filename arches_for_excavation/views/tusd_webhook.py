@@ -25,6 +25,8 @@ TUS_UPLOAD_TYPES = {
     'iiif': 'iiif',
 }
 
+MEDIA_BASE = os.path.join(settings.MEDIA_ROOT, settings.UPLOADED_FILES_DIR)
+
 def iiif_tus_results_dir():
     return Path(getattr(settings, 'IIIF_TUS_RESULTS_DIR', '/arches_data/iiif_tus_results'))
 
@@ -43,17 +45,15 @@ def _token_is_valid(token, max_age=3600):
 
 def _get_raster_info(path, to_wgs84=False):
     with rasterio.open(path) as ds:
+        if to_wgs84 and not ds.crs:
+            raise ValueError('Raster has no CRS definition')
+
         b = ds.bounds
         
         cx = b.left + (b.right - b.left) / 2
         cy = b.bottom + (b.top - b.bottom) / 2
         
-        bounds = {
-            'left': b.left,
-            'bottom': b.bottom,
-            'right': b.right,
-            'top': b.top
-        }
+        bounds = [b.left, b.bottom, b.right, b.top]
         
         if to_wgs84 and ds.crs and ds.crs != "EPSG:4326":
             transformer = Transformer.from_crs(ds.crs, "EPSG:4326", always_xy=True)
@@ -140,6 +140,8 @@ def _handle_maplayer_upload(metadata, source_file_path, tus_id):
             'task_id': task.id,
         })
     
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
     except Exception as e:
         return JsonResponse({'error': f'Failed to read raster info: {str(e)}'}, status=500)
 
@@ -268,7 +270,7 @@ def _write_iiif_result(path, data):
         temporary.unlink(missing_ok=True)
 
 
-def _process_iiif_upload(MEDIA_BASE, tus_id, metadata, user_id):
+def _process_iiif_upload(tus_id, metadata, user_id):
     results_dir = iiif_tus_results_dir()
     results_dir.mkdir(parents=True, exist_ok=True)
     result_path = results_dir / f'{tus_id}.json'
@@ -318,7 +320,6 @@ def _process_iiif_upload(MEDIA_BASE, tus_id, metadata, user_id):
 @csrf_exempt
 @require_POST
 def tus_webhook(request):
-    MEDIA_BASE = Path(settings.MEDIA_ROOT) / settings.UPLOADED_FILES_DIR
     try:
         body = json.loads(request.body)
         if not isinstance(body, dict):
@@ -356,7 +357,7 @@ def tus_webhook(request):
             iiif_metadata = _iiif_metadata(metadata)
             if not iiif_metadata:
                 return JsonResponse({'error': 'Invalid IIIF GeoTIFF metadata'}, status=400)
-            return _process_iiif_upload(MEDIA_BASE, tus_id, iiif_metadata, user_id)
+            return _process_iiif_upload(tus_id, iiif_metadata, user_id)
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)

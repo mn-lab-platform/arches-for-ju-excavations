@@ -26,6 +26,7 @@ define([
             self.errorMessage = ko.observable(null);
             self.infoMessage = ko.observable(null);
             self.successMessage = ko.observable(null);
+            self.loading = ko.observable(false);
             self.canSubmit = ko.observable(false);
             self.isGeoreferenced = ko.observable(false);
             self.modelName = ko.observable('');
@@ -118,6 +119,7 @@ define([
 
                     dz.on('addedfile', function(file) {
                         self.canSubmit(true);
+                        self.loading(false);
                         self.errorMessage('');
                         self.successMessage('');
 
@@ -136,11 +138,14 @@ define([
                                 if (oldMetadata) {
                                     self.modelName(oldMetadata.model_name || extractedName);
                                     self.modelId = oldMetadata.model_id || null;
+                                    self.loading(false);
                                     self.infoMessage('This file has an unfinished upload. It will continue from where it left off. We auto-filled your original settings.');
                                 }
                             }
-
-                        })
+                        }).catch(error => {
+                            console.error('Failed to inspect previous upload metadata:', error);
+                            self.errorMessage('Unable to inspect unfinished upload metadata.');
+                        });
                         
                         const thumbnailElement = file.previewElement.querySelector("[data-dz-thumbnail]");
                         if (thumbnailElement) {
@@ -162,7 +167,9 @@ define([
                         self.errorMessage(null);
                         self.successMessage(null);
                         self.infoMessage(null);
+                        self.loading(false);
                         self.modelName('');
+                        self.modelId = null;
                         if (self.currentUpload) {
                             self.currentUpload.abort(true);
                             self.currentUpload = null;
@@ -220,15 +227,18 @@ define([
                             }
                             self.errorMessage(`Upload failed: ${errorMessage}`);
                             self.infoMessage('');
+                            self.loading(false);
                             self.successMessage('');
                             self.canSubmit(true);
                         },
                         onProgress: function(bytesUploaded, bytesTotal) {
                             const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+                            self.loading(true);
                             self.infoMessage(`Upload progress: ${percentage}%`);
                         },
                         onSuccess: function() {
                             if(self.currentUpload) {
+                                self.loading(true);
                                 const modelUrl = `/files/uploadedfiles/3d_models/${self.parentResourceId()}/${self.modelId}/`;
                                 models3dService.waitForModelStatus(
                                     self.parentResourceId(),
@@ -239,12 +249,14 @@ define([
                                 }).then(() => {
                                     self.successMessage('Upload completed successfully!');
                                     self.infoMessage('');
+                                    self.loading(false);
                                     self.errorMessage('');
                                     self.canSubmit(false);
                                     self.value(self.modelId);
                                 }).catch((error) => {
                                     self.errorMessage('Upload completed, but failed to create model resource: ' + (error.message || error));
                                     self.infoMessage('');
+                                    self.loading(false);
                                     self.successMessage('');
                                 });
                             }
@@ -269,13 +281,18 @@ define([
                             console.error("Failed to sync new metadata, proceeding with old metadata:", patchErr);
                             self.errorMessage('Failed to sync new metadata with the server. Proceeding with previous metadata.');
                             self.infoMessage('');
+                            self.loading(false);
                             self.successMessage('');
                         }
                         upload.resumeFromPreviousUpload(previousUploads[0])
                     }
 
                     upload.start();
-                    })
+                    }).catch(error => {
+                        console.error('Failed to prepare resumed model upload:', error);
+                        self.loading(false);
+                        self.errorMessage(`Unable to resume upload: ${error.message || error}`);
+                    });
                 }
             };
         },
