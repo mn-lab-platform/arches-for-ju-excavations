@@ -665,6 +665,7 @@ class ResourceTableDataView(View):
             if isinstance(page_size, bool) or not isinstance(page_size, int) or not 1 <= page_size <= PAGE_SIZE:
                 raise ValueError("Invalid page size.")
             cursor = str(payload.get("cursor") or "")
+            total_count = None
             if sort_by:
                 query_key = sorted_query_key(
                     request, graph_id, columns, filters, sort_by, sort_direction,
@@ -688,6 +689,7 @@ class ResourceTableDataView(View):
                         request, graph_id, columns, table_columns, filters, sort_by, sort_direction,
                     )
                     resource_ids = [row["resource_id"] for row in rows]
+                    total_count = len(resource_ids)
                     page = rows[:page_size]
                     token = str(uuid4())
                     if len(resource_ids) > page_size:
@@ -709,13 +711,25 @@ class ResourceTableDataView(View):
                     after_id,
                 )
                 page = []
-                for row in rows:
-                    page.append(row)
-                    if len(page) > page_size:
-                        break
+                if not cursor and not filters:
+                    total_count = accessible_resources(request, graph_id).count()
+                if not cursor and filters:
+                    total_count = 0
+                    for row in rows:
+                        total_count += 1
+                        if len(page) <= page_size:
+                            page.append(row)
+                else:
+                    for row in rows:
+                        page.append(row)
+                        if len(page) > page_size:
+                            break
                 next_cursor = page[page_size - 1]["resource_id"] if len(page) > page_size else None
+            result = {"columns": table_columns, "rows": page[:page_size], "next_cursor": next_cursor}
+            if total_count is not None:
+                result["total_count"] = total_count
             return JsonResponse(
-                {"columns": table_columns, "rows": page[:page_size], "next_cursor": next_cursor},
+                result,
                 json_dumps_params={"ensure_ascii": False},
             )
         except LookupError as error:

@@ -77,7 +77,10 @@
 
     <section class="resource-table-plugin__table-view" data-bind="visible: tableBuilt">
         <div class="resource-table-plugin__toolbar">
-            <button type="button" data-bind="click: editColumns">Choose columns</button>
+            <div class="resource-table-plugin__toolbar-start">
+                <span class="resource-table-plugin__count" role="status" aria-live="polite" data-bind="text: totalCount() === null ? 'Resources: …' : 'Resources: ' + totalCount()"></span>
+                <button type="button" data-bind="click: editColumns">Choose columns</button>
+            </div>
             <div class="resource-table-plugin__actions">
                 <button type="button" data-bind="click: loadTable">Apply filters</button>
                 <button type="button" data-bind="click: exportCsv, enable: rows().length && !exporting()">Export CSV</button>
@@ -479,6 +482,18 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+.resource-table-plugin__toolbar-start {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.resource-table-plugin__count {
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .resource-table-plugin__top-scroll {

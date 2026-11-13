@@ -45,6 +45,7 @@ export default ko.components.register('resource-table', {
         self.availableColumns = ko.observableArray([]);
         self.selectedColumnIds = ko.observableArray([]);
         self.rows = ko.observableArray([]);
+        self.totalCount = ko.observable(null);
         self.tableColumns = ko.observableArray([]);
         self.columnWidths = ko.observable({});
         self.tableBuilt = ko.observable(false);
@@ -259,6 +260,7 @@ export default ko.components.register('resource-table', {
             self.availableColumns([]);
             self.selectedColumnIds([]);
             self.rows([]);
+            self.totalCount(null);
             self.nextCursor(null);
             self.hasMore(false);
             self.tableColumns([]);
@@ -348,6 +350,7 @@ export default ko.components.register('resource-table', {
                     if (firstPage) {
                         self.tableColumns(data.columns || []);
                         self.rows(data.rows || []);
+                        self.totalCount(data.total_count ?? null);
                     } else {
                         self.rows.push(...(data.rows || []));
                     }
@@ -378,6 +381,7 @@ export default ko.components.register('resource-table', {
             self.pageController = null;
             self.pageLoading(false);
             self.rows([]);
+            self.totalCount(null);
             self.nextCursor(null);
             self.hasMore(false);
             self.error('');
