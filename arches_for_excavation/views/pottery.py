@@ -397,7 +397,7 @@ class PotteryImportPreviewView(View):
             return JsonResponse(
                 {
                     "status": "error",
-                    "message": "One Pottery Collection import must contain one Form ID and one Last Shred No.",
+                    "message": "One Pottery Collection import must contain one Form ID and one Last Sherd No.",
                     "formIds": sorted(form_ids),
                     "lastShredNos": sorted(last_shred_nos),
                 },
@@ -411,7 +411,7 @@ class PotteryImportPreviewView(View):
                 return JsonResponse(
                     {
                         "status": "error",
-                        "message": "Last Shred No must be a number.",
+                        "message": "Last Sherd No must be a number.",
                         "lastShredNo": next(iter(last_shred_nos)),
                     },
                     status=400,
