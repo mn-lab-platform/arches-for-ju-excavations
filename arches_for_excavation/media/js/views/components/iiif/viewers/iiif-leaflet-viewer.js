@@ -20,6 +20,7 @@ const DEBUG_FLAG = 'iiif.leaflet.debug';
 const IMAGE_MIN_ZOOM = -10;
 // Dwa dodatkowe poziomy powiększenia kafli (4× ponad skalę ortho).
 const OVERZOOM_LEVELS = 2;
+const FIT_PADDING = 16;
 
 function isDebugOn() {
   try {
@@ -275,6 +276,17 @@ export function createLeafletViewer(opts = {}) {
     setStatus('Leaflet: loading base canvas…');
 
     const baseLayer = await ensureLayer(baseRec);
+
+    // Ustaw kadr zanim warstwa zacznie pobierać kafle.
+    if (preserveView && viewManager.hasSavedView()) {
+      const ok = await viewManager.restoreView(baseRec);
+      if (!ok) {
+        await api.fitToBase();
+      }
+    } else {
+      await api.fitToBase();
+    }
+
     baseLayer.addTo(api._map);
 
     for (const vm of api.layers()) {
@@ -284,15 +296,6 @@ export function createLeafletViewer(opts = {}) {
       const layer = await ensureLayer(rec);
       layer.setOpacity?.(Math.max(0, Math.min(1, Number(vm.opacity()))));
       layer.addTo(api._map);
-    }
-
-    if (preserveView && viewManager.hasSavedView()) {
-      const ok = await viewManager.restoreView(baseRec);
-      if (!ok) {
-        await api.fitToBase();
-      }
-    } else {
-      await api.fitToBase();
     }
 
     setStatus('Leaflet: ready');
@@ -473,6 +476,7 @@ export function createLeafletViewer(opts = {}) {
 
   api.setGroup = async (group, groupOpts = {}) => {
     const newGroup = group === 'dem' ? 'dem' : 'ortho';
+    if (api.group() === newGroup) return;
     api.group(newGroup);
 
     if (api._manifest) {
@@ -492,11 +496,6 @@ export function createLeafletViewer(opts = {}) {
   api.fitToBase = async () => {
     if (!api._map || !api._manifest || !api._container) return;
 
-    const wpx = api._container.offsetWidth;
-    const hpx = api._container.offsetHeight;
-
-    if (!(wpx > 0 && hpx > 0)) return;
-
     const baseId = api._lockedBaseId || api.baseCanvasId();
     const rec = baseId ? api._canvasIndex.get(baseId) : null;
 
@@ -515,25 +514,30 @@ export function createLeafletViewer(opts = {}) {
     await raf();
 
     try {
+      if (api._canvasIndex.get(baseId) !== rec ||
+          (api._lockedBaseId || api.baseCanvasId()) !== baseId) {
+        return;
+      }
+
+      const w = Number(layer.x);
+      const h = Number(layer.y);
+      const nativeMaxZoom = Number(layer.options?.maxNativeZoom);
+      if (!(w > 0 && h > 0) || !Number.isFinite(nativeMaxZoom)) {
+        throw new Error('IIIF info.json missing valid dimensions or native zoom');
+      }
+
       api._map.invalidateSize(false);
+      const size = api._map.getSize();
+      if (!(size.x > 0 && size.y > 0)) return;
 
-      if (typeof layer._fitBounds === 'function') {
-        layer._fitBounds();
-        return;
-      }
-
-      const w = Number(rec.w);
-      const h = Number(rec.h);
-
-      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 1 || h <= 1) {
-        return;
-      }
-
+      const scale = Math.pow(2, nativeMaxZoom);
       const L = api._L;
-      const sw = api._map.options.crs.pointToLatLng(L.point(0, h), 0);
-      const ne = api._map.options.crs.pointToLatLng(L.point(w, 0), 0);
+      const crs = api._map.options.crs;
+      const sw = crs.pointToLatLng(L.point(0, h / scale), 0);
+      const ne = crs.pointToLatLng(L.point(w / scale, 0), 0);
 
       api._map.fitBounds(L.latLngBounds(sw, ne), {
+        padding: [FIT_PADDING, FIT_PADDING],
         animate: false
       });
     } catch (e) {
