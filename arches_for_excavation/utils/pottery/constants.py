@@ -1,15 +1,15 @@
 # The project-managed Collections take precedence for dictionaries that were
-# explicitly added in Arches. The remaining PAC ConceptScheme URLs are stable
-# references to the RDF source in ``collectiones/``.
+# explicitly added in Arches. The remaining MN Thesaurus ConceptScheme URLs
+# identify the schemes imported into the local database.
 POTTERY_DICTIONARY_AMPHORAE_TYPE = "pottery types - amphorae"
 POTTERY_DICTIONARY_LAMP_TYPE = "pottery types - lamps"
 POTTERY_DICTIONARY_TABLE_WARE_TYPE = "pottery types - table ware"
 POTTERY_DICTIONARY_FORM = "pottery - vessel form"
-POTTERY_DICTIONARY_VESSEL_PART = "https://pac.cenagis.edu.pl/entity/Q451"
+POTTERY_DICTIONARY_VESSEL_PART = "https://thesaurus.mn.cenagis.edu.pl/entity/Q451"
 POTTERY_DICTIONARY_SUB_CATEGORY = "pottery - sub-category"
 POTTERY_DICTIONARY_PROVENANCE = "provenance"
 POTTERY_DICTIONARY_CHRONOLOGY = "chronology"
-POTTERY_DICTIONARY_MORPHOLOGY = "https://pac.cenagis.edu.pl/entity/Q455"
+POTTERY_DICTIONARY_MORPHOLOGY = "https://thesaurus.mn.cenagis.edu.pl/entity/Q455"
 POTTERY_DICTIONARY_STATE_OF_PRESERVATION = "pottery - state of preservation"
 POTTERY_DICTIONARY_SURFACE_TREATMENT = "pottery - surface treatment"
 

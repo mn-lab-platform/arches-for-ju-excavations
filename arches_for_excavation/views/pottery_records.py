@@ -199,11 +199,19 @@ class PotteryRecordTemplateView(View):
         # usable as a quick reference while the user fills in the template:
         # row 1 is the dictionary name and the rows below contain its values.
         dictionary_sheet = workbook.create_sheet("Dictionary values")
+        dictionary_headers = {
+            "vesselPart": "pottery - vessel part",
+            "morphology": "pottery - morphology",
+        }
         for column_index, (field, dictionary) in enumerate(
             record_config.get("dictionary_fields", {}).items(),
             start=1,
         ):
-            dictionary_sheet.cell(row=1, column=column_index, value=dictionary)
+            dictionary_sheet.cell(
+                row=1,
+                column=column_index,
+                value=dictionary_headers.get(field, dictionary),
+            )
             for row_index, option in enumerate(dictionary_options[field], start=2):
                 dictionary_sheet.cell(
                     row=row_index,
