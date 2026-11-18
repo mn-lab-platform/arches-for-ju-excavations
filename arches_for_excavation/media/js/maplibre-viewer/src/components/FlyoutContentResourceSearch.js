@@ -425,7 +425,10 @@ export class FlyoutContentResourceSearch {
 
     _resourceShouldBeActive(resourceInfo) {
         const resourceIsIiif = this.IIIF_GRAPH_ID === resourceInfo.graph_id;
-        return resourceIsIiif || resourceInfo.geometries?.length > 0;
+        if (resourceIsIiif) {
+            return resourceInfo.has_crs === true;
+        }
+        return resourceInfo.geometries?.length > 0;
     }
 
     _createResultItem(resourceInfo) {
