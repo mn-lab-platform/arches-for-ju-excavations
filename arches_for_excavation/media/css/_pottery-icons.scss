@@ -1,0 +1,63 @@
+// Keep the Arches icon container intact. Only the glyph uses the SVG.
+
+.pottery-icon-a::before,
+.pottery-icon-kw::before,
+.pottery-icon-l::before,
+.pottery-icon-pw::before,
+.pottery-icon-sv::before,
+.pottery-icon-tw::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: -0.125em;
+    opacity: 0.65;
+}
+
+// Arches gives its model tile icons top padding for font glyph baselines.
+// Position SVG glyphs against the tile box instead of that text baseline.
+.resource-grid-icon.pottery-icon-a,
+.resource-grid-icon.pottery-icon-kw,
+.resource-grid-icon.pottery-icon-l,
+.resource-grid-icon.pottery-icon-pw,
+.resource-grid-icon.pottery-icon-sv,
+.resource-grid-icon.pottery-icon-tw,
+.ep-graph-title-icon.pottery-icon-a,
+.ep-graph-title-icon.pottery-icon-kw,
+.ep-graph-title-icon.pottery-icon-l,
+.ep-graph-title-icon.pottery-icon-pw,
+.ep-graph-title-icon.pottery-icon-sv,
+.ep-graph-title-icon.pottery-icon-tw {
+    position: relative;
+}
+
+.resource-grid-icon.pottery-icon-a::before,
+.resource-grid-icon.pottery-icon-kw::before,
+.resource-grid-icon.pottery-icon-l::before,
+.resource-grid-icon.pottery-icon-pw::before,
+.resource-grid-icon.pottery-icon-sv::before,
+.resource-grid-icon.pottery-icon-tw::before,
+.ep-graph-title-icon.pottery-icon-a::before,
+.ep-graph-title-icon.pottery-icon-kw::before,
+.ep-graph-title-icon.pottery-icon-l::before,
+.ep-graph-title-icon.pottery-icon-pw::before,
+.ep-graph-title-icon.pottery-icon-sv::before,
+.ep-graph-title-icon.pottery-icon-tw::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+    vertical-align: baseline;
+}
+
+.pottery-icon-a::before { background-image: url("../img/pottery/A.svg"); }
+.pottery-icon-kw::before { background-image: url("../img/pottery/KW.svg"); }
+.pottery-icon-l::before { background-image: url("../img/pottery/L.svg"); }
+.pottery-icon-pw::before { background-image: url("../img/pottery/PW.svg"); }
+.pottery-icon-sv::before { background-image: url("../img/pottery/SV.svg"); }
+.pottery-icon-tw::before { background-image: url("../img/pottery/TW.svg"); }
