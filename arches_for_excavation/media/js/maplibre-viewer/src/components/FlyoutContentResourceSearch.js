@@ -22,7 +22,10 @@ export class FlyoutContentResourceSearch {
         this.advancedSearchOn = false;
         this.currentlySelectedGraphId = null;
         this.activeRenderedItemRefs = new Map();
-        this.IIIF_GRAPH_ID = 'f1b9e37a-c3ba-4c26-a797-7f16302c031c';
+        this.IIIF_GRAPH_IDS = new Set([
+            '401b3051-d1c4-465c-8dd0-1d5784adee98',
+            'f1b9e37a-c3ba-4c26-a797-7f16302c031c'
+        ]);
         
         this.searchTimeout = null;
         this.resultLimit = 100;
@@ -172,10 +175,21 @@ export class FlyoutContentResourceSearch {
                 return;
             }
             const filterString = this._extractFilterStringFromUrl(filterUrl);
-            getAllResourcesFromFilterString(filterString).then(response => {
-                this._fillInstanceResourcesFromApiResponse(response);
-                this._renderResults(this.resources);
-            });
+            EventBusInstance.publish(events.APP_BUSY_ON);
+            getAllResourcesFromFilterString(filterString)
+                .then(response => {
+                    this._fillInstanceResourcesFromApiResponse(response);
+                    this._removeAllPreviews();
+                    this._renderResults(this.resources);
+                })
+                .catch(error => {
+                    console.error('Failed to load advanced map search results:', error);
+                    this.resources = [];
+                    this._renderResults(this.resources);
+                })
+                .finally(() => {
+                    EventBusInstance.publish(events.APP_BUSY_OFF);
+                });
         });
 
         this.searchContainer.appendChild(this.searchInput);
@@ -366,6 +380,7 @@ export class FlyoutContentResourceSearch {
     }
 
     _loadResources() {
+        EventBusInstance.publish(events.APP_BUSY_ON);
         const searchTerm = this.searchInput ? this.searchInput.value.trim() : '';
         const graphId = this.typeSelect ? this.typeSelect.value : '';
 
@@ -379,6 +394,9 @@ export class FlyoutContentResourceSearch {
                 console.error('Failed to load map resources:', error);
                 this.resources = [];
                 this._renderResults(this.resources);
+            })
+            .finally(() => {
+                EventBusInstance.publish(events.APP_BUSY_OFF);
             });
     }
 
@@ -400,7 +418,7 @@ export class FlyoutContentResourceSearch {
         this.resources = allHits
             .map(hit => {
                 const source = hit?._source || {};
-                source.type = this.IIIF_GRAPH_ID === source.graph_id ? constants.LAYER_TYPES.iiif : constants.LAYER_TYPES.geojson;
+                source.type = this.IIIF_GRAPH_IDS.has(source.graph_id) ? constants.LAYER_TYPES.iiif : constants.LAYER_TYPES.geojson;
                 return source;
             });
     }
@@ -424,8 +442,11 @@ export class FlyoutContentResourceSearch {
     }
 
     _resourceShouldBeActive(resourceInfo) {
-        const resourceIsIiif = this.IIIF_GRAPH_ID === resourceInfo.graph_id;
-        return resourceIsIiif || resourceInfo.geometries?.length > 0;
+        const resourceIsIiif = this.IIIF_GRAPH_IDS.has(resourceInfo.graph_id);
+        if (resourceIsIiif) {
+            return resourceInfo.has_crs === true;
+        }
+        return resourceInfo.geometries?.length > 0;
     }
 
     _createResultItem(resourceInfo) {
