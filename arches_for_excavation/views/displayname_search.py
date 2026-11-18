@@ -66,6 +66,10 @@ class DisplayNameSearchView(View):
         except (TypeError, ValueError):
             limit = 100
 
+        resource_ids = request.GET.getlist("resourceid")
+        if resource_ids:
+            limit = max(limit, len(resource_ids))
+
         search_engine = SearchEngineFactory().create()
         search_query = Query(search_engine, start=0, limit=limit)
         search_query.sort("date_last_edited", {"order": "desc"})
@@ -95,12 +99,15 @@ class DisplayNameSearchView(View):
         if graph_id_list:
             query.filter(Terms(field="graph_id", terms=graph_id_list))
 
+        if resource_ids:
+            query.filter(Terms(field="resourceinstanceid", terms=resource_ids))
+
         if not request.user.is_superuser:
             for inclusion in permission_backend.get_permission_inclusions():
                 search_query.include(inclusion)
             query.must(permission_backend.get_permission_search_filter(request.user))
 
-        if term or graph_id_list or not request.user.is_superuser:
+        if term or graph_id_list or resource_ids or not request.user.is_superuser:
             search_query.add_query(query)
         response = search_query.search(index=RESOURCES_INDEX) or {
             "hits": {"total": {"value": 0}, "hits": []}

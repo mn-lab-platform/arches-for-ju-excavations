@@ -29,6 +29,11 @@ export const getAllResourcesFromFilterString = async (filterString, maxPages = 1
     const params = new URLSearchParams(filterString);
     let page = Number(params.get('paging-filter') || 1);
     const results = [];
+    const iiifIds = new Set();
+    const IIIF_GRAPH_IDS = new Set([
+        '401b3051-d1c4-465c-8dd0-1d5784adee98',
+        'f1b9e37a-c3ba-4c26-a797-7f16302c031c'
+    ]);
 
     while (page <= maxPages) {
         params.set('paging-filter', String(page));
@@ -62,7 +67,53 @@ export const getAllResourcesFromFilterString = async (filterString, maxPages = 1
         if (!json || (Object.keys(json).length === 0 && resp.ok)) {
             break;
         }
+
+        const hits = json?.results?.hits?.hits;
+        if (Array.isArray(hits)) {
+            hits.forEach(hit => {
+                const source = hit?._source;
+                if (source?.resourceinstanceid && IIIF_GRAPH_IDS.has(source.graph_id)) {
+                    iiifIds.add(source.resourceinstanceid);
+                }
+            });
+            if (hits.length === 0) {
+                break;
+            }
+        }
         page += 1;
+    }
+
+    if (iiifIds.size > 0) {
+        const enrichParams = new URLSearchParams();
+        iiifIds.forEach(resourceId => enrichParams.append('resourceid', resourceId));
+        enrichParams.set('limit', String(iiifIds.size));
+
+        const enrichResponse = await fetch(`/api/resources-by-displayname?${enrichParams.toString()}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        if (enrichResponse.ok) {
+            const enriched = await enrichResponse.json();
+            const crsByResourceId = new Map(
+                (enriched?.results?.hits?.hits || []).map(hit => [
+                    hit?._source?.resourceinstanceid,
+                    hit?._source?.has_crs === true
+                ])
+            );
+
+            results.forEach(pageResult => {
+                (pageResult?.results?.hits?.hits || []).forEach(hit => {
+                    const source = hit?._source;
+                    if (source && crsByResourceId.has(source.resourceinstanceid)) {
+                        source.has_crs = crsByResourceId.get(source.resourceinstanceid);
+                    }
+                });
+            });
+        }
     }
 
     return results;
