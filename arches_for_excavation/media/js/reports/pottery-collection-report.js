@@ -27,7 +27,7 @@ export default ko.components.register('pottery-collection-report', {
             }),
             ko.mapping.fromJS({
                 name: 'Amphorae',
-                icon: 'fa-table',
+                icon: 'pottery-icon-a',
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
@@ -38,7 +38,7 @@ export default ko.components.register('pottery-collection-report', {
             }),
             ko.mapping.fromJS({
                 name: 'Kitchen Ware',
-                icon: 'fa-table',
+                icon: 'pottery-icon-kw',
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
@@ -49,7 +49,7 @@ export default ko.components.register('pottery-collection-report', {
             }),
             ko.mapping.fromJS({
                 name: 'Table Ware',
-                icon: 'fa-table',
+                icon: 'pottery-icon-tw',
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
@@ -59,19 +59,8 @@ export default ko.components.register('pottery-collection-report', {
                 }
             }),
             ko.mapping.fromJS({
-                name: 'Kitchen ware',
-                icon: 'fa-table',
-                main_component: 'pottery-record-table',
-                nodegroup_ids: [],
-                component_params: {
-                    potteryType: 'Kitchen ware',
-                    recordType: 'kitchen-ware',
-                    collectionResourceId: collectionResourceId
-                }
-            }),                
-            ko.mapping.fromJS({
                 name: 'Plain Ware',
-                icon: 'fa-table',
+                icon: 'pottery-icon-pw',
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
@@ -82,7 +71,7 @@ export default ko.components.register('pottery-collection-report', {
             }),
             ko.mapping.fromJS({
                 name: 'Storage Vessel',
-                icon: 'fa-table',
+                icon: 'pottery-icon-sv',
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {
@@ -93,7 +82,7 @@ export default ko.components.register('pottery-collection-report', {
             }),
             ko.mapping.fromJS({
                 name: 'Lamp',
-                icon: 'fa-table',
+                icon: 'pottery-icon-l',
                 main_component: 'pottery-record-table',
                 nodegroup_ids: [],
                 component_params: {

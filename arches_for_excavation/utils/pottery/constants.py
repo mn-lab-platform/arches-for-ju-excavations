@@ -324,3 +324,33 @@ POTTERY_RECORD_TYPES = {
         POTTERY_RECORD_TYPE_DICTIONARIES["lamp"],
     ),
 }
+
+# These fields have been removed from the corresponding Pottery Record graphs.
+# Keep imports, templates, and reports aligned with the published graphs.
+POTTERY_RECORD_EXCLUDED_FIELDS = {
+    "amphorae": {"subcategory", "vesselForm"},
+    "plain-ware": {"subcategory"},
+    "storage-vessel": {"subcategory"},
+    "kitchen-ware": {"subcategory"},
+}
+
+for _record_type, _excluded_fields in POTTERY_RECORD_EXCLUDED_FIELDS.items():
+    _config = POTTERY_RECORD_TYPES[_record_type]
+    _config["excluded_fields"] = frozenset(_excluded_fields)
+    for _mapping_name in ("fields", "dictionary_fields", "excel_fields"):
+        _config[_mapping_name] = {
+            key: value
+            for key, value in _config[_mapping_name].items()
+            if key not in _excluded_fields
+        }
+    _config["columns"] = [
+        column for column in _config["columns"]
+        if column["key"] not in _excluded_fields
+    ]
+    _config["record_data_keys"] = [
+        key for key in _config["record_data_keys"] if key not in _excluded_fields
+    ]
+    _config["dictionary_multi_value_fields"] = tuple(
+        key for key in _config["dictionary_multi_value_fields"]
+        if key not in _excluded_fields
+    )

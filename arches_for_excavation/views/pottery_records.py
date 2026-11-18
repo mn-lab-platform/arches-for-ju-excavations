@@ -69,9 +69,17 @@ def get_pottery_report_schema(graph_id):
         nodes_by_name.setdefault(node.name, str(node.nodeid))
 
     relation_node_id = nodes_by_name.get("Pottery Collection")
-    field_map = {key: nodes_by_name.get(label) for key, label in POTTERY_REPORT_FIELDS}
-    missing_fields = [key for key, node_id in field_map.items() if not node_id]
-    return relation_node_id, field_map, missing_fields
+    record_config = next(
+        config for config in POTTERY_RECORD_TYPES.values()
+        if config["graph_id"] == str(graph_id)
+    )
+    excluded_fields = record_config.get("excluded_fields", ())
+    field_map = {
+        key: nodes_by_name[label]
+        for key, label in POTTERY_REPORT_FIELDS
+        if key not in excluded_fields and label in nodes_by_name
+    }
+    return relation_node_id, field_map
 
 
 def get_record_config_response(record_type):
@@ -474,19 +482,25 @@ class PotteryRecordsForCollectionView(View):
                 status=404,
             )
 
-        relation_node_id, field_map, missing_fields = get_pottery_report_schema(
+        relation_node_id, field_map = get_pottery_report_schema(
             report_config["graph_id"]
         )
-        if not relation_node_id or missing_fields:
+        if not relation_node_id:
             return JsonResponse(
                 {
                     "status": "error",
-                    "message": "The Pottery Record graph is missing required report fields.",
-                    "missingFields": missing_fields,
+                    "message": "The Pottery Record graph is missing its Pottery Collection relationship.",
                     "recordType": record_type,
                 },
                 status=500,
             )
+
+        # Pottery Record graphs differ in their optional fields. A missing
+        # field should not prevent records from the rest of the graph loading.
+        columns = [
+            column for column in report_config["columns"]
+            if column["key"] == "resourceLink" or column["key"] in field_map
+        ]
 
         # Filter the relationship in PostgreSQL instead of examining every
         # record of this type in Python. ``data__contains`` works with the
@@ -521,7 +535,7 @@ class PotteryRecordsForCollectionView(View):
                 "resourceLink": f"/report/{resource_id}",
             }
 
-            for output_key in field_map.keys():
+            for output_key in field_map:
                 row[output_key] = ""
 
             for data in tiles_by_resource_id[str(resource_id)]:
@@ -548,7 +562,7 @@ class PotteryRecordsForCollectionView(View):
             "collectionResourceId": str(collection_resource_id),
             "recordType": record_type,
             "label": report_config["label"],
-            "columns": report_config["columns"],
+            "columns": columns,
             "count": len(records),
             "records": records,
         })
