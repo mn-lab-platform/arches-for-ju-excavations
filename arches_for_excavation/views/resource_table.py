@@ -15,6 +15,9 @@ from arches.app.models.models import Edge, Graph, Node, Resource, Value
 from arches.app.utils import permission_backend
 
 
+DOMAIN_VALUE_DATATYPES = {"domain-value", "domain-value-list"}
+
+
 def localized_label(value):
     if isinstance(value, dict):
         value = value.get("en") or next(iter(value.values()), "")
@@ -25,6 +28,20 @@ def localized_label(value):
 
 def node_label(node):
     return localized_label(node.name) or node.alias or str(node.nodeid)
+
+
+def domain_option_labels(node):
+    if node.datatype not in DOMAIN_VALUE_DATATYPES:
+        return {}
+    config = node.config
+    options = config.get("options") if callable(getattr(config, "get", None)) else []
+    labels = {}
+    for option in options or []:
+        if isinstance(option, dict) and option.get("id"):
+            label = localized_label(option.get("text"))
+            if label:
+                labels[str(option["id"])] = label
+    return labels
 
 
 def flatten_value(value):
@@ -129,6 +146,7 @@ def graph_nodes(graph_id):
             "label": node_label(node),
             "path": paths[str(node.nodeid)],
             "datatype": node.datatype,
+            "domain_options": domain_option_labels(node),
             "nodegroup_id": str(node.nodegroup_id) if node.nodegroup_id else "",
             "nodegroup_is_multiple": bool(node.nodegroup and node.nodegroup.cardinality == "n"),
             "repeating_nodegroup_id": repeating_nodegroup_id(node),
@@ -278,7 +296,23 @@ def related_resource_name_map(request, resource_ids):
     }
 
 
-def display_tile_values(value, datatype, concept_labels, related_resource_names):
+def display_tile_values(value, datatype, concept_labels, related_resource_names, domain_options=None):
+    if datatype in DOMAIN_VALUE_DATATYPES:
+        if isinstance(value, list):
+            return [
+                label
+                for item in value
+                for label in display_tile_values(
+                    item, datatype, concept_labels, related_resource_names, domain_options,
+                )
+            ]
+        if isinstance(value, dict) and ("value" in value or "id" in value):
+            return display_tile_values(
+                value.get("value") or value.get("id"),
+                datatype, concept_labels, related_resource_names, domain_options,
+            )
+        option_id = flatten_value(value).strip()
+        return [(domain_options or {}).get(option_id, option_id)] if option_id else []
     if datatype in {"concept", "concept-list"}:
         return [
             concept_labels[value_id]
@@ -295,12 +329,13 @@ def display_tile_values(value, datatype, concept_labels, related_resource_names)
     return [flattened] if flattened else []
 
 
-def display_tile_value(value, datatype, concept_labels, related_resource_names):
+def display_tile_value(value, datatype, concept_labels, related_resource_names, domain_options=None):
     return ", ".join(display_tile_values(
         value,
         datatype,
         concept_labels,
         related_resource_names,
+        domain_options,
     ))
 
 
@@ -369,6 +404,7 @@ def format_card_values(card_data, fields, concept_labels, related_resource_names
                 field["datatype"],
                 concept_labels,
                 related_resource_names,
+                field.get("domain_options"),
             ).strip()
             for raw_value in card_data.get(field["node_id"], [])
         ]
@@ -492,17 +528,20 @@ def resource_rows(request, resources, columns, table_columns):
             field = fields[0]
             node_id = field["node_id"]
             datatype = field["datatype"]
-            formatter = lambda value, datatype=datatype: display_tile_value(
+            domain_options = field.get("domain_options")
+            formatter = lambda value, datatype=datatype, domain_options=domain_options: display_tile_value(
                 value,
                 datatype,
                 concept_labels,
                 related_resource_names,
+                domain_options,
             )
-            sort_value_formatter = lambda value, datatype=datatype: display_tile_values(
+            sort_value_formatter = lambda value, datatype=datatype, domain_options=domain_options: display_tile_values(
                 value,
                 datatype,
                 concept_labels,
                 related_resource_names,
+                domain_options,
             )
             row[output_node_id] = format_repeated_values(values[node_id], formatter)
             row["_sort_values"][output_node_id] = normalized_sort_values(
