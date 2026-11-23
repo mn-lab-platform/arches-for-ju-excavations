@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views import View
 from arches.app.models.models import Edge, Graph, Node, Resource, Value
+from arches.app.search.search_engine_factory import SearchEngineInstance
 from arches.app.utils import permission_backend
 
 
@@ -184,7 +185,9 @@ def accessible_resources(request, graph_id):
     if request.user.is_superuser:
         return resources
 
-    is_exclusive, restricted_ids = permission_backend.get_filtered_instances(request.user)
+    is_exclusive, restricted_ids = permission_backend.get_filtered_instances(
+        request.user, search_engine=SearchEngineInstance
+    )
     if is_exclusive:
         return resources.filter(resourceinstanceid__in=restricted_ids)
     return resources.exclude(resourceinstanceid__in=restricted_ids)
@@ -285,7 +288,9 @@ def concept_label_map(concept_ids):
 def related_resource_name_map(request, resource_ids):
     resources = Resource.objects.filter(resourceinstanceid__in=resource_ids)
     if not request.user.is_superuser:
-        is_exclusive, restricted_ids = permission_backend.get_filtered_instances(request.user)
+        is_exclusive, restricted_ids = permission_backend.get_filtered_instances(
+            request.user, search_engine=SearchEngineInstance
+        )
         if is_exclusive:
             resources = resources.filter(resourceinstanceid__in=restricted_ids)
         else:
