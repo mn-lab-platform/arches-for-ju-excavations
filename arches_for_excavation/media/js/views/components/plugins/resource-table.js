@@ -1,7 +1,7 @@
 import ko from 'knockout';
 import { jsPDF } from 'jspdf';
 import template from 'templates/views/components/plugins/resource-table.htm';
-import { exportCsv as requestCsv, getColumns, getModels, getTable } from 'services/resource-table-api';
+import { exportCsv as requestCsv, getColumns, getCount, getModels, getTable } from 'services/resource-table-api';
 
 ko.bindingHandlers.resourceTableViewportHeight = {
     init(element, valueAccessor) {
@@ -59,6 +59,7 @@ export default ko.components.register('resource-table', {
         self.appliedFilters = {};
         self.queryVersion = 0;
         self.pageController = null;
+        self.countController = null;
         self.columnFilters = {};
         self.columnFilterModes = {};
         self.sortBy = ko.observable('');
@@ -68,6 +69,9 @@ export default ko.components.register('resource-table', {
             const selected = new Set(self.selectedColumnIds());
             return self.availableColumns().filter((column) => selected.has(column.node_id));
         });
+        self.countLabel = ko.pureComputed(() => self.totalCount() === null
+            ? `Resources: ${self.rows().length}${self.hasMore() ? '+' : ''}`
+            : `Resources: ${self.totalCount()}`);
         self.columnTree = ko.pureComputed(() => self.availableColumns().map((column) => ({
             ...column,
         })));
@@ -254,7 +258,9 @@ export default ko.components.register('resource-table', {
         self.selectedModelId.subscribe((graphId) => {
             self.queryVersion += 1;
             if (self.pageController) self.pageController.abort();
+            if (self.countController) self.countController.abort();
             self.pageController = null;
+            self.countController = null;
             self.pageLoading(false);
             self.loading(false);
             self.availableColumns([]);
@@ -336,6 +342,21 @@ export default ko.components.register('resource-table', {
             }
         };
 
+        self.loadCount = function(version) {
+            const controller = new AbortController();
+            self.countController = controller;
+            getCount({ ...self.queryState(), signal: controller.signal })
+                .then((data) => {
+                    if (version === self.queryVersion && self.hasMore()) {
+                        self.totalCount(data.total_count);
+                    }
+                })
+                .catch(() => null)
+                .finally(() => {
+                    if (self.countController === controller) self.countController = null;
+                });
+        };
+
         self.loadPage = function() {
             if (self.pageLoading()) return;
             const version = self.queryVersion;
@@ -356,6 +377,12 @@ export default ko.components.register('resource-table', {
                     }
                     self.nextCursor(data.next_cursor || null);
                     self.hasMore(Boolean(data.next_cursor));
+                    if (!self.hasMore()) {
+                        if (self.countController) self.countController.abort();
+                        if (self.totalCount() === null) self.totalCount(self.rows().length);
+                    } else if (firstPage && self.totalCount() === null) {
+                        self.loadCount(version);
+                    }
                     self.tableBuilt(true);
                 })
                 .catch((error) => {
@@ -378,7 +405,9 @@ export default ko.components.register('resource-table', {
         self.startQuery = function() {
             self.queryVersion += 1;
             if (self.pageController) self.pageController.abort();
+            if (self.countController) self.countController.abort();
             self.pageController = null;
+            self.countController = null;
             self.pageLoading(false);
             self.rows([]);
             self.totalCount(null);

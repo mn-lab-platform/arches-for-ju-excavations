@@ -33,7 +33,7 @@ from .views.cesium_plugin import Models3DAccessView
 from .views.cidoc_periodic_table import CidocPeriodicTableDataView
 from .views.ontology_usage import OntologyUsageModelGraphView, OntologyUsageModelLayoutView, OntologyUsageModelsView
 from .views.displayname_search import DisplayNameSearchView
-from .views.resource_table import ResourceTableColumnsView, ResourceTableCsvView, ResourceTableDataView, ResourceTableModelsView
+from .views.resource_table import ResourceTableColumnsView, ResourceTableCountView, ResourceTableCsvView, ResourceTableDataView, ResourceTableModelsView
 from .views.crs import search_epsg, get_epsg_proj4, transform_coordinates
 # from .views.bone_iiif import bone_iiif_image, bone_iiif_info, bone_inventory_example_csv
 from .views.tusd_webhook import model_upload_status, tus_webhook
@@ -94,6 +94,7 @@ urlpatterns = [
     path("api/resource-table/models", ResourceTableModelsView.as_view(), name="resource_table_models"),
     path("api/resource-table/models/<uuid:graph_id>/columns", ResourceTableColumnsView.as_view(), name="resource_table_columns"),
     path("api/resource-table/data", ResourceTableDataView.as_view(), name="resource_table_data"),
+    path("api/resource-table/count", ResourceTableCountView.as_view(), name="resource_table_count"),
     path("api/resource-table/csv", ResourceTableCsvView.as_view(), name="resource_table_csv"),
     path("api/crs/search", search_epsg, name="search_epsg"),
     path("api/crs/proj4/<str:code>", get_epsg_proj4, name="get_epsg_proj4"),

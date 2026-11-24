@@ -78,7 +78,7 @@
     <section class="resource-table-plugin__table-view" data-bind="visible: tableBuilt">
         <div class="resource-table-plugin__toolbar">
             <div class="resource-table-plugin__toolbar-start">
-                <span class="resource-table-plugin__count" role="status" aria-live="polite" data-bind="text: totalCount() === null ? 'Resources: …' : 'Resources: ' + totalCount()"></span>
+                <span class="resource-table-plugin__count" role="status" aria-live="polite" data-bind="text: countLabel"></span>
                 <button type="button" data-bind="click: editColumns">Choose columns</button>
             </div>
             <div class="resource-table-plugin__actions">

@@ -180,17 +180,25 @@ def selected_columns(graph_id, requested_ids):
     return [available[str(node_id)] for node_id in requested], available
 
 
-def accessible_resources(request, graph_id):
-    resources = Resource.objects.filter(graph_id=graph_id)
+def filter_accessible_resources(request, resources):
     if request.user.is_superuser:
         return resources
 
-    is_exclusive, restricted_ids = permission_backend.get_filtered_instances(
-        request.user, search_engine=SearchEngineInstance
-    )
+    permissions = getattr(request, "_resource_table_permissions", None)
+    if permissions is None:
+        # Arches' default `resources=list[str]` produces an invalid Elasticsearch IDs query.
+        permissions = permission_backend.get_filtered_instances(
+            request.user, search_engine=SearchEngineInstance, resources=None
+        )
+        request._resource_table_permissions = permissions
+    is_exclusive, restricted_ids = permissions
     if is_exclusive:
         return resources.filter(resourceinstanceid__in=restricted_ids)
     return resources.exclude(resourceinstanceid__in=restricted_ids)
+
+
+def accessible_resources(request, graph_id):
+    return filter_accessible_resources(request, Resource.objects.filter(graph_id=graph_id))
 
 
 def build_table_columns(columns):
@@ -286,15 +294,11 @@ def concept_label_map(concept_ids):
 
 
 def related_resource_name_map(request, resource_ids):
-    resources = Resource.objects.filter(resourceinstanceid__in=resource_ids)
-    if not request.user.is_superuser:
-        is_exclusive, restricted_ids = permission_backend.get_filtered_instances(
-            request.user, search_engine=SearchEngineInstance
-        )
-        if is_exclusive:
-            resources = resources.filter(resourceinstanceid__in=restricted_ids)
-        else:
-            resources = resources.exclude(resourceinstanceid__in=restricted_ids)
+    if not resource_ids:
+        return {}
+    resources = filter_accessible_resources(
+        request, Resource.objects.filter(resourceinstanceid__in=resource_ids)
+    )
     return {
         str(resource.resourceinstanceid): resource_display_name(resource)
         for resource in resources
@@ -629,7 +633,9 @@ def iter_resource_rows(request, graph_id, columns, table_columns, after_id=None)
         batch_query = resources
         if last_id:
             batch_query = batch_query.filter(resourceinstanceid__gt=last_id)
-        batch = list(batch_query.prefetch_related("tilemodel_set")[:PAGE_SIZE])
+        # Include the lookahead row in the first batch so a 200-row page does
+        # not have to prepare another full batch just to find its next cursor.
+        batch = list(batch_query.prefetch_related("tilemodel_set")[:PAGE_SIZE + 1])
         if not batch:
             return
         last_id = batch[-1].resourceinstanceid
@@ -708,6 +714,9 @@ class ResourceTableDataView(View):
             page_size = payload.get("page_size", PAGE_SIZE)
             if isinstance(page_size, bool) or not isinstance(page_size, int) or not 1 <= page_size <= PAGE_SIZE:
                 raise ValueError("Invalid page size.")
+            include_total_count = payload.get("include_total_count", True)
+            if not isinstance(include_total_count, bool):
+                raise ValueError("Invalid count option.")
             cursor = str(payload.get("cursor") or "")
             total_count = None
             if sort_by:
@@ -755,9 +764,9 @@ class ResourceTableDataView(View):
                     after_id,
                 )
                 page = []
-                if not cursor and not filters:
+                if include_total_count and not cursor and not filters:
                     total_count = accessible_resources(request, graph_id).count()
-                if not cursor and filters:
+                if include_total_count and not cursor and filters:
                     total_count = 0
                     for row in rows:
                         total_count += 1
@@ -776,6 +785,23 @@ class ResourceTableDataView(View):
                 result,
                 json_dumps_params={"ensure_ascii": False},
             )
+        except LookupError as error:
+            return JsonResponse({"error": str(error)}, status=404)
+        except (ValueError, json.JSONDecodeError) as error:
+            return JsonResponse({"error": str(error)}, status=400)
+
+
+class ResourceTableCountView(View):
+    def post(self, request):
+        try:
+            _, graph_id, columns, table_columns, filters, _, _ = table_request(request)
+            if filters:
+                total_count = sum(1 for _ in matching_rows(
+                    request, graph_id, columns, table_columns, filters, "", "asc",
+                ))
+            else:
+                total_count = accessible_resources(request, graph_id).count()
+            return JsonResponse({"total_count": total_count})
         except LookupError as error:
             return JsonResponse({"error": str(error)}, status=404)
         except (ValueError, json.JSONDecodeError) as error:

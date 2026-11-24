@@ -57,7 +57,20 @@ export function getTable(state) {
     return requestJson('/api/resource-table/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tablePayload(state)),
+        body: JSON.stringify({ ...tablePayload(state), include_total_count: false }),
+        signal: state.signal,
+    });
+}
+
+export function getCount(state) {
+    return requestJson('/api/resource-table/count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            graph_id: state.graphId,
+            columns: state.columns,
+            filters: state.filters || {},
+        }),
         signal: state.signal,
     });
 }
